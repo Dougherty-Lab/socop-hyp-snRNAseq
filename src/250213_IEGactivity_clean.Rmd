@@ -619,6 +619,44 @@ ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity/250303-acti
        height = 8)
 ```
 
+```{r}
+significant_clusters <- cluster_ieg_Sex_comparison %>%
+  filter(p_value < 0.1) %>%
+  pull(Cluster) %>%
+  as.character()
+
+
+sig_cluster_ieg_Sex_percentages_norm <- cluster_ieg_sex_percentages_norm %>%
+  dplyr::filter(Cluster %in% significant_clusters) %>%
+  arrange(match(Cluster, significant_clusters))
+
+sig_cluster_ieg_Sex_percentages_norm$Cluster <- 
+  factor(sig_cluster_ieg_Sex_percentages_norm$Cluster,
+         levels=rev(sort(significant_clusters)))
+
+
+sig_p1 <- ggplot(sig_cluster_ieg_Sex_percentages_norm, aes(x = Mean_Activated_Percentage.x, y = Cluster, fill = Sex)) +
+  geom_bar(stat = "identity", position = "dodge",
+           width = 0.7) +
+  geom_errorbar(aes(y = Cluster, xmin = Mean_Activated_Percentage.x - SE_Mean, xmax = Mean_Activated_Percentage.x + SE_Mean),
+                position = position_dodge(0.7),
+                width = 0.2, size = 0.2) +
+  labs(x = "Proportion", y = "Cluster") +
+  theme_classic() +
+  scale_fill_manual(values =palette_sex) +
+  geom_point(aes(x = Activated_Percentage, y = Cluster),
+             position = position_dodge(width = 0.7),
+             color = "black",
+             size = 0.01) +
+  theme(legend.position = "right")
+
+sig_p1
+
+ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity/250303-activationbySex_neuronal_1-5_5pct_50_1.8_sigonly.pdf',
+       device = pdf,
+       width = 5,
+       height = 8)
+```
 
 ## by Learner
 ```{r pct activated by learner df}
@@ -2467,6 +2505,7 @@ cat("All plots have been saved in the 'SacDistancebyActivatedPercentage' directo
 ```
 
 # Gene Module Analysis
+
 ```{r add module scores}
 ieg_lst <- list(ieg_62 = filtered_iegs)
 
@@ -2489,14 +2528,18 @@ sample_info = combined.neuronal@meta.data %>%
   dplyr::select(
   sample, 
   rewards = Avg_Total_Rewards, 
+  sac_rewards = Sac_Total_Rewards,
+  distance = Avg_Test_Distance,
+  sac_distance = Sac_Test_Distance,
   cell_type, 
   genotype, 
   sex, 
   score_ieg62 = IEG_score1)
 ```
 
-```{r}
-# 62 IEGs
+## Rewards
+
+```{r linear regression for IEG module rewards}
 model_summary_df <- data.frame()
 
 for (cluster in unique(sample_info$cell_type)) {
@@ -2538,14 +2581,16 @@ for (cluster in unique(sample_info$cell_type)) {
 model_summary_df$adj_p_value <- p.adjust(model_summary_df$p_value, method = 'BH')
 
 model_summary_df %>% 
-  write_csv('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity/250303_genemodulescore_results.csv')
+  write_csv('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity/250303_genemodulescore_results_rewards.csv')
 ```
 
-```{r}
+```{r plots for rewards}
 # filter only significant results
 sig_df = model_summary_df %>% filter(p_value < 0.05)
 
 cts = sig_df$Cluster %>% unique()
+
+dir.create("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity/RewardsbyModuleScore_Figs", showWarnings = FALSE)
 
 for (ct in cts){
   plot_df = sample_info %>% 
@@ -2565,9 +2610,238 @@ for (ct in cts){
     
     print(pp)
     ct_name = gsub('/', '-', ct)
-    ggsave(paste0('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity/intermed-figs/250303_linearplot_', ct_name, '_genemodulescore.pdf'), pp, width = 5, height = 3.5)
+    ggsave(paste0('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity/RewardsbyModuleScore_Figs/250303_linearplot_', ct_name, '_genemodulescore.pdf'), pp, width = 5, height = 3.5)
   }
 ```
+
+## Sac rewards
+
+```{r linear regression for IEG module sac_rewards}
+model_summary_df <- data.frame()
+
+for (cluster in unique(sample_info$cell_type)) {
+  # Filter the data frame for the current cluster
+  cluster_df <- sample_info %>% 
+    filter(cell_type == cluster) %>% 
+    distinct
+  
+  # Fit the linear regression model
+  lm_model <- lm(sac_rewards ~ score_ieg62, data = cluster_df)
+  
+  # Extract the model summary
+  model_summary <- summary(lm_model)
+  
+  # Create a named vector with model summary statistics
+  model_summary_vec <- c(
+    `(Intercept)` = coef(lm_model)[1],
+    `(Intercept) p-value` = coef(model_summary)[1, "Pr(>|t|)"],
+    coef(lm_model)[2],
+    `Std. Error` = coef(model_summary)[2, "Std. Error"],
+    `t_value` = coef(model_summary)[2, "t value"],
+    `p_value` = coef(model_summary)[2, "Pr(>|t|)"],
+    r_squared = model_summary$r.squared,
+    adj_r_squared = model_summary$adj.r.squared,
+    f_statistic = model_summary$fstatistic[1],
+    f_pvalue = pf(model_summary$fstatistic[1], model_summary$fstatistic[2], model_summary$fstatistic[3], lower.tail = FALSE)
+  )
+  
+  # Convert the named vector to a data frame
+  model_summary_vec_df <- data.frame(t(model_summary_vec))
+  
+  # Add a column for the cluster
+  model_summary_vec_df$Cluster <- cluster
+  
+  # Append the data frame to the overall result
+  model_summary_df <- rbind(model_summary_df, model_summary_vec_df)
+}
+
+model_summary_df$adj_p_value <- p.adjust(model_summary_df$p_value, method = 'BH')
+
+model_summary_df %>% 
+  write_csv('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity/250303_genemodulescore_results_sac_rewards.csv')
+```
+
+```{r plots for sac_rewards}
+# filter only significant results
+sig_df = model_summary_df %>% filter(p_value < 0.05)
+
+cts = sig_df$Cluster %>% unique()
+
+dir.create("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity/sac_rewardsbyModuleScore_Figs", showWarnings = FALSE)
+
+for (ct in cts){
+  plot_df = sample_info %>% 
+    filter(cell_type == ct)
+  
+    pp <- ggplot(plot_df, aes(score_ieg62, sac_rewards)) +
+    geom_smooth(method = 'lm', se = FALSE, fullrange = TRUE, color = 'black', linewidth = 0.75) +
+    geom_smooth(method = 'lm', aes(color = sex), se = FALSE, fullrange = TRUE, linewidth = 0.75) +
+    scale_color_manual(values = palette_sex) +
+    scale_x_continuous(expand = expansion(c(0, 0))) +
+    labs(title = ct, color = 'Sex', x = 'Score_IEG62', y = 'sac_rewards') +
+    theme_bw() +
+    theme(panel.grid = element_blank(),
+        plot.title = element_text(size = 16),
+        axis.text = element_text(size = 12, color = 'black'),
+        axis.title = element_text(size = 14))
+    
+    print(pp)
+    ct_name = gsub('/', '-', ct)
+    ggsave(paste0('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity/sac_rewardsbyModuleScore_Figs/250303_linearplot_', ct_name, '_genemodulescore.pdf'), pp, width = 5, height = 3.5)
+  }
+```
+## Distance
+
+```{r linear regression for IEG module distance}
+model_summary_df <- data.frame()
+
+for (cluster in unique(sample_info$cell_type)) {
+  # Filter the data frame for the current cluster
+  cluster_df <- sample_info %>% 
+    filter(cell_type == cluster) %>% 
+    distinct
+  
+  # Fit the linear regression model
+  lm_model <- lm(distance ~ score_ieg62, data = cluster_df)
+  
+  # Extract the model summary
+  model_summary <- summary(lm_model)
+  
+  # Create a named vector with model summary statistics
+  model_summary_vec <- c(
+    `(Intercept)` = coef(lm_model)[1],
+    `(Intercept) p-value` = coef(model_summary)[1, "Pr(>|t|)"],
+    coef(lm_model)[2],
+    `Std. Error` = coef(model_summary)[2, "Std. Error"],
+    `t_value` = coef(model_summary)[2, "t value"],
+    `p_value` = coef(model_summary)[2, "Pr(>|t|)"],
+    r_squared = model_summary$r.squared,
+    adj_r_squared = model_summary$adj.r.squared,
+    f_statistic = model_summary$fstatistic[1],
+    f_pvalue = pf(model_summary$fstatistic[1], model_summary$fstatistic[2], model_summary$fstatistic[3], lower.tail = FALSE)
+  )
+  
+  # Convert the named vector to a data frame
+  model_summary_vec_df <- data.frame(t(model_summary_vec))
+  
+  # Add a column for the cluster
+  model_summary_vec_df$Cluster <- cluster
+  
+  # Append the data frame to the overall result
+  model_summary_df <- rbind(model_summary_df, model_summary_vec_df)
+}
+
+model_summary_df$adj_p_value <- p.adjust(model_summary_df$p_value, method = 'BH')
+
+model_summary_df %>% 
+  write_csv('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity/250303_genemodulescore_results_distance.csv')
+```
+
+```{r plots for distance}
+# filter only significant results
+sig_df = model_summary_df %>% filter(p_value < 0.05)
+
+cts = sig_df$Cluster %>% unique()
+
+dir.create("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity/distancebyModuleScore_Figs", showWarnings = FALSE)
+
+for (ct in cts){
+  plot_df = sample_info %>% 
+    filter(cell_type == ct)
+  
+    pp <- ggplot(plot_df, aes(score_ieg62, distance)) +
+    geom_smooth(method = 'lm', se = FALSE, fullrange = TRUE, color = 'black', linewidth = 0.75) +
+    geom_smooth(method = 'lm', aes(color = sex), se = FALSE, fullrange = TRUE, linewidth = 0.75) +
+    scale_color_manual(values = palette_sex) +
+    scale_x_continuous(expand = expansion(c(0, 0))) +
+    labs(title = ct, color = 'Sex', x = 'Score_IEG62', y = 'distance') +
+    theme_bw() +
+    theme(panel.grid = element_blank(),
+        plot.title = element_text(size = 16),
+        axis.text = element_text(size = 12, color = 'black'),
+        axis.title = element_text(size = 14))
+    
+    print(pp)
+    ct_name = gsub('/', '-', ct)
+    ggsave(paste0('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity/distancebyModuleScore_Figs/250303_linearplot_', ct_name, '_genemodulescore.pdf'), pp, width = 5, height = 3.5)
+  }
+```
+
+## Sac distance
+
+```{r linear regression for IEG module sac_distance}
+model_summary_df <- data.frame()
+
+for (cluster in unique(sample_info$cell_type)) {
+  # Filter the data frame for the current cluster
+  cluster_df <- sample_info %>% 
+    filter(cell_type == cluster) %>% 
+    distinct
+  
+  # Fit the linear regression model
+  lm_model <- lm(sac_distance ~ score_ieg62, data = cluster_df)
+  
+  # Extract the model summary
+  model_summary <- summary(lm_model)
+  
+  # Create a named vector with model summary statistics
+  model_summary_vec <- c(
+    `(Intercept)` = coef(lm_model)[1],
+    `(Intercept) p-value` = coef(model_summary)[1, "Pr(>|t|)"],
+    coef(lm_model)[2],
+    `Std. Error` = coef(model_summary)[2, "Std. Error"],
+    `t_value` = coef(model_summary)[2, "t value"],
+    `p_value` = coef(model_summary)[2, "Pr(>|t|)"],
+    r_squared = model_summary$r.squared,
+    adj_r_squared = model_summary$adj.r.squared,
+    f_statistic = model_summary$fstatistic[1],
+    f_pvalue = pf(model_summary$fstatistic[1], model_summary$fstatistic[2], model_summary$fstatistic[3], lower.tail = FALSE)
+  )
+  
+  # Convert the named vector to a data frame
+  model_summary_vec_df <- data.frame(t(model_summary_vec))
+  
+  # Add a column for the cluster
+  model_summary_vec_df$Cluster <- cluster
+  
+  # Append the data frame to the overall result
+  model_summary_df <- rbind(model_summary_df, model_summary_vec_df)
+}
+
+model_summary_df$adj_p_value <- p.adjust(model_summary_df$p_value, method = 'BH')
+
+model_summary_df %>% 
+  write_csv('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity/250303_genemodulescore_results_sac_distance.csv')
+```
+
+```{r plots for sac_distance}
+# filter only significant results
+sig_df = model_summary_df %>% filter(p_value < 0.05)
+
+cts = sig_df$Cluster %>% unique()
+
+dir.create("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity/sac_distancebyModuleScore_Figs", showWarnings = FALSE)
+
+for (ct in cts){
+  plot_df = sample_info %>% 
+    filter(cell_type == ct)
+  
+    pp <- ggplot(plot_df, aes(score_ieg62, sac_distance)) +
+    geom_smooth(method = 'lm', se = FALSE, fullrange = TRUE, color = 'black', linewidth = 0.75) +
+    geom_smooth(method = 'lm', aes(color = sex), se = FALSE, fullrange = TRUE, linewidth = 0.75) +
+    scale_color_manual(values = palette_sex) +
+    scale_x_continuous(expand = expansion(c(0, 0))) +
+    labs(title = ct, color = 'Sex', x = 'Score_IEG62', y = 'sac_distance') +
+    theme_bw() +
+    theme(panel.grid = element_blank(),
+        plot.title = element_text(size = 16),
+        axis.text = element_text(size = 12, color = 'black'),
+        axis.title = element_text(size = 14))
+    
+    print(pp)
+    ct_name = gsub('/', '-', ct)
+    ggsave(paste0('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity/sac_distancebyModuleScore_Figs/250303_linearplot_', ct_name, '_genemodulescore.pdf'), pp, width = 5, height = 3.5)
+  }
 ```
 
 # End
