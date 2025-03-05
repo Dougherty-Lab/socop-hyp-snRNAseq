@@ -3020,6 +3020,36 @@ cat("All plots have been saved in the 'DistancebyProp' directory.\n")
 ```
 
 
+## Plotting B values
+```{r plotting beta coefficients distance}
+cluster_order <- rev(sort(model_summary_df$cluster))
+
+model_summary_df$cluster <- factor(model_summary_df$cluster, levels = cluster_order)
+
+# Assuming your data frame is called model_summary_df
+p_beta <- ggplot(model_summary_df, 
+       aes(x = Props.props_trans, y = cluster)) +
+  geom_bar(stat = "identity", 
+           width = 0.7,
+           fill = "#888888") +
+  geom_errorbar(aes(xmin = Props.props_trans - Props.Std..Error, 
+                    xmax = Props.props_trans + Props.Std..Error),
+                position = position_dodge(0.7),
+                width = 0.2, 
+                size = 0.2) +
+  labs(x = "Beta Coefficient", 
+       y = "Cluster") +
+  theme_classic() +
+  theme(legend.position = "none",
+        axis.text.y = element_text(color = rep(c("#000000", "#555555"), 
+                                 length.out = length(unique(model_summary_df$cluster)))))
+
+p_beta
+ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/250301_distancebyprops_betacoeffs.pdf',
+       device = pdf,
+       width = 6,
+       height = 8)
+```
 
 # Lisi score
 
