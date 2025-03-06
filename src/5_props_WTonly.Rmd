@@ -83,8 +83,6 @@ celldistribution
 ```
 
 ```{r cell and gene numbers df}
-levels(WT.only$cell_type) <- rev(unique(as.character(WT.only$cell_type)))
-
 cluster.set <- rev(levels(WT.only$cell_type))
 
 cells.per.cluster <- c(table(WT.only$cell_type)[as.character(cluster.set)])
@@ -483,17 +481,17 @@ anatomical_dict <- c(
   "STR-PAL Chst9 Gaba" = "Other",
   "Mixed" = "Hypothalamus",
   "VMH Nr5a1 Glut_1" = "Hypothalamus",
-  "Lhx6/Lhx8 Gaba" = "Hypothalamus",
+  "Lhx6-Lhx8 Gaba" = "Hypothalamus",
   "Lhx6 Gaba" = "Hypothalamus",
   "PH-LHA-MM Foxb1 Glut" = "Hypothalamus",
-  "PV-PT Ntrk1/Sp9 Glut" = "Other",
+  "PV-PT Ntrk1-Sp9 Glut" = "Other",
   "PO-MEA Glut" = "Hypothalamus",
   "PO-COAa-PAA-MEA Barhl2 Glut" = "Hypothalamus",
   "VMH Nr5a1 Glut_2" = "Hypothalamus",
-  "DMH Hmx2/Vgll1 Glut" = "Hypothalamus",
+  "DMH Hmx2-Vgll1 Glut" = "Hypothalamus",
   "TU-ARH Otp Six6 Gaba" = "Hypothalamus",
   "DMH Gaba" = "Hypothalamus",
-  "ZI/PVH/SBPV Pax6/Prox1 Gaba" = "Other",
+  "ZI-PVH-SBPV Pax6-Prox1 Gaba" = "Other",
   "AHN Onecut3 Gaba" = "Hypothalamus",
   "AHN-PVHd-PVR Mixed Gaba" = "Hypothalamus",
   "PVpo-VMPO-MPN Hmx2 Gaba" = "Hypothalamus",
@@ -514,7 +512,7 @@ anatomical_dict <- c(
   "NDB-SI-MA-STRv Lhx8 Gaba" = "Hypothalamus",
   "SI-MPO-LPO-ADP Lhx8 Gaba" = "Hypothalamus",
   "HY NSCs_2" = "Hypothalamus",
-  "STR D1/D2 Gaba" = "Other",
+  "STR D1-D2 Gaba" = "Other",
   "STR D1 Gaba" = "Other",
   "PO-MEA Slc17a7 Glut" = "Hypothalamus",
   "ARC Mixed Glut" = "Hypothalamus",
@@ -564,7 +562,6 @@ ggplot(props.sex, aes(x = -log10(FDR),
         height = 12,
         dpi = 300)
 ```
-
 ```{r p-values by region plot sex top 10}
 filtered_props <- props.sex %>%
   group_by(region) %>%
