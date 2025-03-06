@@ -1,0 +1,1104 @@
+---
+title: "Plot DEG Results and Create Summary Tables and Figures"
+author: "Simona Sarafinovska"
+date: "2025-03-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load dependencies
+
+```{r dependencies, warning=FALSE, message=FALSE}
+
+# Change this to your directory
+.libPaths('/ref/jdlab/software/r-envs/simona/r-packages/4.2/')
+
+library(Seurat)
+library(tidyverse)
+library(magrittr)
+library(ReactomePA)
+library(clusterProfiler)
+library(enrichplot)
+library(org.Mm.eg.db)
+library(DOSE)
+library(cowplot)
+library(Matrix.utils)
+library(edgeR)
+library(Matrix)
+library(reshape2)
+library(S4Vectors)
+library(SingleCellExperiment)
+library(pheatmap)
+library(apeglm)
+library(png)
+library(DESeq2)
+library(RColorBrewer)
+library(data.table)
+library(viridis)
+library(ggrepel)
+
+source("color_utils.R")
+```
+
+# Load in pre-processed data
+
+```{r load rds}
+combined_neuronal <-  readRDS("../data/250228_combined.neuronal_1-5_5pct.rds")
+```
+
+# Summary tables and figures
+
+## By Geno
+
+### Bar plot
+```{r DEG results df for geno}
+file_list <- list.files("../ej_results/GEX/Geno", pattern = "signif genes.csv", full.names = TRUE)
+
+results_df <- data.frame(file = character(), 
+                         wt_enrich = integer(), 
+                         mut_enrich = integer(), 
+                         stringsAsFactors = FALSE)
+
+for (file in file_list) {
+  file_df <- read.csv(file)
+  wt_enrich <- sum(file_df$log2FoldChange < 0)
+  mut_enrich <- sum(file_df$log2FoldChange > 0)
+  
+  results_df <- rbind(results_df, 
+                      data.frame(file = file, 
+                                 wt_enrich = wt_enrich, 
+                                 mut_enrich = mut_enrich, 
+                                 stringsAsFactors = FALSE))
+}
+
+results_df$file <- sub("../ej_results/GEX/Geno/", "", results_df$file)
+results_df$file <- sub(" signif genes.csv", "", results_df$file)
+
+write.csv(results_df, file = "../ej_results/GEX/Geno/DEG table.csv")
+```
+
+```{r plot DEG results geno}
+results_df$cluster <- results_df$file
+results_df$cluster <- factor(results_df$cluster, levels = rev(unique(results_df$cluster)))
+
+# First, make F_enrich negative to flip it to the left side
+results_df$wt_enrich_neg <- -results_df$wt_enrich
+
+# Create the combined plot
+comb.plot <- ggplot(results_df) +
+  # Male enrichment (right side)
+  geom_bar(aes(x = wt_enrich_neg, y = cluster, fill = "WT"),
+           stat = "identity",
+           linewidth = 0.2) +
+  # Female enrichment (left side)
+  geom_bar(aes(x = mut_enrich, y = cluster, fill = "Het"),
+           stat = "identity",
+           linewidth = 0.2) +
+  # Set the axis limits symmetrically
+  scale_x_continuous(
+    limits = c(-60, 30),
+    breaks = seq(-60, 30, 10),
+    labels = abs(seq(-60, 30, 10))  # Use absolute values for axis labels
+  ) +
+  scale_fill_manual(values = palette_geno) +
+  labs(x = "Number of DEGs", 
+       y = "Cluster",
+       fill = "Genotype") +  # Add title for the legend
+  theme_classic() +
+  theme(        axis.text.y = element_text(color = rep(c("#000000", "#555555"), 
+                                             length.out = length(unique(results_df$cluster))))) +
+  geom_vline(xintercept = 0, linewidth = 0.2)
+
+comb.plot
+ggsave('../ej_results/GEX/intermed-figs/250301_DEGsbyGenoall.pdf',
+       device = pdf,
+       width = 6,
+       height = 6)
+```
+
+```{r filter results for sig clusters}
+# Filter the data frame for P.Value < 0.051
+sig_results_df <- results_df[((results_df$wt_enrich != 0) + (results_df$mut_enrich != 0)) >1, ]
+
+# Extract the BaselineProp.clusters for the significant results
+significant_cluster_names <-sort( as.character(sig_results_df$file))
+
+# Print the list of significant clusters
+print(significant_cluster_names)
+```
+
+```{r plot sig DEG results for geno}
+# Create the combined plot
+sig.comb.plot <- ggplot(sig_results_df) +
+  # Male enrichment (right side)
+  geom_bar(aes(x = wt_enrich_neg, y = cluster, fill = "WT"),
+           stat = "identity",
+           linewidth = 0.2) +
+  # Female enrichment (left side)
+  geom_bar(aes(x = mut_enrich, y = cluster, fill = "Het"),
+           stat = "identity",
+           linewidth = 0.2) +
+  # Set the axis limits symmetrically
+  scale_x_continuous(
+    limits = c(-60, 30),
+    breaks = seq(-60, 30, 10),
+    labels = abs(seq(-60, 30, 10))  # Use absolute values for axis labels
+  ) +
+  scale_fill_manual(values = palette_geno) +
+  labs(x = "Number of DEGs", 
+       y = "",
+       fill = "Genotype") +  # Add title for the legend
+  theme_classic() +
+  theme(axis.text.y = element_blank(),
+        legend.position = "none") +
+  geom_vline(xintercept = 0, linewidth = 0.2)
+
+sig.comb.plot
+
+ ggsave(filename = "../ej_results/GEX/intermed-figs/250301_DEGsbygeno_sig.pdf",
+        width = 8,
+        height = 12,
+        dpi = 300)
+```
+
+### Summary tables
+
+```{r DEG table with all output geno}
+file_list <- list.files("../ej_results/GEX/Geno", pattern = "signif genes.csv", full.names = TRUE)
+file_list <- sub("../ej_results/GEX/Geno/", "", results_df$file)
+
+concatenated_data <- data.frame()
+
+for (file in file_list){
+  current_data <- read.csv(paste0("../ej_results/GEX/Geno/", file, " signif genes.csv"), sep = ',', header = TRUE)
+  if(dim(current_data)[1] > 0) {
+  current_data$cellType <- sub("signif genes.csv", "", file)
+  concatenated_data <- rbind(concatenated_data, current_data)
+  }
+}
+
+write.csv(concatenated_data, file = '../ej_results/GEX/Geno/DEGs_table.csv')
+```
+
+List of unique genes
+```{r unique DEG list geno}
+uniqueDEGs <- as.data.frame(unique(concatenated_data$gene))
+print(uniqueDEGs, sep = ",")
+
+write_csv(uniqueDEGs, file = "../ej_results/GEX/Geno/uniqueDEGs.csv")
+```
+
+### Volcano plot
+
+```{r results table for plotting geno}
+res_all <- concatenated_data %>%
+  mutate(
+    avg_log2FC = log2FoldChange,
+    p_val_adj = padj,
+    cell_type = cellType,
+    change = case_when(
+      p_val_adj >= 0.05 ~ "None",  
+      avg_log2FC > 0 ~ "Up",       
+      avg_log2FC < 0 ~ "Down",    
+      TRUE ~ "None"                 
+    ),
+    # Force the factor levels order
+    change = factor(change, levels = c("Up", "Down", "None"))
+  )
+```
+
+```{r filter res for cluster of interest geno}
+# Filter for specific cluster
+res_table = res_all %>% filter(cell_type == "TH-Sema5b-Ntrk-Glut")
+
+# Get top 10 most significant genes
+top_genes = res_table %>% 
+  filter(change != 'None') %>%
+  slice_min(p_val_adj, n = 10) %>%
+  pull(gene)
+
+x_range = max(abs(res_table$avg_log2FC), na.rm = T) * 1.05
+y_range = max(-log10(res_table$p_val_adj), na.rm = T) * 1.1
+```
+
+```{r volcano plot for cluster of interest geno}
+p <- ggplot(res_table, aes(x = avg_log2FC, y = -log10(p_val_adj))) +
+  geom_point(aes(color = change), size = 2) +
+  geom_text_repel(
+    data = res_table %>% filter(gene %in% top_genes),
+    aes(label = gene),
+    size = 3,
+    max.overlaps = Inf,
+    box.padding = 0.5,
+    segment.size = 0.5,
+    segment.color = "grey50"
+  ) +
+  ggtitle('DEGs (TH-Sema5b-Ntrk-Glut)') +
+  xlab(expression(log[2]("Fold Change"))) +
+  ylab(expression(-log[10]("adjusted p-value"))) +
+  geom_hline(yintercept = -log10(0.05), colour = "grey40", size = 0.7) +
+  geom_vline(xintercept = 0, colour = "black") +
+  ggplot2::xlim(-x_range, x_range) +
+  ggplot2::ylim(0, y_range) +
+  scale_y_continuous(expand = c(0, 0.1)) +  # Back to regular scaling
+  theme_classic() +
+  scale_color_manual(
+    values = c(Up = '#b80f0a', Down = '#0a6fb8', None = 'grey'),
+    breaks = c("Up", "Down", "None"),
+    labels = c('Up-regulated', 'Down-regulated', 'Not significant')
+  ) +
+  theme(
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    axis.title = element_text(size = 14),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 12),
+    axis.line = element_line(size = 0.8),
+    plot.title = element_text(size = 16)
+  )
+
+p
+
+ggsave(filename = "../ej_results/GEX/250301_TH-Sema5b-Ntrk-Glut_geno_volcano.pdf",
+       width = 6,
+       height = 4,
+       device = pdf)
+```
+
+
+### GO
+```{r GO dot plot for cluster of interest}
+# Specify cluster name
+name <- "TH-Sema5b-Ntrk-Glut"
+
+# GO Analysis
+go_table <- read.csv(paste0("../ej_results/GEX/Geno/", name, " signif genes.csv"), sep = ',',
+                     header = TRUE)
+
+# Separate genes by direction of change - explicitly get gene names as character vector
+wt_enrich <- as.character(go_table$gene[go_table$log2FoldChange > 0])
+mut_enrich <- as.character(go_table$gene[go_table$log2FoldChange < 0])
+
+
+# Convert gene symbols to ENTREZ IDs
+geneid.ls <- AnnotationDbi::select(org.Mm.eg.db, 
+                    keys = wt_enrich, 
+                    columns=c("ENTREZID", "SYMBOL"), 
+                    keytype = "SYMBOL")
+wt.gene.s <- geneid.ls$ENTREZID
+wt.gene.s <- wt.gene.s[which(!is.na(wt.gene.s))]
+wt.gene.s <- unique(wt.gene.s)
+
+geneid.ls <- AnnotationDbi::select(org.Mm.eg.db, 
+                    keys = mut_enrich, 
+                    columns=c("ENTREZID", "SYMBOL"), 
+                    keytype = "SYMBOL")
+mut.gene.s <- geneid.ls$ENTREZID
+mut.gene.s <- mut.gene.s[which(!is.na(mut.gene.s))]
+mut.gene.s <- unique(mut.gene.s)
+
+gene_list <- list(Mutant=mut.gene.s, Wildtype=wt.gene.s)
+
+# Run GO enrichment comparison
+compGO <- compareCluster(geneCluster = gene_list,
+                        fun = 'enrichGO',
+                        pvalueCutoff = 0.05,
+                        pAdjustMethod = 'BH',
+                        OrgDb = org.Mm.eg.db,
+                        ont = 'BP')
+
+# Create dotplot visualization
+dotplot(compGO, showCategory = 4, title = 'GO Enrichment Analysis') +
+  theme(text = element_text(size = 10),
+        axis.text.y = element_text(size=10))
+
+ggsave(paste0("../ej_results/GEX/Geno/", name, " GO enrichment dotplot.pdf"),
+       device = pdf,
+       width = 5,
+       height = 5)
+```
+
+```{r GO combined plot for all sig clusters geno}
+# GO Analysis - Combined plot
+# First get a background list of all genes
+all.genes <- as.character(rownames(combined_neuronal@assays$RNA))
+geneid.ls <- AnnotationDbi::select(org.Mm.eg.db, 
+                    keys = all.genes, 
+                    columns=c("ENTREZID", "SYMBOL"), 
+                    keytype = "SYMBOL")
+alwt.gene.s <- geneid.ls$ENTREZID
+alwt.gene.s <- alwt.gene.s[which(!is.na(alwt.gene.s))]
+alwt.gene.s <- unique(alwt.gene.s)
+
+# Initialize lists to store genes by cluster
+cluster_genes_list <- list()
+
+# Process each cluster
+for (name in significant_cluster_names) {
+  print(paste("Processing cluster:", name))
+  
+  # Read DEG results
+  go_table <- read.csv(paste0("../ej_results/GEX/Geno/", name, " signif genes.csv"), sep = ',',
+                       header = TRUE)
+  
+  # Get significant genes
+  sig_genes <- as.character(go_table$gene)
+  
+  # Convert to ENTREZ IDs
+  geneid.ls <- AnnotationDbi::select(org.Mm.eg.db, 
+                      keys = sig_genes, 
+                      columns = c("ENTREZID", "SYMBOL"), 
+                      keytype = "SYMBOL")
+  gene.ls <- geneid.ls$ENTREZID
+  gene.ls <- gene.ls[which(!is.na(gene.ls))]
+  gene.ls <- unique(gene.ls)
+  
+  # Store in list
+  cluster_genes_list[[name]] <- gene.ls
+}
+
+# Run GO enrichment comparison
+compGO <- compareCluster(geneCluster = cluster_genes_list,
+                        fun = 'enrichGO',
+                        pvalueCutoff = 0.05,
+                        pAdjustMethod = 'BH',
+                        OrgDb = org.Mm.eg.db,
+                        ont = 'BP',
+                        universe = alwt.gene.s)
+
+# Create dotplot visualization
+p <- dotplot(compGO, showCategory = 10, 
+            title = 'GO Enrichment Analysis by Cluster') +
+  theme(text = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        plot.margin = unit(c(1,1,1,1), "cm")) +
+  scale_color_viridis_c(direction = -1)
+
+p
+# Save plot
+ggsave("../ej_results/GEX/Geno/cluster_GO_enrichment_dotplot.pdf",
+       plot = p,
+       width = 12,
+       height = 10)
+```
+
+
+## By Sex
+
+### Bar plot
+```{r DEG results df for sex}
+file_list <- list.files("../ej_results/GEX/Sex/", pattern = "signif genes.csv", full.names = TRUE)
+
+results_df <- data.frame(file = character(), 
+                         F_enrich = integer(), 
+                         M_enrich = integer(), 
+                         stringsAsFactors = FALSE)
+
+for (file in file_list) {
+  file_df <- read.csv(file)
+  F_enrich <- sum(file_df$log2FoldChange < 0)
+  M_enrich <- sum(file_df$log2FoldChange > 0)
+  
+  results_df <- rbind(results_df, 
+                      data.frame(file = file, 
+                                 F_enrich = F_enrich, 
+                                 M_enrich = M_enrich, 
+                                 stringsAsFactors = FALSE))
+}
+
+results_df$file <- sub("../ej_results/GEX/Sex//", "", results_df$file)
+results_df$file <- sub(" signif genes.csv", "", results_df$file)
+
+write.csv(results_df, file = "../ej_results/GEX/DEG table.csv", sep = ",")
+```
+
+```{r plot DEG results sex}
+results_df$cluster <- results_df$file
+results_df$cluster <- factor(results_df$cluster, levels = rev(unique(results_df$cluster)))
+
+# First, make F_enrich negative to flip it to the left side
+results_df$F_enrich_neg <- -results_df$F_enrich
+
+# Create the combined plot
+comb.plot <- ggplot(results_df) +
+  # Male enrichment (right side)
+  geom_bar(aes(x = M_enrich, y = cluster, fill = "M"),
+           stat = "identity",
+           linewidth = 0.2) +
+  # Female enrichment (left side)
+  geom_bar(aes(x = F_enrich_neg, y = cluster, fill = "F"),
+           stat = "identity",
+           linewidth = 0.2) +
+  # Set the axis limits symmetrically
+  scale_x_continuous(
+    limits = c(-30, 30),
+    breaks = seq(-30, 30, 5),
+    labels = abs(seq(-30, 30, 5))  # Use absolute values for axis labels
+  ) +
+  scale_fill_manual(values = palette_sex) +
+  labs(x = "Number of DEGs", 
+       y = "Cluster",
+       fill = "Sex") +  # Add title for the legend
+  theme_classic() +
+  theme(        axis.text.y = element_text(color = rep(c("#000000", "#555555"), 
+                                             length.out = length(unique(results_df$cluster))))) +
+  geom_vline(xintercept = 0, linewidth = 0.2)
+
+comb.plot
+ggsave('../ej_results/GEX/intermed-figs/250301_DEGsbySexall.pdf',
+       device = pdf,
+       width = 6,
+       height = 6)
+```
+
+```{r plot sig DEG results for sex}
+# Get sig clusters from proportions script
+sig_cluster_names <- c("ARC-Mixed-Glut",
+  "COAa-PAA-MEA-Barhl2-Glut",
+  "HY-NSCs-1",
+  "MEA-Glut",
+  "MEA-BST-Mixed-Gaba",
+  "PH-LHA-PVH-SO-PVa-Nxph4-Glut",
+  "PVN-Mixed-Glut")
+
+sig_results_df <- results_df %>%
+  dplyr::filter(cluster %in% sig_cluster_names) %>%
+  arrange(match(cluster, sig_cluster_names))
+
+
+sig_results_df$cluster <- factor(sig_results_df$cluster, levels = rev(sig_cluster_names))
+
+
+sig_plot <- 
+# Create the combined plot
+ggplot(sig_results_df) +
+  # Male enrichment (right side)
+  geom_bar(aes(x = M_enrich, y = cluster, fill = "M"),
+           stat = "identity",
+           linewidth = 0.2) +
+  # Female enrichment (left side)
+  geom_bar(aes(x = F_enrich_neg, y = cluster, fill = "F"),
+           stat = "identity",
+           linewidth = 0.2) +
+  # Set the axis limits symmetrically
+  scale_x_continuous(
+    limits = c(-30, 30),
+    breaks = seq(-30, 30, 5),
+    labels = abs(seq(-30, 30, 5))  # Use absolute values for axis labels
+  ) +
+  scale_fill_manual(values = palette_sex) +
+  labs(x = "Number of DEGs", 
+       y = "",
+       fill = "Sex") +  # Add title for the legend
+  theme_classic() +
+  theme(axis.text.y = element_blank()) +
+  geom_vline(xintercept = 0, linewidth = 0.2)
+  
+sig_plot
+
+ ggsave(filename = "../ej_results/GEX/intermed-figs/250219_DEGsbysex_sig.pdf",
+        width = 8,
+        height = 12,
+        dpi = 300)
+```
+
+
+### Summary tables
+
+```{r DEG table with all output sex}
+file_list <- list.files("../ej_results/GEX/Sex", pattern = "signif genes.csv", full.names = TRUE)
+file_list <- sub("../ej_results/GEX/Sex/", "", results_df$file)
+
+
+concatenated_data <- data.frame()
+
+for (file in file_list){
+  current_data <- read.csv(paste0("../ej_results/GEX/Sex/", file, " signif genes.csv"), sep = ',', header = TRUE)
+  if(dim(current_data)[1] > 0) {
+  current_data$cellType <- sub("signif genes.csv", "", file)
+  concatenated_data <- rbind(concatenated_data, current_data)
+  }
+}
+
+write.csv(concatenated_data, file = '../ej_results/GEX/Sex/250301_DEGs_table.csv')
+```
+
+```{r unique DEGs list sex}
+uniqueDEGs <- as.data.frame(unique(concatenated_data$gene))
+print(uniqueDEGs, sep = ",")
+
+write_csv(uniqueDEGs, file = "../ej_results/GEX/Sex/250301_uniqueDEGs.csv")
+```
+
+### Volcano plots
+
+```{r results table for plotting sex}
+res_all <- concatenated_data %>%
+  mutate(
+    avg_log2FC = log2FoldChange,
+    p_val_adj = padj,
+    cell_type = cellType,
+    change = case_when(
+      p_val_adj >= 0.05 ~ "None",  
+      avg_log2FC > 0 ~ "Up",       
+      avg_log2FC < 0 ~ "Down",    
+      TRUE ~ "None"                 
+    ),
+    # Force the factor levels order
+    change = factor(change, levels = c("Up", "Down", "None"))
+  )
+```
+
+```{r filter res for cluster of interest sex}
+# Filter for specific cluster
+res_table = res_all %>% filter(cell_type == "PO-MEA-BST-Mixed-Gaba")
+
+# Get top 10 most significant genes
+top_genes = res_table %>% 
+  filter(change != 'None') %>%
+  slice_min(p_val_adj, n = 10) %>%
+  pull(gene)
+
+x_range = max(abs(res_table$avg_log2FC), na.rm = T) * 1.05
+y_range = max(-log10(res_table$p_val_adj), na.rm = T) * 1.1
+```
+
+```{r volcano plot for cluster of interest sex}
+p <- ggplot(res_table, aes(x = avg_log2FC, y = -log10(p_val_adj))) +
+  geom_point(aes(color = change), size = 2) +
+  geom_text_repel(
+    data = res_table %>% filter(gene %in% top_genes),
+    aes(label = gene),
+    size = 3,
+    max.overlaps = Inf,
+    box.padding = 0.5,
+    segment.size = 0.5,
+    segment.color = "grey50"
+  ) +
+  ggtitle('DEGs (MEA-BST-Mixed-Gaba)') +
+  xlab(expression(log[2]("Fold Change"))) +
+  ylab(expression(-log[10]("adjusted p-value"))) +
+  geom_hline(yintercept = -log10(0.05), colour = "grey40", size = 0.7) +
+  geom_vline(xintercept = 0, colour = "black") +
+  ggplot2::xlim(-x_range, x_range) +
+  ggplot2::ylim(0, y_range) +
+  scale_y_continuous(expand = c(0, 0.1)) +  # Back to regular scaling
+  theme_classic() +
+  scale_color_manual(
+    values = c(Up = '#b80f0a', Down = '#0a6fb8', None = 'grey'),
+    breaks = c("Up", "Down", "None"),
+    labels = c('Up-regulated', 'Down-regulated', 'Not significant')
+  ) +
+  theme(
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    axis.title = element_text(size = 14),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 12),
+    axis.line = element_line(size = 0.8),
+    plot.title = element_text(size = 16)
+  )
+
+p
+
+ggsave(filename = "../ej_results/GEX/250301_PO-MEA-BST-Mixed-Gaba_volcano.pdf", 
+       width = 6,
+       height = 4,
+       device = pdf)
+```
+
+Now let's remove X and Y chromosome genes.
+```{r filter out X and Y chr genes}
+xy_genes <- c(
+  # X chromosome genes
+  "Xist", "Tsx", "Jpx", "Ftx", "Kdm6a", "Kdm5c", "Ddx3x", "Usp9x", "Uba1", "Zfx",
+  # Y chromosome genes
+  "Uty", "Kdm5d", "Eif2s3y", "Ddx3y", "Usp9y", "Zfy1", "Zfy2", "Sry", "Rbmy"
+)
+
+# Filter the data frame to remove X and Y genes
+res_filtered <- res_all %>%
+  filter(!gene %in% xy_genes)
+```
+
+```{r re-filter for cluster of interest sex}
+# Filter for specific cluster
+res_table_filtered = res_filtered %>% filter(cell_type == "PO-MEA-BST-Mixed-Gaba")
+
+# Get top 10 most significant genes
+top_genes = res_table_filtered %>% 
+  filter(change != 'None') %>%
+  slice_min(p_val_adj, n = 10) %>%
+  pull(gene)
+
+x_range = max(abs(res_table_filtered$avg_log2FC), na.rm = T) * 1.05
+y_range = max(-log10(res_table_filtered$p_val_adj), na.rm = T) * 1.1
+```
+
+```{r volcano plot for cluster of interest sex without X/Y chr DEGs}
+p <- ggplot(res_table_filtered, aes(x = avg_log2FC, y = -log10(p_val_adj))) +
+  geom_point(aes(color = change), size = 2) +
+  geom_text_repel(
+    data = res_table_filtered %>% filter(gene %in% top_genes),
+    aes(label = gene),
+    size = 3,
+    max.overlaps = Inf,
+    box.padding = 0.5,
+    segment.size = 0.5,
+    segment.color = "grey50"
+  ) +
+  ggtitle('DEGs (MEA-BST-Mixed-Gaba)') +
+  xlab(expression(log[2]("Fold Change"))) +
+  ylab(expression(-log[10]("adjusted p-value"))) +
+  geom_hline(yintercept = -log10(0.05), colour = "grey40", size = 0.7) +
+  geom_vline(xintercept = 0, colour = "black") +
+  ggplot2::xlim(-x_range, x_range) +
+  ggplot2::ylim(0, y_range) +
+  scale_y_continuous(expand = c(0, 0.1)) +  # Back to regular scaling
+  theme_classic() +
+  scale_color_manual(
+    values = c(Up = '#b80f0a', Down = '#0a6fb8', None = 'grey'),
+    breaks = c("Up", "Down", "None"),
+    labels = c('Up-regulated', 'Down-regulated', 'Not significant')
+  ) +
+  theme(
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    axis.title = element_text(size = 14),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 12),
+    axis.line = element_line(size = 0.8),
+    plot.title = element_text(size = 16)
+  )
+
+p
+
+ggsave(filename = "../ej_results/GEX/250301_PO-MEA-BST-Mixed-Gaba_volcano_noXYgenes.pdf", 
+       width = 6,
+       height = 4,
+       device = pdf)
+```
+
+
+
+## By Learner
+
+### Bar plot
+```{r DEG results df for sac learner}
+file_list <- list.files("../ej_results/GEX/Learner", pattern = "signif genes.csv", full.names = TRUE)
+
+results_df <- data.frame(file = character(), 
+                         L_enrich = integer(), 
+                         NL_enrich = integer(), 
+                         stringsAsFactors = FALSE)
+
+for (file in file_list) {
+  file_df <- read.csv(file)
+  L_enrich <- sum(file_df$log2FoldChange < 0)
+  NL_enrich <- sum(file_df$log2FoldChange > 0)
+  
+  results_df <- rbind(results_df, 
+                      data.frame(file = file, 
+                                 L_enrich = L_enrich, 
+                                 NL_enrich = NL_enrich, 
+                                 stringsAsFactors = FALSE))
+}
+
+results_df$file <- sub("../ej_results/GEX/Learner/", "", results_df$file)
+results_df$file <- sub(" signif genes.csv", "", results_df$file)
+
+write.csv(results_df, file = "../ej_results/GEX/Learner/DEG table.csv")
+```
+
+```{r plot DEG results sac learner}
+rownames(results_df) <- results_df$file
+results_df$cluster <- factor(results_df$file)
+results_df <- drop_na(results_df)
+
+# First, make NL_enrich negative to flip it to the left side
+results_df$NL_enrich_neg <- -results_df$NL_enrich
+
+# Create the combined plot
+comb.plot <- ggplot(results_df) +
+  # Male enrichment (right side)
+  geom_bar(aes(x = L_enrich, y = cluster, fill = "Learner"),
+           stat = "identity",
+           linewidth = 0.2) +
+  # Female enrichment (left side)
+  geom_bar(aes(x = NL_enrich_neg, y = cluster, fill = "Non_Learner"),
+           stat = "identity",
+           linewidth = 0.2) +
+  # Set the axis limits symmetrically
+  scale_x_continuous(
+    limits = c(-30, 30),
+    breaks = seq(-30, 30, 5),
+    labels = abs(seq(-30, 30, 5))  # Use absolute values for axis labels
+  ) +
+  scale_fill_manual(values = palette_learner) +
+  labs(x = "Number of DEGs", 
+       y = "Cluster",
+       fill = "Sac_Learner") +  # Add title for the legend
+  theme_classic() +
+  theme(axis.text.y = element_text(color = rep(c("#000000", "#555555"), 
+                      length.out = length(unique(results_df$cluster))))) +
+  geom_vline(xintercept = 0, linewidth = 0.2)
+
+comb.plot
+ggsave('../ej_results/GEX/intermed-figs/250301_DEGsbyLearnerall.pdf',
+       device = pdf,
+       width = 6,
+       height = 6)
+```
+
+
+```{r filter results for sig clusters}
+# Filter the data frame for P.Value < 0.051
+sig_results_df <- results_df[((results_df$NL_enrich != 0) + (results_df$L_enrich != 0)) >1, ]
+
+# Extract the BaselineProp.clusters for the significant results
+significant_cluster_names <-sort(rev(as.character(sig_results_df$file)))
+
+# Print the list of significant clusters
+print(significant_cluster_names)
+
+
+sig_results_df$cluster <- factor(sig_results_df$cluster, 
+                                levels = rev(significant_cluster_names))
+```
+
+```{r plot sig DEG results for sac learner}
+# Create the combined plot
+sig.comb.plot <- ggplot(sig_results_df) +
+  # Male enrichment (right side)
+  geom_bar(aes(x = L_enrich, y = cluster, fill = "Learner"),
+           stat = "identity",
+           linewidth = 0.2) +
+  # Female enrichment (left side)
+  geom_bar(aes(x = NL_enrich_neg, y = cluster, fill = "Non_Learner"),
+           stat = "identity",
+           linewidth = 0.2) +
+  # Set the axis limits symmetrically
+  scale_x_continuous(
+    limits = c(-30, 30),
+    breaks = seq(-30, 30, 5),
+    labels = abs(seq(-30, 30, 5))  # Use absolute values for axis labels
+  ) +
+  scale_fill_manual(values = palette_learner) +
+  labs(x = "Number of DEGs", 
+       y = "Cluster",
+       fill = "Sac_Learner") +  # Add title for the legend
+  theme_classic() +
+  theme(axis.text.y = element_text(color = rep(c("#000000", "#555555"), 
+                      length.out = length(unique(results_df$cluster))))) +
+  geom_vline(xintercept = 0, linewidth = 0.2)
+
+sig.comb.plot
+
+
+ ggsave(filename = "../ej_results/GEX/250301_DEGsbylearner.pdf",
+        width = 8,
+        height = 12,
+        dpi = 300)
+```
+
+### Summary tables
+```{r DEG table with all output sac learner}
+file_list <- sub("../ej_results/GEX/Learner/", "", results_df$file)
+
+concatenated_data <- data.frame()
+
+for (file in file_list){
+  current_data <- read.csv(paste0("../ej_results/GEX/Learner/", file, " signif genes.csv"), sep = ',', header = TRUE)
+  if(dim(current_data)[1] > 0) {
+  current_data$cellType <- sub("signif genes.csv", "", file)
+  concatenated_data <- rbind(concatenated_data, current_data)
+  }
+}
+
+write.csv(concatenated_data, file = '../ej_results/GEX/Learner/250301-DEGs_table.csv')
+```
+
+```{r unique DEGs list sac learner}
+uniqueDEGs <- as.data.frame(unique(concatenated_data$gene))
+print(uniqueDEGs, sep = ",")
+
+write_csv(uniqueDEGs, file = "../ej_results/GEX/Learner/250301_uniqueDEGs.csv")
+```
+
+### Volcano plot
+```{r results table for plotting geno}
+res_all <- concatenated_data %>%
+  mutate(
+    avg_log2FC = log2FoldChange,
+    p_val_adj = padj,
+    cell_type = cellType,
+    change = case_when(
+      p_val_adj >= 0.05 ~ "None",  
+      avg_log2FC > 0 ~ "Up",       
+      avg_log2FC < 0 ~ "Down",    
+      TRUE ~ "None"                 
+    ),
+    # Force the factor levels order
+    change = factor(change, levels = c("Up", "Down", "None"))
+  )
+```
+
+
+```{r filter res for cluster of interest geno}
+# Filter for specific cluster
+res_table = res_all %>% filter(cell_type == "PH-LHA-PVH-SO-PVa-Nxph4-Glut")
+
+# Get top 10 most significant genes
+top_genes = res_table %>% 
+  filter(change != 'None') %>%
+  slice_min(p_val_adj, n = 10) %>%
+  pull(gene)
+
+x_range = max(abs(res_table$avg_log2FC), na.rm = T) * 1.05
+y_range = max(-log10(res_table$p_val_adj), na.rm = T) * 1.1
+```
+
+
+```{r volcano plot for cluster of interest geno}
+p <- ggplot(res_table, aes(x = avg_log2FC, y = -log10(p_val_adj))) +
+  geom_point(aes(color = change), size = 2) +
+  ggrepel::geom_text_repel(
+    data = res_table %>% filter(gene %in% top_genes),
+    aes(label = gene),
+    size = 3,
+    max.overlaps = Inf,
+    box.padding = 0.5,
+    segment.size = 0.5,
+    segment.color = "grey50"
+  ) +
+  ggtitle('DEGs (PH-LHA-PVH-SO-PVa-Nxph4-Glut)') +
+  xlab(expression(log[2]("Fold Change"))) +
+  ylab(expression(-log[10]("adjusted p-value"))) +
+  geom_hline(yintercept = -log10(0.05), colour = "grey40", size = 0.7) +
+  geom_vline(xintercept = 0, colour = "black") +
+  ggplot2::xlim(-x_range, x_range) +
+  ggplot2::ylim(0, y_range) +
+  scale_y_continuous(expand = c(0, 0.1)) +  # Back to regular scaling
+  theme_classic() +
+  scale_color_manual(
+    values = c(Up = '#b80f0a', Down = '#0a6fb8', None = 'grey'),
+    breaks = c("Up", "Down", "None"),
+    labels = c('Up-regulated', 'Down-regulated', 'Not significant')
+  ) +
+  theme(
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    axis.title = element_text(size = 14),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 12),
+    axis.line = element_line(size = 0.8),
+    plot.title = element_text(size = 16)
+  )
+
+p
+
+ggsave(filename = "../ej_results/GEX/250301_PH-LHA-PVH-SO-PVa-Nxph4-Glut_learner_volcano.pdf",
+       width = 6,
+       height = 4,
+       device = pdf)
+```
+
+### GO
+```{r GO dot plot for cluster of interest}
+# Specify cluster name
+name <- "PH-LHA-PVH-SO-PVa-Nxph4-Glut"
+
+# GO Analysis
+go_table <- read.csv(paste0("../ej_results/GEX/Learner/", name, " signif genes.csv"), sep = ',',
+                     header = TRUE)
+
+# Separate genes by direction of change - explicitly get gene names as character vector
+L_enrich <- as.character(go_table$gene[go_table$log2FoldChange > 0])
+NL_enrich <- as.character(go_table$gene[go_table$log2FoldChange < 0])
+
+
+# Convert gene symbols to ENTREZ IDs
+geneid.ls <- AnnotationDbi::select(org.Mm.eg.db, 
+                    keys = L_enrich, 
+                    columns=c("ENTREZID", "SYMBOL"), 
+                    keytype = "SYMBOL")
+L.gene.ls <- geneid.ls$ENTREZID
+L.gene.ls <- L.gene.ls[which(!is.na(L.gene.ls))]
+L.gene.ls <- unique(L.gene.ls)
+
+geneid.ls <- AnnotationDbi::select(org.Mm.eg.db, 
+                    keys = NL_enrich, 
+                    columns=c("ENTREZID", "SYMBOL"), 
+                    keytype = "SYMBOL")
+NL.gene.ls <- geneid.ls$ENTREZID
+NL.gene.ls <- NL.gene.ls[which(!is.na(NL.gene.ls))]
+NL.gene.ls <- unique(NL.gene.ls)
+
+gene_list <- list(Non_Learner=NL.gene.ls, Learner=L.gene.ls)
+
+# Run GO enrichment comparison
+compGO <- compareCluster(geneCluster = gene_list,
+                        fun = 'enrichGO',
+                        pvalueCutoff = 0.05,
+                        pAdjustMethod = 'BH',
+                        OrgDb = org.Mm.eg.db,
+                        ont = 'BP')
+
+# Create dotplot visualization
+dotplot(compGO, showCategory = 10, title = 'GO Enrichment Analysis') +
+  theme(text = element_text(size = 10),
+        axis.text.y = element_text(size=10))
+
+ggsave(paste0("../ej_results/GEX/Learner/", name, " GO enrichment dotplot.pdf"),
+       device = pdf,
+       width = 5,
+       height = 7)
+```
+
+```{r GO combined plot for all sig clusters}
+# GO Analysis - Combined plot
+# First get a background list of all genes
+all.genes <- as.character(rownames(combined_neuronal@assays$RNA))
+geneid.ls <- AnnotationDbi::select(org.Mm.eg.db, 
+                    keys = all.genes, 
+                    columns=c("ENTREZID", "SYMBOL"), 
+                    keytype = "SYMBOL")
+all.gene.ls <- geneid.ls$ENTREZID
+all.gene.ls <- all.gene.ls[which(!is.na(all.gene.ls))]
+all.gene.ls <- unique(all.gene.ls)
+
+# Initialize lists to store genes by cluster
+cluster_genes_list <- list()
+
+# Process each cluster
+for (name in significant_cluster_names) {
+  print(paste("Processing cluster:", name))
+  
+  # Read DEG results
+  go_table <- read.csv(paste0("../ej_results/GEX/Learner/", name, " signif genes.csv"), sep = ',',
+                       header = TRUE)
+  
+  # Get significant genes
+  sig_genes <- as.character(go_table$gene)
+  
+  # Convert to ENTREZ IDs
+  geneid.ls <- AnnotationDbi::select(org.Mm.eg.db, 
+                      keys = sig_genes, 
+                      columns = c("ENTREZID", "SYMBOL"), 
+                      keytype = "SYMBOL")
+  gene.ls <- geneid.ls$ENTREZID
+  gene.ls <- gene.ls[which(!is.na(gene.ls))]
+  gene.ls <- unique(gene.ls)
+  
+  # Store in list
+  cluster_genes_list[[name]] <- gene.ls
+}
+
+# Run GO enrichment comparison
+compGO <- compareCluster(geneCluster = cluster_genes_list,
+                        fun = 'enrichGO',
+                        pvalueCutoff = 0.05,
+                        pAdjustMethod = 'BH',
+                        OrgDb = org.Mm.eg.db,
+                        ont = 'BP',
+                        universe = all.gene.ls)
+
+# Create dotplot visualization
+p <- dotplot(compGO, showCategory = 10, 
+            title = 'GO Enrichment Analysis by Cluster') +
+  theme(text = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        plot.margin = unit(c(1,1,1,1), "cm")) +
+  scale_color_viridis_c(direction = -1)
+
+p
+# Save plot
+ggsave("../ej_results/GEX/Learner/cluster_GO_enrichment_dotplot.pdf",
+       plot = p,
+       width = 12,
+       height = 10)
+```
+
+```{r session info}
+sessionInfo()
+```
+R version 4.2.2 (2022-10-31)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Ubuntu 22.04.2 LTS
+
+Matrix products: default
+BLAS:   /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3
+LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.20.so
+
+locale:
+ [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C               LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
+ [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8    LC_PAPER=en_US.UTF-8       LC_NAME=C                 
+ [9] LC_ADDRESS=C               LC_TELEPHONE=C             LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+
+attached base packages:
+[1] stats4    stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] ggrepel_0.9.3               viridis_0.6.2               viridisLite_0.4.1          
+ [4] data.table_1.14.8           RColorBrewer_1.1-3          DESeq2_1.38.3              
+ [7] png_0.1-8                   apeglm_1.20.0               pheatmap_1.0.12            
+[10] SingleCellExperiment_1.20.1 SummarizedExperiment_1.28.0 GenomicRanges_1.50.2       
+[13] GenomeInfoDb_1.34.9         MatrixGenerics_1.10.0       matrixStats_0.63.0         
+[16] reshape2_1.4.4              edgeR_3.40.2                limma_3.54.2               
+[19] Matrix.utils_0.9.8          Matrix_1.5-1                cowplot_1.1.1              
+[22] DOSE_3.24.2                 org.Mm.eg.db_3.16.0         AnnotationDbi_1.60.2       
+[25] IRanges_2.32.0              S4Vectors_0.36.2            Biobase_2.58.0             
+[28] BiocGenerics_0.44.0         enrichplot_1.18.4           clusterProfiler_4.6.2      
+[31] ReactomePA_1.42.0           magrittr_2.0.3              lubridate_1.9.2            
+[34] forcats_1.0.0               stringr_1.5.0               dplyr_1.1.0                
+[37] purrr_1.0.1                 readr_2.1.4                 tidyr_1.3.0                
+[40] tibble_3.2.0                ggplot2_3.4.1               tidyverse_2.0.0            
+[43] SeuratObject_4.1.3          Seurat_4.3.0               
+
+loaded via a namespace (and not attached):
+  [1] utf8_1.2.3             spatstat.explore_3.0-6 reticulate_1.28        tidyselect_1.2.0      
+  [5] RSQLite_2.3.0          htmlwidgets_1.6.1      grid_4.2.2             BiocParallel_1.32.6   
+  [9] Rtsne_0.16             scatterpie_0.1.8       munsell_0.5.0          ragg_1.2.5            
+ [13] codetools_0.2-18       ica_1.0-3              future_1.32.0          miniUI_0.1.1.1        
+ [17] withr_2.5.0            spatstat.random_3.1-4  colorspace_2.1-0       GOSemSim_2.24.0       
+ [21] progressr_0.13.0       knitr_1.42             rstudioapi_0.14        ROCR_1.0-11           
+ [25] tensor_1.5             listenv_0.9.0          labeling_0.4.2         bbmle_1.0.25          
+ [29] GenomeInfoDbData_1.2.9 polyclip_1.10-4        bit64_4.0.5            farver_2.1.1          
+ [33] downloader_0.4         coda_0.19-4            parallelly_1.34.0      vctrs_0.5.2           
+ [37] treeio_1.22.0          generics_0.1.3         gson_0.1.0             xfun_0.37             
+ [41] timechange_0.2.0       R6_2.5.1               graphlayouts_0.8.4     locfit_1.5-9.7        
+ [45] DelayedArray_0.24.0    bitops_1.0-7           spatstat.utils_3.0-2   cachem_1.0.7          
+ [49] fgsea_1.24.0           gridGraphics_0.5-1     vroom_1.6.1            promises_1.2.0.1      
+ [53] scales_1.2.1           ggraph_2.1.0           gtable_0.3.1           globals_0.16.2        
+ [57] goftest_1.2-3          tidygraph_1.2.3        rlang_1.0.6            systemfonts_1.0.4     
+ [61] splines_4.2.2          lazyeval_0.2.2         spatstat.geom_3.1-0    yaml_2.3.7            
+ [65] abind_1.4-5            httpuv_1.6.9           qvalue_2.30.0          tools_4.2.2           
+ [69] ggplotify_0.1.0        ellipsis_0.3.2         ggridges_0.5.4         Rcpp_1.0.10           
+ [73] plyr_1.8.8             zlibbioc_1.44.0        RCurl_1.98-1.10        deldir_1.0-6          
+ [77] pbapply_1.7-0          zoo_1.8-11             grr_0.9.5              cluster_2.1.4         
+ [81] scattermore_0.8        reactome.db_1.82.0     lmtest_0.9-40          RANN_2.6.1            
+ [85] mvtnorm_1.1-3          fitdistrplus_1.1-8     hms_1.1.2              patchwork_1.1.2       
+ [89] mime_0.12              evaluate_0.20          xtable_1.8-4           XML_3.99-0.13         
+ [93] HDO.db_0.99.1          emdbook_1.3.12         gridExtra_2.3          bdsmatrix_1.3-6       
+ [97] compiler_4.2.2         KernSmooth_2.23-20     crayon_1.5.2           shadowtext_0.1.2      
+[101] htmltools_0.5.4        ggfun_0.0.9            later_1.3.0            tzdb_0.3.0            
+[105] geneplotter_1.76.0     aplot_0.1.10           DBI_1.1.3              tweenr_2.0.2          
+[109] MASS_7.3-58.1          rappdirs_0.3.3         cli_3.6.0              parallel_4.2.2        
+[113] igraph_1.5.0           pkgconfig_2.0.3        numDeriv_2016.8-1.1    sp_1.6-0              
+[117] plotly_4.10.1          spatstat.sparse_3.0-1  annotate_1.76.0        ggtree_3.6.2          
+[121] XVector_0.38.0         yulab.utils_0.0.6      digest_0.6.31          sctransform_0.3.5     
+[125] RcppAnnoy_0.0.20       graph_1.76.0           spatstat.data_3.0-1    Biostrings_2.66.0     
+[129] rmarkdown_2.20         leiden_0.4.3           fastmatch_1.1-3        tidytree_0.4.2        
+[133] uwot_0.1.14            shiny_1.7.4            graphite_1.44.0        lifecycle_1.0.3       
+[137] nlme_3.1-160           jsonlite_1.8.4         fansi_1.0.4            pillar_1.8.1          
+[141] lattice_0.20-45        KEGGREST_1.38.0        fastmap_1.1.1          httr_1.4.5            
+[145] survival_3.4-0         GO.db_3.16.0           glue_1.6.2             bit_4.0.5             
+[149] ggforce_0.4.1          stringi_1.7.12         blob_1.2.3             textshaping_0.3.6     
+[153] memoise_2.0.1          irlba_2.3.5.1          future.apply_1.10.0    ape_5.7-1     
+
+# End
