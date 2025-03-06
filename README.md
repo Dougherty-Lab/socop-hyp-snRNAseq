@@ -15,3 +15,10 @@ One great challenge in neuroscience is connecting molecular and cellular phenoty
 Following a social operant conditioning paradigm, tuberal hypothalamus and neighboring thalamus were harvested from Myt1l mice (n=36, split by sex and genotype) 30 minutes after task completeion. Nuclei were isolated and barcoded libraries prepared using ScaleBio snRNAseq.
 
 <img width="1360" alt="Screenshot 2025-03-06 at 4 33 33 PM" src="https://github.com/user-attachments/assets/310d8d35-4452-4278-8cdf-88158438bc06" />
+
+## Data Availability
+
+The raw and processed data used to generate these results are available on GEO at accession number GSE291295.
+
+
+
