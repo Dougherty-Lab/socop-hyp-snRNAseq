@@ -20,5 +20,7 @@ Following a social operant conditioning paradigm, tuberal hypothalamus and neigh
 
 The raw and processed data used to generate these results are available on GEO at accession number GSE291295.
 
+## Funding
 
+We would like to thank our funding sources for supporting this work.
 
