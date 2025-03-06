@@ -245,14 +245,6 @@ sig_p1
 ```
 
 ```{r cell and gene numbers df}
-combined_neuronal$cell_type <- as.factor(combined_neuronal$cell_type)
-
-# Get the unique values and store them
-unique_cell_types <- unique(as.character(combined_neuronal$cell_type))
-
-# Set the levels in reverse order
-levels(combined_neuronal$cell_type) <- rev(unique_cell_types)
-
 cluster.set <- rev(levels(combined_neuronal$cell_type))
 
 cells.per.cluster <- c(table(combined_neuronal$cell_type)[as.character(cluster.set)])
