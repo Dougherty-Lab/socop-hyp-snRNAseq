@@ -47,16 +47,13 @@ source("/scratch/jdlab/simona/color_utils.R")
 # Load in preprocessed data
 
 ```{r load in data}
-combined.neuronal <- readRDS("/scratch/jdlab/simona/socop-hyp-snRNAseq/data/250228_combined.neuronal_1-5_5pct.rds")
+#combined.neuronal <- readRDS("/scratch/jdlab/simona/socop-hyp-snRNAseq/data/250228_combined.neuronal_1-5_5pct.rds")
 combined.neuronal
 ```
-
-
 ```{r metadata formatting}
 # Saving scatterplots won't work if you have "/" in cluster name
 combined.neuronal@meta.data$cell_type <- as.factor(gsub("/", "-", combined.neuronal@meta.data$cell_type))
 ```
-
 
 
 # Props by ...
@@ -250,14 +247,6 @@ sig_p1
 ```
 
 ```{r cell and gene numbers df}
-combined.neuronal$cell_type <- as.factor(combined.neuronal$cell_type)
-
-# Get the unique values and store them
-unique_cell_types <- unique(as.character(combined.neuronal$cell_type))
-
-# Set the levels in reverse order
-levels(combined.neuronal$cell_type) <- rev(unique_cell_types)
-
 cluster.set <- rev(levels(combined.neuronal$cell_type))
 
 cells.per.cluster <- c(table(combined.neuronal$cell_type)[as.character(cluster.set)])
@@ -823,10 +812,10 @@ ggplot(props.sex, aes(x = -log10(P.Value),
     legend.position = "right"
   )
 
- ggsave(filename = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/intermed-figs/250301_sexdiff_pvalues_hypovother.pdf",
-        width = 12,
-        height = 12,
-        dpi = 300)
+# ggsave(filename = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/intermed-figs/250301_sexdiff_pvalues_hypovother.pdf",
+ #       width = 12,
+  #      height = 12,
+   #     dpi = 300)
 ```
 
 ```{r p-values by region plot sex top 10}
