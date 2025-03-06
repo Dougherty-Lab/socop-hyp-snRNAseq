@@ -2,18 +2,12 @@
 title: "Plot DEG Results and Create Summary Tables and Figures"
 author: "Simona Sarafinovska"
 date: "2025-03-06"
-output: html_document
 ---
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
 
 # Load dependencies
 
-```{r dependencies, warning=FALSE, message=FALSE}
-
-# Change this to your directory
+```{r dependencies, warning = FALSE, message = FALSE}
+# Change this to your package directory
 .libPaths('/ref/jdlab/software/r-envs/simona/r-packages/4.2/')
 
 library(Seurat)
@@ -40,13 +34,15 @@ library(data.table)
 library(viridis)
 library(ggrepel)
 
+set.seed(420)
+
 source("color_utils.R")
 ```
 
 # Load in pre-processed data
 
 ```{r load rds}
-combined_neuronal <-  readRDS("../data/250228_combined.neuronal_1-5_5pct.rds")
+combined_neuronal <- readRDS("../data/250228_combined.neuronal_1-5_5pct.rds")
 ```
 
 # Summary tables and figures
@@ -55,7 +51,7 @@ combined_neuronal <-  readRDS("../data/250228_combined.neuronal_1-5_5pct.rds")
 
 ### Bar plot
 ```{r DEG results df for geno}
-file_list <- list.files("../ej_results/GEX/Geno", pattern = "signif genes.csv", full.names = TRUE)
+file_list <- list.files("../results/GEX/Geno", pattern = "signif genes.csv", full.names = TRUE)
 
 results_df <- data.frame(file = character(), 
                          wt_enrich = integer(), 
@@ -74,10 +70,10 @@ for (file in file_list) {
                                  stringsAsFactors = FALSE))
 }
 
-results_df$file <- sub("../ej_results/GEX/Geno/", "", results_df$file)
+results_df$file <- sub("../results/GEX/Geno/", "", results_df$file)
 results_df$file <- sub(" signif genes.csv", "", results_df$file)
 
-write.csv(results_df, file = "../ej_results/GEX/Geno/DEG table.csv")
+write.csv(results_df, file = "../results/GEX/Geno/DEG table.csv")
 ```
 
 ```{r plot DEG results geno}
@@ -113,7 +109,7 @@ comb.plot <- ggplot(results_df) +
   geom_vline(xintercept = 0, linewidth = 0.2)
 
 comb.plot
-ggsave('../ej_results/GEX/intermed-figs/250301_DEGsbyGenoall.pdf',
+ggsave('../results/GEX/intermed-figs/250301_DEGsbyGenoall.pdf',
        device = pdf,
        width = 6,
        height = 6)
@@ -158,7 +154,7 @@ sig.comb.plot <- ggplot(sig_results_df) +
 
 sig.comb.plot
 
- ggsave(filename = "../ej_results/GEX/intermed-figs/250301_DEGsbygeno_sig.pdf",
+ ggsave(filename = "../results/GEX/intermed-figs/250301_DEGsbygeno_sig.pdf",
         width = 8,
         height = 12,
         dpi = 300)
@@ -167,20 +163,20 @@ sig.comb.plot
 ### Summary tables
 
 ```{r DEG table with all output geno}
-file_list <- list.files("../ej_results/GEX/Geno", pattern = "signif genes.csv", full.names = TRUE)
-file_list <- sub("../ej_results/GEX/Geno/", "", results_df$file)
+file_list <- list.files("../results/GEX/Geno", pattern = "signif genes.csv", full.names = TRUE)
+file_list <- sub("../results/GEX/Geno/", "", results_df$file)
 
 concatenated_data <- data.frame()
 
 for (file in file_list){
-  current_data <- read.csv(paste0("../ej_results/GEX/Geno/", file, " signif genes.csv"), sep = ',', header = TRUE)
+  current_data <- read.csv(paste0("../results/GEX/Geno/", file, " signif genes.csv"), sep = ',', header = TRUE)
   if(dim(current_data)[1] > 0) {
   current_data$cellType <- sub("signif genes.csv", "", file)
   concatenated_data <- rbind(concatenated_data, current_data)
   }
 }
 
-write.csv(concatenated_data, file = '../ej_results/GEX/Geno/DEGs_table.csv')
+write.csv(concatenated_data, file = '../results/GEX/Geno/DEGs_table.csv')
 ```
 
 List of unique genes
@@ -188,7 +184,7 @@ List of unique genes
 uniqueDEGs <- as.data.frame(unique(concatenated_data$gene))
 print(uniqueDEGs, sep = ",")
 
-write_csv(uniqueDEGs, file = "../ej_results/GEX/Geno/uniqueDEGs.csv")
+write_csv(uniqueDEGs, file = "../results/GEX/Geno/uniqueDEGs.csv")
 ```
 
 ### Volcano plot
@@ -262,7 +258,7 @@ p <- ggplot(res_table, aes(x = avg_log2FC, y = -log10(p_val_adj))) +
 
 p
 
-ggsave(filename = "../ej_results/GEX/250301_TH-Sema5b-Ntrk-Glut_geno_volcano.pdf",
+ggsave(filename = "../results/GEX/250301_TH-Sema5b-Ntrk-Glut_geno_volcano.pdf",
        width = 6,
        height = 4,
        device = pdf)
@@ -275,7 +271,7 @@ ggsave(filename = "../ej_results/GEX/250301_TH-Sema5b-Ntrk-Glut_geno_volcano.pdf
 name <- "TH-Sema5b-Ntrk-Glut"
 
 # GO Analysis
-go_table <- read.csv(paste0("../ej_results/GEX/Geno/", name, " signif genes.csv"), sep = ',',
+go_table <- read.csv(paste0("../results/GEX/Geno/", name, " signif genes.csv"), sep = ',',
                      header = TRUE)
 
 # Separate genes by direction of change - explicitly get gene names as character vector
@@ -315,7 +311,7 @@ dotplot(compGO, showCategory = 4, title = 'GO Enrichment Analysis') +
   theme(text = element_text(size = 10),
         axis.text.y = element_text(size=10))
 
-ggsave(paste0("../ej_results/GEX/Geno/", name, " GO enrichment dotplot.pdf"),
+ggsave(paste0("../results/GEX/Geno/", name, " GO enrichment dotplot.pdf"),
        device = pdf,
        width = 5,
        height = 5)
@@ -341,7 +337,7 @@ for (name in significant_cluster_names) {
   print(paste("Processing cluster:", name))
   
   # Read DEG results
-  go_table <- read.csv(paste0("../ej_results/GEX/Geno/", name, " signif genes.csv"), sep = ',',
+  go_table <- read.csv(paste0("../results/GEX/Geno/", name, " signif genes.csv"), sep = ',',
                        header = TRUE)
   
   # Get significant genes
@@ -380,7 +376,7 @@ p <- dotplot(compGO, showCategory = 10,
 
 p
 # Save plot
-ggsave("../ej_results/GEX/Geno/cluster_GO_enrichment_dotplot.pdf",
+ggsave("../results/GEX/Geno/cluster_GO_enrichment_dotplot.pdf",
        plot = p,
        width = 12,
        height = 10)
@@ -391,7 +387,7 @@ ggsave("../ej_results/GEX/Geno/cluster_GO_enrichment_dotplot.pdf",
 
 ### Bar plot
 ```{r DEG results df for sex}
-file_list <- list.files("../ej_results/GEX/Sex/", pattern = "signif genes.csv", full.names = TRUE)
+file_list <- list.files("../results/GEX/Sex/", pattern = "signif genes.csv", full.names = TRUE)
 
 results_df <- data.frame(file = character(), 
                          F_enrich = integer(), 
@@ -410,10 +406,10 @@ for (file in file_list) {
                                  stringsAsFactors = FALSE))
 }
 
-results_df$file <- sub("../ej_results/GEX/Sex//", "", results_df$file)
+results_df$file <- sub("../results/GEX/Sex//", "", results_df$file)
 results_df$file <- sub(" signif genes.csv", "", results_df$file)
 
-write.csv(results_df, file = "../ej_results/GEX/DEG table.csv", sep = ",")
+write.csv(results_df, file = "../results/GEX/DEG table.csv", sep = ",")
 ```
 
 ```{r plot DEG results sex}
@@ -449,7 +445,7 @@ comb.plot <- ggplot(results_df) +
   geom_vline(xintercept = 0, linewidth = 0.2)
 
 comb.plot
-ggsave('../ej_results/GEX/intermed-figs/250301_DEGsbySexall.pdf',
+ggsave('../results/GEX/intermed-figs/250301_DEGsbySexall.pdf',
        device = pdf,
        width = 6,
        height = 6)
@@ -500,7 +496,7 @@ ggplot(sig_results_df) +
   
 sig_plot
 
- ggsave(filename = "../ej_results/GEX/intermed-figs/250219_DEGsbysex_sig.pdf",
+ ggsave(filename = "../results/GEX/intermed-figs/250219_DEGsbysex_sig.pdf",
         width = 8,
         height = 12,
         dpi = 300)
@@ -510,28 +506,28 @@ sig_plot
 ### Summary tables
 
 ```{r DEG table with all output sex}
-file_list <- list.files("../ej_results/GEX/Sex", pattern = "signif genes.csv", full.names = TRUE)
-file_list <- sub("../ej_results/GEX/Sex/", "", results_df$file)
+file_list <- list.files("../results/GEX/Sex", pattern = "signif genes.csv", full.names = TRUE)
+file_list <- sub("../results/GEX/Sex/", "", results_df$file)
 
 
 concatenated_data <- data.frame()
 
 for (file in file_list){
-  current_data <- read.csv(paste0("../ej_results/GEX/Sex/", file, " signif genes.csv"), sep = ',', header = TRUE)
+  current_data <- read.csv(paste0("../results/GEX/Sex/", file, " signif genes.csv"), sep = ',', header = TRUE)
   if(dim(current_data)[1] > 0) {
   current_data$cellType <- sub("signif genes.csv", "", file)
   concatenated_data <- rbind(concatenated_data, current_data)
   }
 }
 
-write.csv(concatenated_data, file = '../ej_results/GEX/Sex/250301_DEGs_table.csv')
+write.csv(concatenated_data, file = '../results/GEX/Sex/250301_DEGs_table.csv')
 ```
 
 ```{r unique DEGs list sex}
 uniqueDEGs <- as.data.frame(unique(concatenated_data$gene))
 print(uniqueDEGs, sep = ",")
 
-write_csv(uniqueDEGs, file = "../ej_results/GEX/Sex/250301_uniqueDEGs.csv")
+write_csv(uniqueDEGs, file = "../results/GEX/Sex/250301_uniqueDEGs.csv")
 ```
 
 ### Volcano plots
@@ -605,7 +601,7 @@ p <- ggplot(res_table, aes(x = avg_log2FC, y = -log10(p_val_adj))) +
 
 p
 
-ggsave(filename = "../ej_results/GEX/250301_PO-MEA-BST-Mixed-Gaba_volcano.pdf", 
+ggsave(filename = "../results/GEX/250301_PO-MEA-BST-Mixed-Gaba_volcano.pdf", 
        width = 6,
        height = 4,
        device = pdf)
@@ -677,7 +673,7 @@ p <- ggplot(res_table_filtered, aes(x = avg_log2FC, y = -log10(p_val_adj))) +
 
 p
 
-ggsave(filename = "../ej_results/GEX/250301_PO-MEA-BST-Mixed-Gaba_volcano_noXYgenes.pdf", 
+ggsave(filename = "../results/GEX/250301_PO-MEA-BST-Mixed-Gaba_volcano_noXYgenes.pdf", 
        width = 6,
        height = 4,
        device = pdf)
@@ -689,7 +685,7 @@ ggsave(filename = "../ej_results/GEX/250301_PO-MEA-BST-Mixed-Gaba_volcano_noXYge
 
 ### Bar plot
 ```{r DEG results df for sac learner}
-file_list <- list.files("../ej_results/GEX/Learner", pattern = "signif genes.csv", full.names = TRUE)
+file_list <- list.files("../results/GEX/Learner", pattern = "signif genes.csv", full.names = TRUE)
 
 results_df <- data.frame(file = character(), 
                          L_enrich = integer(), 
@@ -708,10 +704,10 @@ for (file in file_list) {
                                  stringsAsFactors = FALSE))
 }
 
-results_df$file <- sub("../ej_results/GEX/Learner/", "", results_df$file)
+results_df$file <- sub("../results/GEX/Learner/", "", results_df$file)
 results_df$file <- sub(" signif genes.csv", "", results_df$file)
 
-write.csv(results_df, file = "../ej_results/GEX/Learner/DEG table.csv")
+write.csv(results_df, file = "../results/GEX/Learner/DEG table.csv")
 ```
 
 ```{r plot DEG results sac learner}
@@ -748,7 +744,7 @@ comb.plot <- ggplot(results_df) +
   geom_vline(xintercept = 0, linewidth = 0.2)
 
 comb.plot
-ggsave('../ej_results/GEX/intermed-figs/250301_DEGsbyLearnerall.pdf',
+ggsave('../results/GEX/intermed-figs/250301_DEGsbyLearnerall.pdf',
        device = pdf,
        width = 6,
        height = 6)
@@ -799,7 +795,7 @@ sig.comb.plot <- ggplot(sig_results_df) +
 sig.comb.plot
 
 
- ggsave(filename = "../ej_results/GEX/250301_DEGsbylearner.pdf",
+ ggsave(filename = "../results/GEX/250301_DEGsbylearner.pdf",
         width = 8,
         height = 12,
         dpi = 300)
@@ -807,26 +803,26 @@ sig.comb.plot
 
 ### Summary tables
 ```{r DEG table with all output sac learner}
-file_list <- sub("../ej_results/GEX/Learner/", "", results_df$file)
+file_list <- sub("../results/GEX/Learner/", "", results_df$file)
 
 concatenated_data <- data.frame()
 
 for (file in file_list){
-  current_data <- read.csv(paste0("../ej_results/GEX/Learner/", file, " signif genes.csv"), sep = ',', header = TRUE)
+  current_data <- read.csv(paste0("../results/GEX/Learner/", file, " signif genes.csv"), sep = ',', header = TRUE)
   if(dim(current_data)[1] > 0) {
   current_data$cellType <- sub("signif genes.csv", "", file)
   concatenated_data <- rbind(concatenated_data, current_data)
   }
 }
 
-write.csv(concatenated_data, file = '../ej_results/GEX/Learner/250301-DEGs_table.csv')
+write.csv(concatenated_data, file = '../results/GEX/Learner/250301-DEGs_table.csv')
 ```
 
 ```{r unique DEGs list sac learner}
 uniqueDEGs <- as.data.frame(unique(concatenated_data$gene))
 print(uniqueDEGs, sep = ",")
 
-write_csv(uniqueDEGs, file = "../ej_results/GEX/Learner/250301_uniqueDEGs.csv")
+write_csv(uniqueDEGs, file = "../results/GEX/Learner/250301_uniqueDEGs.csv")
 ```
 
 ### Volcano plot
@@ -901,7 +897,7 @@ p <- ggplot(res_table, aes(x = avg_log2FC, y = -log10(p_val_adj))) +
 
 p
 
-ggsave(filename = "../ej_results/GEX/250301_PH-LHA-PVH-SO-PVa-Nxph4-Glut_learner_volcano.pdf",
+ggsave(filename = "../results/GEX/250301_PH-LHA-PVH-SO-PVa-Nxph4-Glut_learner_volcano.pdf",
        width = 6,
        height = 4,
        device = pdf)
@@ -913,7 +909,7 @@ ggsave(filename = "../ej_results/GEX/250301_PH-LHA-PVH-SO-PVa-Nxph4-Glut_learner
 name <- "PH-LHA-PVH-SO-PVa-Nxph4-Glut"
 
 # GO Analysis
-go_table <- read.csv(paste0("../ej_results/GEX/Learner/", name, " signif genes.csv"), sep = ',',
+go_table <- read.csv(paste0("../results/GEX/Learner/", name, " signif genes.csv"), sep = ',',
                      header = TRUE)
 
 # Separate genes by direction of change - explicitly get gene names as character vector
@@ -953,7 +949,7 @@ dotplot(compGO, showCategory = 10, title = 'GO Enrichment Analysis') +
   theme(text = element_text(size = 10),
         axis.text.y = element_text(size=10))
 
-ggsave(paste0("../ej_results/GEX/Learner/", name, " GO enrichment dotplot.pdf"),
+ggsave(paste0("../results/GEX/Learner/", name, " GO enrichment dotplot.pdf"),
        device = pdf,
        width = 5,
        height = 7)
@@ -979,7 +975,7 @@ for (name in significant_cluster_names) {
   print(paste("Processing cluster:", name))
   
   # Read DEG results
-  go_table <- read.csv(paste0("../ej_results/GEX/Learner/", name, " signif genes.csv"), sep = ',',
+  go_table <- read.csv(paste0("../results/GEX/Learner/", name, " signif genes.csv"), sep = ',',
                        header = TRUE)
   
   # Get significant genes
@@ -1018,7 +1014,7 @@ p <- dotplot(compGO, showCategory = 10,
 
 p
 # Save plot
-ggsave("../ej_results/GEX/Learner/cluster_GO_enrichment_dotplot.pdf",
+ggsave("../results/GEX/Learner/cluster_GO_enrichment_dotplot.pdf",
        plot = p,
        width = 12,
        height = 10)

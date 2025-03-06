@@ -6,9 +6,8 @@ date: "2025-2-18"
 
 # Load dependencies
 
-```{r dependencies, warning=FALSE, message=FALSE}
-
-# Change this to your directory
+```{r dependencies, warning = FALSE, message = FALSE}
+# Change this to your package directory
 .libPaths('/ref/jdlab/software/r-envs/simona/r-packages/4.2/')
 
 library(Seurat)
@@ -35,13 +34,15 @@ library(data.table)
 library(viridis)
 library(ggrepel)
 
+set.seed(420)
+
 source("color_utils.R")
 ```
 
 # Load in pre-processed data
 
 ```{r load rds}
-df <-  readRDS("../data/250228_combined.neuronal_1-5_5pct.rds")
+df <- readRDS("../data/250228_combined.neuronal_1-5_5pct.rds")
 ```
 
 # Check data formats
@@ -135,7 +136,7 @@ t[1:9, 1:6]
 ```
 
 ```{r save table cells per geno}
-write.csv(t, "../ej_results/GEX/250301_tableofcellspergenotype.csv",
+write.csv(t, "../results/GEX/250301_tableofcellspergenotype.csv",
           quote = FALSE,
           row.names = TRUE)
 ```
@@ -231,7 +232,7 @@ dds <- DESeqDataSetFromMatrix(round(cluster_counts),
   sig_res
   
   name.cleaned <- gsub('/', '_', name)
-  write.csv(sig_res, paste0("../ej_results/GEX/Geno/", name.cleaned, " signif genes.csv"),
+  write.csv(sig_res, paste0("../results/GEX/Geno/", name.cleaned, " signif genes.csv"),
             quote = FALSE,
             row.names = TRUE)
 }
@@ -277,7 +278,7 @@ for (name in cluster_names){
   sig_res
   
   name.cleaned <- gsub('/', '_', name)
-  write.csv(sig_res, paste0("../ej_results/GEX/Sex/", name.cleaned, " signif genes.csv"),
+  write.csv(sig_res, paste0("../results/GEX/Sex/", name.cleaned, " signif genes.csv"),
             quote = FALSE,
             row.names = TRUE)
 }
@@ -323,7 +324,7 @@ for (name in cluster_names){
   sig_res
   
   name.cleaned <- gsub('/', '_', name)
-  write.csv(sig_res, paste0("../ej_results/GEX/Learner/", name.cleaned, " signif genes.csv"),
+  write.csv(sig_res, paste0("../results/GEX/Learner/", name.cleaned, " signif genes.csv"),
             quote = FALSE,
             row.names = TRUE)
 }
