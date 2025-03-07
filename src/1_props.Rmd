@@ -249,7 +249,6 @@ sig_p1
 ```{r cell and gene numbers df}
 cluster.set <- rev(levels(combined_neuronal$cell_type))
 
-
 cells.per.cluster <- c(table(combined_neuronal$cell_type)[as.character(cluster.set)])
 counts <- GetAssayData(combined_neuronal, assay = "RNA", slot = "counts")
 cell_idents <- combined_neuronal$cell_type
