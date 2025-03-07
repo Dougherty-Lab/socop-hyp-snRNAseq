@@ -273,7 +273,7 @@ CellsPerCluster = cells.per.cluster,
 GenesPerCluster = genes.per.cluster)
 ```
 
-```{r cell and genes plot sig only }
+```{r cell and genes plot sig only}
 # Create a data frame for the significant clusters
 sig_cellsgenes_df <- cellsgenes_df %>%
   dplyr::filter(Cluster %in% significant_cluster_names) %>%
@@ -847,7 +847,7 @@ ggplot(filtered_props, aes(x = -log10(P.Value),
     )
   
 
- ggsave(filename = "../results/proportions/250301_sexdiff_pvalues_hypovother.pdf",
+ ggsave(filename = "../results/proportions/250301_sexdiff_pvalues_hypovother_sigonly.pdf",
         width = 8,
         height = 12,
         dpi = 300)
@@ -955,7 +955,6 @@ celldistribution <- celldistribution %>%
   group_by(Sample) %>%
   mutate(norm_count = Number / sum(Number)) %>%
   ungroup()
-
 
 celldistribution$Dissector <- factor(celldistribution$Dissector, levels = c('Din', 'Simona'))
 
@@ -1100,7 +1099,6 @@ DimPlot_scCustom(combined_neuronal,
         height = 12,
         dpi = 300)
 ```
-
 
 ```{r add learner info to df}
 # map Sample to Sac_Learner
@@ -1495,7 +1493,6 @@ filtered_props <- props.learner %>%
   ungroup() %>%
   arrange(rev(region))
 
-
 filtered_props <- filtered_props[order(filtered_props$region, filtered_props$FDR, decreasing = TRUE), ]
 
 # Then use the filtered data in your plot
@@ -1521,8 +1518,7 @@ ggplot(filtered_props, aes(x = -log10(FDR),
     axis.ticks.y = element_line(color = "black")
     )
   
-
- ggsave(filename = "../results/proportions/intermed-figs/250301_learnerprops_pvalues_hypovother.pdf",
+ ggsave(filename = "../results/proportions/intermed-figs/250301_learnerprops_pvalues_hypovother_sigonly.pdf",
         width = 6,
         height = 8,
         dpi = 300)
@@ -1883,7 +1879,7 @@ model_summary_learner_df %>%
 model_summary_learner_df
 
 # Write the data frame to a CSV file
-write.csv(model_summary_learner_df, file = "../results/proportions//intermed-tables/250301_rewardsbyprops_learner.csv")
+write.csv(model_summary_learner_df, file = "../results/proportions/intermed-tables/250301_rewardsbyprops_learner.csv")
 ```
 
 ## Untransformed props
@@ -2251,7 +2247,6 @@ for (cluster in clusters) {
 cat("All plots have been saved in the 'RewardsbyProp_Figs' directory.\n")
 ```
 
-
 ### by Learner
 
 ```{r  fxn for scatterplots rewards by untrans props and learner}
@@ -2374,7 +2369,6 @@ merged_sig_clusters <-sort(as.character(merged_sig_clusters))
 print(merged_sig_clusters)
 ```
 
-
 ```{r beta coefficient plot for merged sig clusters}
 model_summary_df_filtered <- model_summary_df %>%
   filter(cluster %in% merged_sig_clusters)
@@ -2400,7 +2394,6 @@ p_beta_sig <- ggplot(model_summary_df_filtered,
 
 p_beta_sig
 ```
-
 
 ```{r cells and genes plot for sig clusters rewards and learner}
 sig_cellsgenes_df <- cellsgenes_df %>%
@@ -2476,7 +2469,6 @@ ggsave('../results/proportions/250301_propsbyLearnerandbetacoeffsforRewards_sigo
        width = 20,
        height = 4)
 ```
-
 
 ## props diff. by Region
 ```{r add region to props df rewards}
@@ -2573,7 +2565,6 @@ percentages <- prop.table(cont_table, margin = 1) * 100  # margin=1 calculates p
 print("\nPercentage of significant clusters by region:")
 print(percentages[,"TRUE"])
 ```
-
 
 # Distance by Props
 ```{r linear regression distance by props}
