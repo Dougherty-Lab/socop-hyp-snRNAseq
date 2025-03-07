@@ -81,6 +81,9 @@ palette_70 <- c("#C69DAF", "#B984A7", "#B2B2B2", "#8CAC94", "#78A5A6", "#D7A69E"
                 "#8CB6D0", "#DFE6E6", "#DFD0C7", "#BFC5CC", "#90AFC5", "#C789D6",
                 "#ACEADC", "#C9BCE6", "#FFD2BE", "#C5C575")
 
+nxph4_palette <- c("#77AADD", "#99DDFF", "#44BB99", "#BBCC33", "#AAAA00",
+                   "#EEDD88", "#EE8866", "#FFAABB")
+
 save_pheatmap_pdf <- function(x, filename, width=7, height=7) {
   stopifnot(!missing(x))
   stopifnot(!missing(filename))
