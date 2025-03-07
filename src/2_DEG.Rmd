@@ -8,7 +8,7 @@ date: "2025-2-18"
 
 ```{r dependencies, warning = FALSE, message = FALSE}
 # Change this to your package directory
-.libPaths('/ref/jdlab/software/r-envs/simona/r-packages/4.2/')
+.libPaths("/ref/jdlab/software/r-envs/simona/r-packages/4.2/")
 
 library(Seurat)
 library(tidyverse)
@@ -76,8 +76,10 @@ Expected output:
 ```{r make sce df}
 counts <- df@assays$RNA@counts
 metadata <- df@meta.data
-sce <- SingleCellExperiment(assay = list(counts = counts),
-                            colData = metadata)
+sce <- SingleCellExperiment(
+  assay = list(counts = counts),
+  colData = metadata
+)
 ```
 
 # Prepare the dataset for pseudobulk analysis
@@ -100,8 +102,9 @@ head(groups)
 
 ```{r aggregate count mtx}
 aggr_counts <- aggregate.Matrix(t(counts(sce)),
-                                groupings = groups,
-                                fun = "sum")
+  groupings = groups,
+  fun = "sum"
+)
 aggr_counts <- t(aggr_counts)
 tstrsplit(colnames(aggr_counts), "_") %>% str()
 ```
@@ -130,21 +133,24 @@ rownames(metadata) <- metadata$sample
 ```
 
 ```{r check columns}
-t <- table(colData(sce)$sample,
-           colData(sce)$cell_type)
+t <- table(
+  colData(sce)$sample,
+  colData(sce)$cell_type
+)
 t[1:9, 1:6]
 ```
 
 ```{r save table cells per geno}
 write.csv(t, "../results/GEX/250301_tableofcellspergenotype.csv",
-          quote = FALSE,
-          row.names = TRUE)
+  quote = FALSE,
+  row.names = TRUE
+)
 ```
 
 ```{r check clusters and sample ids}
 for (i in 1:length(counts_ls)) {
-    data <- data.frame(cluster_sample_id = colnames(counts_ls[[i]]))
-    print(data)
+  data <- data.frame(cluster_sample_id = colnames(counts_ls[[i]]))
+  print(data)
 }
 ```
 
@@ -155,23 +161,24 @@ for (i in 1:length(counts_ls)) {
   print(names(counts_ls)[i])
   data <- data.frame(cluster_sample_id = colnames(counts_ls[[i]]))
   data$cluster_id <- tstrsplit(data$cluster_sample_id, "_")[[1]]
-  data$sample <- str_extract(data$cluster_sample_id,  "(?<=_).*")
-  
+  data$sample <- str_extract(data$cluster_sample_id, "(?<=_).*")
+
   idx <- which(colnames(t) == unique(data$cluster_id))
   cell_counts <- t[, idx]
-  
+
   cell_counts <- cell_counts[cell_counts > 0]
-  
+
   sample_order <- match(data$sample, names(cell_counts))
   cell_counts <- cell_counts[sample_order]
-  
+
   data$cell_count <- cell_counts
-  
+
   data <- plyr::join(data, metadata,
-                     by = intersect(names(data), names(metadata)))
-  
+    by = intersect(names(data), names(metadata))
+  )
+
   rownames(data) <- data$cluster_sample_id
-  
+
   metadata_ls[[i]] <- data
   metadata_ls[[i]]$genotype <- factor(metadata_ls[[i]]$genotype, levels = c("WT", "Het"))
   metadata_ls[[i]]$sex <- factor(metadata_ls[[i]]$sex, levels = c("M", "F"))
@@ -198,43 +205,46 @@ all(names(counts_ls) == names(metadata_ls))
 
 
 ```{r loop thru DESeq2 for geno}
-for (name in cluster_names){
+for (name in cluster_names) {
   idx <- which(names(counts_ls) == name)
   cluster_counts <- counts_ls[[idx]]
   cluster_metadata <- metadata_ls[[idx]]
-  
+
   all(colnames(cluster_counts) == rownames(cluster_metadata))
-  
+
   print(name)
   print(idx)
 
-dds <- DESeqDataSetFromMatrix(round(cluster_counts),
-                            colData = cluster_metadata,
-                           design = ~ genotype)
- 
+  dds <- DESeqDataSetFromMatrix(round(cluster_counts),
+    colData = cluster_metadata,
+    design = ~genotype
+  )
+
   dds <- DESeq(dds)
-  
+
   res <- results(dds,
-               name = 'genotype_Het_vs_WT',
-              alpha = 0.05)
-  
+    name = "genotype_Het_vs_WT",
+    alpha = 0.05
+  )
+
   res_tbl <- res %>%
     data.frame() %>%
-    rownames_to_column(var = 'gene') %>%
+    rownames_to_column(var = "gene") %>%
     as_tibble() %>%
     arrange(padj)
-  
+
   padj_cutoff <- 0.1
-  
+
   sig_res <- dplyr::filter(res_tbl, padj < padj_cutoff) %>%
     dplyr::arrange(padj)
-  
+
   sig_res
-  
-  name.cleaned <- gsub('/', '_', name)
+
+  name.cleaned <- gsub("/", "_", name)
   write.csv(sig_res, paste0("../results/GEX/Geno/", name.cleaned, " signif genes.csv"),
-            quote = FALSE,
-            row.names = TRUE)
+    quote = FALSE,
+    row.names = TRUE
+  )
 }
 ```
 
@@ -243,44 +253,47 @@ Now, do the same analysis, but including sex in the design.
 You may need to create results directories for this loop to work.
 
 ```{r loop thru DESeq2 for sex}
-for (name in cluster_names){
+for (name in cluster_names) {
   idx <- which(names(counts_ls) == name)
   cluster_counts <- counts_ls[[idx]]
   cluster_metadata <- metadata_ls[[idx]]
 
   all(colnames(cluster_counts) == rownames(cluster_metadata))
-  
+
   print(name)
   print(idx)
 
   dds <- DESeqDataSetFromMatrix(round(cluster_counts),
-                                colData = cluster_metadata,
-                                design = ~ sex)
+    colData = cluster_metadata,
+    design = ~sex
+  )
 
   dds <- DESeq(dds)
- 
+
   res <- results(dds,
-                 name = 'sex_F_vs_M',
-                 alpha = 0.05)
+    name = "sex_F_vs_M",
+    alpha = 0.05
+  )
 
 
   res_tbl <- res %>%
     data.frame() %>%
-    rownames_to_column(var = 'gene') %>%
+    rownames_to_column(var = "gene") %>%
     as_tibble() %>%
     arrange(padj)
-  
+
   padj_cutoff <- 0.1
-  
+
   sig_res <- dplyr::filter(res_tbl, padj < padj_cutoff) %>%
     dplyr::arrange(padj)
-  
+
   sig_res
-  
-  name.cleaned <- gsub('/', '_', name)
+
+  name.cleaned <- gsub("/", "_", name)
   write.csv(sig_res, paste0("../results/GEX/Sex/", name.cleaned, " signif genes.csv"),
-            quote = FALSE,
-            row.names = TRUE)
+    quote = FALSE,
+    row.names = TRUE
+  )
 }
 ```
 
@@ -289,44 +302,47 @@ Now, do the same analysis, but including learners vs non-learners in the design.
 You may need to create results directories for this loop to work.
 
 ```{r loop thru DESeq2 for learner}
-for (name in cluster_names){
+for (name in cluster_names) {
   idx <- which(names(counts_ls) == name)
   cluster_counts <- counts_ls[[idx]]
   cluster_metadata <- metadata_ls[[idx]]
-  
+
 
   all(colnames(cluster_counts) == rownames(cluster_metadata))
-  
+
   print(name)
   print(idx)
 
-     dds <- DESeqDataSetFromMatrix(round(cluster_counts),
-                                 colData = cluster_metadata,
-                                 design = ~ Sac_Learner)
+  dds <- DESeqDataSetFromMatrix(round(cluster_counts),
+    colData = cluster_metadata,
+    design = ~Sac_Learner
+  )
 
   dds <- DESeq(dds)
- 
-    res <- results(dds,
-                 name = 'Sac_Learner_Non_Learner_vs_Learner',
-                 alpha = 0.05)
+
+  res <- results(dds,
+    name = "Sac_Learner_Non_Learner_vs_Learner",
+    alpha = 0.05
+  )
 
   res_tbl <- res %>%
     data.frame() %>%
-    rownames_to_column(var = 'gene') %>%
+    rownames_to_column(var = "gene") %>%
     as_tibble() %>%
     arrange(padj)
-  
+
   padj_cutoff <- 0.1
-  
+
   sig_res <- dplyr::filter(res_tbl, padj < padj_cutoff) %>%
     dplyr::arrange(padj)
-  
+
   sig_res
-  
-  name.cleaned <- gsub('/', '_', name)
+
+  name.cleaned <- gsub("/", "_", name)
   write.csv(sig_res, paste0("../results/GEX/Learner/", name.cleaned, " signif genes.csv"),
-            quote = FALSE,
-            row.names = TRUE)
+    quote = FALSE,
+    row.names = TRUE
+  )
 }
 ```
 

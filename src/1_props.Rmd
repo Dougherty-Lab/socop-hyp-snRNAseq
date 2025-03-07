@@ -8,7 +8,7 @@ date: "2025-02-18"
 
 ```{r dependencies, warning = FALSE, message = FALSE}
 # Change this to your package directory
-.libPaths('/ref/jdlab/software/r-envs/simona/r-packages/4.2/')
+.libPaths("/ref/jdlab/software/r-envs/simona/r-packages/4.2/")
 
 # Load dependencies
 library(dplyr)
@@ -62,17 +62,17 @@ combined_neuronal@meta.data$cell_type <- as.factor(gsub("/", "-", combined_neuro
 
 ```{r make proportions df}
 celldistribution <- data.frame(table(combined_neuronal@meta.data$cell_type, combined_neuronal@meta.data$sample))
-colnames(celldistribution) <- c('Cluster', 'Sample', 'Number')
-celldistribution$Sex <- gsub('.*_(\\w)_.*', '\\1', celldistribution$Sample)
-celldistribution$Genotype <- gsub('^(.*?)_.*$', '\\1', celldistribution$Sample)
+colnames(celldistribution) <- c("Cluster", "Sample", "Number")
+celldistribution$Sex <- gsub(".*_(\\w)_.*", "\\1", celldistribution$Sample)
+celldistribution$Genotype <- gsub("^(.*?)_.*$", "\\1", celldistribution$Sample)
 
 celldistribution <- celldistribution %>%
   group_by(Sample) %>%
   mutate(norm_count = Number / sum(Number)) %>%
   ungroup()
 
-celldistribution$Genotype <- factor(celldistribution$Genotype, levels = c('Het', 'WT'))
-celldistribution$Sex <- factor(celldistribution$Sex, levels = c('M', 'F'))
+celldistribution$Genotype <- factor(celldistribution$Genotype, levels = c("Het", "WT"))
+celldistribution$Sex <- factor(celldistribution$Sex, levels = c("M", "F"))
 
 celldistribution
 ```
@@ -81,36 +81,42 @@ celldistribution
 First let's look at a UMAP and PCA plot. 
 ```{r umap by sex}
 DimPlot_scCustom(combined_neuronal,
-                 colors_use = palette_geno,
-                 group.by = 'genotype',
-                 reduction = 'umap',
-                 label = FALSE,
-                 raster = FALSE,
-                 split_seurat = TRUE,
-                 pt.size = 0.01) +
-  theme(legend.position = 'right')
+  colors_use = palette_geno,
+  group.by = "genotype",
+  reduction = "umap",
+  label = FALSE,
+  raster = FALSE,
+  split_seurat = TRUE,
+  pt.size = 0.01
+) +
+  theme(legend.position = "right")
 
- ggsave(filename = "../results/proportions/250301_umap_1-5_5pct_res1.8_50dims_neuronal_bygeno.png",
-        width = 12,
-        height = 12,
-        dpi = 300)
+ggsave(
+  filename = "../results/proportions/250301_umap_1-5_5pct_res1.8_50dims_neuronal_bygeno.png",
+  width = 12,
+  height = 12,
+  dpi = 300
+)
 ```
 
 ```{r pca by geno}
 DimPlot_scCustom(combined_neuronal,
-                 colors_use = palette_geno,
-                 group.by = 'genotype',
-                 reduction = 'pca',
-                 label = FALSE,
-                 raster = FALSE,
-                 split_seurat = TRUE,
-                 pt.size = 0.01) +
-  theme(legend.position = 'right')
+  colors_use = palette_geno,
+  group.by = "genotype",
+  reduction = "pca",
+  label = FALSE,
+  raster = FALSE,
+  split_seurat = TRUE,
+  pt.size = 0.01
+) +
+  theme(legend.position = "right")
 
- ggsave(filename = "../results/proportions/intermed-figs/250301_pca_1-5_5pct_res1.8_50dims_neuronal_bygeno.png",
-        width = 12,
-        height = 12,
-        dpi = 300)
+ggsave(
+  filename = "../results/proportions/intermed-figs/250301_pca_1-5_5pct_res1.8_50dims_neuronal_bygeno.png",
+  width = 12,
+  height = 12,
+  dpi = 300
+)
 ```
 
 mean_norm_count is the mean of the normalized counts per cluster for each genotype (so it's the same for WT_M_1 through WT_F_3), se_mean is the SE of that mean. 
@@ -120,7 +126,7 @@ norm_count_normalized is the norm_count (abundance of this cluster relative to o
 calcnums <- celldistribution %>%
   group_by(Cluster, Genotype) %>%
   mutate(mean_norm_count = mean(norm_count)) %>%
-  mutate(se_mean = sd(norm_count)/sqrt(36)) %>%
+  mutate(se_mean = sd(norm_count) / sqrt(36)) %>%
   drop_na()
 
 mean_norm_count_WT_M1 <- calcnums$mean_norm_count[calcnums$Sample == "WT_M_1"]
@@ -139,7 +145,7 @@ calcnums %>%
 calcnums <- calcnums %>%
   group_by(Cluster, Genotype) %>%
   mutate(mean_norm_count_normalizedtoWT = mean(norm_count_normalizedtoWT)) %>%
-  mutate(se_mean_norm_count_normalizedtoWT = sd(norm_count_normalizedtoWT)/sqrt(36)) %>%
+  mutate(se_mean_norm_count_normalizedtoWT = sd(norm_count_normalizedtoWT) / sqrt(36)) %>%
   drop_na()
 
 calcnums <- calcnums %>%
@@ -148,7 +154,7 @@ calcnums <- calcnums %>%
   mutate(se_mean_normtoWT_pct = se_mean_norm_count_normalizedtoWT * 100) %>%
   drop_na()
 
-calcnums$Genotype <- factor(calcnums$Genotype, levels = c('Het', 'WT'))
+calcnums$Genotype <- factor(calcnums$Genotype, levels = c("Het", "WT"))
 
 cluster_order <- rev(sort(levels(combined_neuronal)))
 
@@ -158,55 +164,73 @@ celldistribution$Cluster <- factor(calcnums$Cluster, levels = cluster_order)
 
 ```{r bar plots props by geno}
 p1 <- ggplot(calcnums, aes(x = mean_norm_count, y = Cluster, fill = Genotype)) +
-  geom_bar(stat = "identity", position = "dodge",
-           width = 0.7) +
+  geom_bar(
+    stat = "identity", position = "dodge",
+    width = 0.7
+  ) +
   geom_point(aes(x = norm_count, y = Cluster),
-             color = "black",
-             size = 0.01) +
+    color = "black",
+    size = 0.01
+  ) +
   geom_errorbar(aes(y = Cluster, xmin = mean_norm_count - se_mean, xmax = mean_norm_count + se_mean),
-                position = position_dodge(0.7),
-                width = 0.2, size = 0.2) +
+    position = position_dodge(0.7),
+    width = 0.2, size = 0.2
+  ) +
   labs(x = "Proportion", y = "Cluster") +
   theme_classic() +
   scale_fill_manual(values = palette_geno) +
-  theme(legend.position = "none", 
-        axis.text.y = element_text(color = rep(c("#000000", "#555555"), 
-                                             length.out = length(unique(calcnums$Cluster)))))
+  theme(
+    legend.position = "none",
+    axis.text.y = element_text(color = rep(c("#000000", "#555555"),
+      length.out = length(unique(calcnums$Cluster))
+    ))
+  )
 
 p2 <- ggplot(calcnums, aes(x = mean_norm_count_normalizedtoWT, y = Cluster, fill = Genotype)) +
-  geom_bar(stat = "identity", position = "dodge",
-           width = 0.7) +
+  geom_bar(
+    stat = "identity", position = "dodge",
+    width = 0.7
+  ) +
   geom_point(aes(x = norm_count, y = Cluster),
-             color = "black",
-             size = 0.01) +
+    color = "black",
+    size = 0.01
+  ) +
   geom_errorbar(aes(y = Cluster, xmin = mean_norm_count_normalizedtoWT - se_mean_norm_count_normalizedtoWT, xmax = mean_norm_count_normalizedtoWT + se_mean_norm_count_normalizedtoWT),
-                position = position_dodge(0.7),
-                width = 0.2, size = 0.2) +
+    position = position_dodge(0.7),
+    width = 0.2, size = 0.2
+  ) +
   labs(x = "Proportion", y = "") +
   theme_classic() +
   scale_fill_manual(values = palette_geno) +
-  theme(axis.text.y = element_blank(),
-        legend.position = "none")
+  theme(
+    axis.text.y = element_blank(),
+    legend.position = "none"
+  )
 
 p4 <- ggplot(calcnums, aes(x = mean_normtoWT_pct, y = Cluster, fill = Genotype)) +
-  geom_bar(stat = "identity", position = "dodge",
-           width = 0.7) +
+  geom_bar(
+    stat = "identity", position = "dodge",
+    width = 0.7
+  ) +
   geom_point(aes(x = norm_count, y = Cluster),
-             color = "black",
-             size = 0.01) +
+    color = "black",
+    size = 0.01
+  ) +
   geom_errorbar(aes(y = Cluster, xmin = mean_normtoWT_pct - se_mean_normtoWT_pct, xmax = mean_normtoWT_pct + se_mean_normtoWT_pct),
-                position = position_dodge(0.7),
-                width = 0.2, size = 0.2) +
+    position = position_dodge(0.7),
+    width = 0.2, size = 0.2
+  ) +
   labs(x = "Percent change in proportion", y = "") +
   theme_classic() +
   theme(axis.text.y = element_blank()) +
   scale_fill_manual(values = palette_geno)
 
 wrap_plots(p1, p2, p4)
-ggsave('../results/proportions/intermed-figs/250301_proportionsbyGeno_1-5_5pct_res1.8_50dims_neuronal.png',
-       device = png,
-       width = 12,
-       height = 8)
+ggsave("../results/proportions/intermed-figs/250301_proportionsbyGeno_1-5_5pct_res1.8_50dims_neuronal.png",
+  device = png,
+  width = 12,
+  height = 8
+)
 ```
 
 ```{r propeller genotype}
@@ -218,7 +242,7 @@ props.geno
 
 #### adding cells and genes to plot
 ```{r selecting sig clusters from DEG analysis}
-significant_cluster_names <- c("RT-ZI Gnb3 Gaba_2", "STR D1 Gaba","TH Prkcd Grin2c Glut_2", "TH Prkcd Grin2c Glut_3", "TH Prkcd Grin2c Glut_4", "TH Sema5b-Ntrk Glut")
+significant_cluster_names <- c("RT-ZI Gnb3 Gaba_2", "STR D1 Gaba", "TH Prkcd Grin2c Glut_2", "TH Prkcd Grin2c Glut_3", "TH Prkcd Grin2c Glut_4", "TH Sema5b-Ntrk Glut")
 
 sig_calcnums <- calcnums %>%
   dplyr::filter(Cluster %in% significant_cluster_names) %>%
@@ -229,15 +253,19 @@ sig_calcnums$Cluster <- factor(sig_calcnums$Cluster, levels = rev(significant_cl
 
 ```{r bar plot sig clusters only}
 sig_p1 <- ggplot(sig_calcnums, aes(x = mean_norm_count, y = Cluster, fill = Genotype)) +
-  geom_bar(stat = "identity", position = "dodge",
-           width = 0.7) +
+  geom_bar(
+    stat = "identity", position = "dodge",
+    width = 0.7
+  ) +
   geom_errorbar(aes(y = Cluster, xmin = mean_norm_count - se_mean, xmax = mean_norm_count + se_mean),
-                position = position_dodge(0.7),
-                width = 0.2, size = 0.2) +
+    position = position_dodge(0.7),
+    width = 0.2, size = 0.2
+  ) +
   geom_point(aes(x = norm_count, y = Cluster),
-             position = position_dodge(width = 0.7),
-             color = "black",
-             size = 0.01) +
+    position = position_dodge(width = 0.7),
+    color = "black",
+    size = 0.01
+  ) +
   labs(x = "Proportion", y = "") +
   theme_classic() +
   scale_fill_manual(values = palette_geno) +
@@ -267,9 +295,11 @@ genes.per.cluster <- sapply(levels(cell_idents), function(ident) {
 # Name the results with cluster identities
 names(genes.per.cluster) <- levels(cell_idents)
 
-cellsgenes_df <- data.frame(Cluster = cluster.set,
-CellsPerCluster = cells.per.cluster,
-GenesPerCluster = genes.per.cluster)
+cellsgenes_df <- data.frame(
+  Cluster = cluster.set,
+  CellsPerCluster = cells.per.cluster,
+  GenesPerCluster = genes.per.cluster
+)
 ```
 
 ```{r cell and genes plot sig only}
@@ -284,44 +314,54 @@ sig_cellsgenes_df$Cluster <- factor(sig_cellsgenes_df$Cluster, levels = rev(sign
 cells <- ggplot(sig_cellsgenes_df, aes(x = 1, y = Cluster, fill = CellsPerCluster)) +
   geom_tile(color = "black", lwd = 0.1) +
   geom_text(aes(label = CellsPerCluster)) +
-  scale_fill_gradient2(low = "#757575",
-                       mid = "#9E9E9E",
-                       high = "#FAFAFA",
-                       midpoint = 2000) +
+  scale_fill_gradient2(
+    low = "#757575",
+    mid = "#9E9E9E",
+    high = "#FAFAFA",
+    midpoint = 2000
+  ) +
   ylab("") +
   xlab("Nuclei") +
   theme_classic() +
   scale_y_discrete(limits = rev(significant_cluster_names)) +
-  theme(axis.text.x = element_blank(),
-        legend.position = "none",
-        axis.text.y = element_text(color = rep(c("#000000", "#555555"), 
-                                             length.out = length(unique(calcnums$Cluster)))))
+  theme(
+    axis.text.x = element_blank(),
+    legend.position = "none",
+    axis.text.y = element_text(color = rep(c("#000000", "#555555"),
+      length.out = length(unique(calcnums$Cluster))
+    ))
+  )
 
 genes <- ggplot(sig_cellsgenes_df, aes(x = 1, y = Cluster, fill = GenesPerCluster)) +
   geom_tile(color = "black", lwd = 0.1) +
   geom_text(aes(label = GenesPerCluster)) +
-  scale_fill_gradient2(low = "#757575",
-                       mid = "#9E9E9E",
-                       high = "#FAFAFA",
-                       midpoint = 19000) +
+  scale_fill_gradient2(
+    low = "#757575",
+    mid = "#9E9E9E",
+    high = "#FAFAFA",
+    midpoint = 19000
+  ) +
   ylab("") +
   xlab("Genes") +
   theme_classic() +
-    scale_y_discrete(limits = rev(significant_cluster_names)) +
-  theme(axis.text.x = element_blank(),
-        axis.text.y = element_blank(),
-        legend.position = "none")
+  scale_y_discrete(limits = rev(significant_cluster_names)) +
+  theme(
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    legend.position = "none"
+  )
 
-wrap_plots(cells,genes)
+wrap_plots(cells, genes)
 ```
 
 ```{r save wrapped plots geno}
 wrap_plots(cells, genes, sig_p1, nrow = 1)
 
-ggsave('../results/proportions/intermed-figs/250301_propsbyGeno_sigonly.pdf',
-       device = pdf,
-       width = 20,
-       height = 4)
+ggsave("../results/proportions/intermed-figs/250301_propsbyGeno_sigonly.pdf",
+  device = pdf,
+  width = 20,
+  height = 4
+)
 ```
 
 ### props diff. by region
@@ -394,7 +434,7 @@ anatomical_dict <- c(
   "SCH Six6 Cdc14a Gaba" = "Hypothalamus"
 )
 props.geno$region <- anatomical_dict[as.character(props.geno$BaselineProp.clusters)]
-props.geno<- props.geno %>%
+props.geno <- props.geno %>%
   dplyr::arrange(region, P.Value)
 props.geno <- props.geno[order(props.geno$region, props.geno$P.Value, decreasing = TRUE), ]
 ```
@@ -403,63 +443,78 @@ props.geno <- props.geno[order(props.geno$region, props.geno$P.Value, decreasing
 n_clusters <- length(unique(props.geno$BaselineProp.clusters))
 text_colors <- rep(c("#000000", "#555555"), length.out = n_clusters)
 
-ggplot(props.geno, aes(x = -log10(P.Value), 
-                      y = factor(BaselineProp.clusters, 
-                               levels = unique(props.geno$BaselineProp.clusters)), 
-                      color = region)) +
+ggplot(props.geno, aes(
+  x = -log10(P.Value),
+  y = factor(BaselineProp.clusters,
+    levels = unique(props.geno$BaselineProp.clusters)
+  ),
+  color = region
+)) +
   geom_point(size = 3) +
   geom_vline(xintercept = -log10(0.05), linetype = "dashed") +
   theme_minimal() +
   scale_color_manual(values = region_two_colors) +
-  labs(x = "-log10(P-value)",
-       y = "Cluster",
-       title = "Genotype differences in cluster proportions") +
+  labs(
+    x = "-log10(P-value)",
+    y = "Cluster",
+    title = "Genotype differences in cluster proportions"
+  ) +
   theme(
-    axis.text.y = element_text(size = 8,
-                              color = rev(text_colors)),  # rev() to match the order of clusters
+    axis.text.y = element_text(
+      size = 8,
+      color = rev(text_colors)
+    ), # rev() to match the order of clusters
     legend.position = "right"
   )
 
- ggsave(filename = "../results/proportions/intermed-figs/250301_genodiff_pvalues_hypovother.pdf",
-        width = 12,
-        height = 12,
-        dpi = 300)
+ggsave(
+  filename = "../results/proportions/intermed-figs/250301_genodiff_pvalues_hypovother.pdf",
+  width = 12,
+  height = 12,
+  dpi = 300
+)
 ```
 
 ## by sex. 
 First let's look at the UMAP and PCA:
 ```{r umap by sex}
 DimPlot_scCustom(combined_neuronal,
-                 colors_use = palette_sex,
-                 group.by = 'sex',
-                 reduction = 'umap',
-                 label = FALSE,
-                 raster = FALSE,
-                 split_seurat = TRUE,
-                 pt.size = 0.01) +
-  theme(legend.position = 'right')
+  colors_use = palette_sex,
+  group.by = "sex",
+  reduction = "umap",
+  label = FALSE,
+  raster = FALSE,
+  split_seurat = TRUE,
+  pt.size = 0.01
+) +
+  theme(legend.position = "right")
 
- ggsave(filename = "../results/proportions/250301_umap_1-5_5pct_res1.8_50dims_neuronal_bysex.png",
-        width = 12,
-        height = 12,
-        dpi = 300)
+ggsave(
+  filename = "../results/proportions/250301_umap_1-5_5pct_res1.8_50dims_neuronal_bysex.png",
+  width = 12,
+  height = 12,
+  dpi = 300
+)
 ```
 
 ```{r pca by sex}
 DimPlot_scCustom(combined_neuronal,
-                 colors_use = palette_sex,
-                 group.by = 'sex',
-                 reduction = 'pca',
-                 label = FALSE,
-                 raster = FALSE,
-                 split_seurat = TRUE,
-                 pt.size = 0.01) +
-  theme(legend.position = 'right')
+  colors_use = palette_sex,
+  group.by = "sex",
+  reduction = "pca",
+  label = FALSE,
+  raster = FALSE,
+  split_seurat = TRUE,
+  pt.size = 0.01
+) +
+  theme(legend.position = "right")
 
- ggsave(filename = "../results/proportions/intermed-figs/250301_pca_1-5_5pct_res1.8_50dims_neuronal_bysex.png",
-        width = 12,
-        height = 12,
-        dpi = 300)
+ggsave(
+  filename = "../results/proportions/intermed-figs/250301_pca_1-5_5pct_res1.8_50dims_neuronal_bysex.png",
+  width = 12,
+  height = 12,
+  dpi = 300
+)
 ```
 
 Next let's consider Moxd1, an marker for sex-dimorphic neurons in hypothalamus, BNST, and amygdala ().
@@ -468,16 +523,17 @@ Next let's consider Moxd1, an marker for sex-dimorphic neurons in hypothalamus, 
 
 ```{r moxd1 violin plot}
 VlnPlot(combined_neuronal,
-        group.by = "sex",
-        features = "Moxd1",
-        pt.size = 0.1,
-        adjust = 1.5) +
+  group.by = "sex",
+  features = "Moxd1",
+  pt.size = 0.1,
+  adjust = 1.5
+) +
   scale_y_continuous(breaks = seq(0, 3, 0.5)) +
   theme_classic()
 ```
 
 ```{r moxd1 violin in non-zero nucs}
-gene_expr <- GetAssayData(combined_neuronal, slot = "data")["Moxd1",]
+gene_expr <- GetAssayData(combined_neuronal, slot = "data")["Moxd1", ]
 
 # Create a binary vector for expression
 binary_expr <- ifelse(gene_expr > 0, 1, 0)
@@ -486,19 +542,24 @@ binary_expr <- ifelse(gene_expr > 0, 1, 0)
 expr_freq <- tapply(binary_expr, combined_neuronal$sex, mean) * 100
 
 # Plot non-zero values only
-VlnPlot_scCustom(combined_neuronal[,gene_expr > 0],
-                 group.by = "sex",
-                 features = "Moxd1",
-                 pt.size = 1) +
-  ggtitle(paste0("Moxd1 expression\n",
-                 "% expressing cells: F=", round(expr_freq["F"], 1), 
-                 "%, M=", round(expr_freq["M"], 1), "%"))
+VlnPlot_scCustom(combined_neuronal[, gene_expr > 0],
+  group.by = "sex",
+  features = "Moxd1",
+  pt.size = 1
+) +
+  ggtitle(paste0(
+    "Moxd1 expression\n",
+    "% expressing cells: F=", round(expr_freq["F"], 1),
+    "%, M=", round(expr_freq["M"], 1), "%"
+  ))
 
 
-ggsave(filename = '../results/proportions/250301_Moxd1GEX_bysex.pdf',
-       device = pdf,
-       width = 6,
-       height = 8)
+ggsave(
+  filename = "../results/proportions/250301_Moxd1GEX_bysex.pdf",
+  device = pdf,
+  width = 6,
+  height = 8
+)
 ```
 
 ```{r wilcoxon test Moxd1 GEX}
@@ -509,8 +570,8 @@ test_data <- data.frame(
 
 # Perform Wilcoxon test on non-zero values
 wilcox_test <- wilcox.test(
-  Moxd1 ~ sex, 
-  data = test_data[test_data$Moxd1 > 0,], 
+  Moxd1 ~ sex,
+  data = test_data[test_data$Moxd1 > 0, ],
   exact = FALSE
 )
 
@@ -518,15 +579,15 @@ print(wilcox_test)
 ```
 
 ```{r}
-  # For logit transformation
+# For logit transformation
 
 # Define logit function
-logit <- function(p) log(p/(1-p))
+logit <- function(p) log(p / (1 - p))
 
 moxd1_data <- data.frame(
   sample = combined_neuronal$sample,
   sex = combined_neuronal$sex,
-  Moxd1 = GetAssayData(combined_neuronal, slot = "data")["Moxd1",]
+  Moxd1 = GetAssayData(combined_neuronal, slot = "data")["Moxd1", ]
 )
 
 # First calculate proportions by sample
@@ -535,8 +596,8 @@ moxd1_props <- moxd1_data %>%
   summarize(
     total_cells = n(),
     expressing_cells = sum(Moxd1 > 0),
-    proportion = expressing_cells/total_cells,
-    .groups = 'drop'
+    proportion = expressing_cells / total_cells,
+    .groups = "drop"
   )
 
 # Logit transform the proportions for statistics
@@ -552,26 +613,34 @@ sex_stats_raw <- moxd1_props %>%
   group_by(sex) %>%
   summarize(
     mean_prop = mean(proportion),
-    se = sd(proportion)/sqrt(n()),
-    .groups = 'drop'
+    se = sd(proportion) / sqrt(n()),
+    .groups = "drop"
   )
 
 # Plot with untransformed proportions
 ggplot() +
-  geom_bar(data = sex_stats_raw, 
-           aes(x = sex, y = mean_prop, fill = sex),
-           stat = "identity",
-           alpha = 0.8,
-           width = 0.5) +
-  geom_errorbar(data = sex_stats_raw,
-                aes(x = sex, 
-                    ymin = mean_prop - se, 
-                    ymax = mean_prop + se),
-                width = 0.2) +
-  geom_point(data = moxd1_props,
-             aes(x = sex, y = proportion),
-             position = position_jitter(width = 0.2),
-             size = 1) +
+  geom_bar(
+    data = sex_stats_raw,
+    aes(x = sex, y = mean_prop, fill = sex),
+    stat = "identity",
+    alpha = 0.8,
+    width = 0.5
+  ) +
+  geom_errorbar(
+    data = sex_stats_raw,
+    aes(
+      x = sex,
+      ymin = mean_prop - se,
+      ymax = mean_prop + se
+    ),
+    width = 0.2
+  ) +
+  geom_point(
+    data = moxd1_props,
+    aes(x = sex, y = proportion),
+    position = position_jitter(width = 0.2),
+    size = 1
+  ) +
   scale_fill_manual(values = palette_sex) +
   theme_classic() +
   theme(
@@ -584,10 +653,12 @@ ggplot() +
   xlab("Sex")
 
 
-ggsave(filename = '../results/proportions/250301_Moxd1props_bysex.pdf',
-       device = pdf,
-       width = 6,
-       height = 8)
+ggsave(
+  filename = "../results/proportions/250301_Moxd1props_bysex.pdf",
+  device = pdf,
+  width = 6,
+  height = 8
+)
 
 # Print model results (from transformed data)
 print(summary_stats)
@@ -599,7 +670,7 @@ print(summary_stats)
 calcnums <- celldistribution %>%
   group_by(Cluster, Sex) %>%
   mutate(mean_norm_count = mean(norm_count)) %>%
-  mutate(se_mean = sd(norm_count)/sqrt(36)) %>%
+  mutate(se_mean = sd(norm_count) / sqrt(36)) %>%
   drop_na()
 
 mean_norm_count_M_M1 <- calcnums$mean_norm_count[calcnums$Sample == "WT_M_1"]
@@ -618,7 +689,7 @@ calcnums %>%
 calcnums <- calcnums %>%
   group_by(Cluster, Sex) %>%
   mutate(mean_norm_count_normalizedtoM = mean(norm_count_normalizedtoM)) %>%
-  mutate(se_mean_norm_count_normalizedtoM = sd(norm_count_normalizedtoM)/sqrt(36)) %>%
+  mutate(se_mean_norm_count_normalizedtoM = sd(norm_count_normalizedtoM) / sqrt(36)) %>%
   drop_na()
 
 calcnums <- calcnums %>%
@@ -628,56 +699,73 @@ calcnums <- calcnums %>%
   drop_na()
 
 cluster_order <- rev(sort(levels(combined_neuronal)))
-calcnums$Sex <- factor(calcnums$Sex, levels = c('M', 'F'))
+calcnums$Sex <- factor(calcnums$Sex, levels = c("M", "F"))
 ```
 
 ```{r bar plot props by sex}
 p1 <- ggplot(calcnums, aes(x = mean_norm_count, y = Cluster, fill = Sex)) +
-  geom_bar(stat = "identity", position = "dodge",
-           width = 0.7) +
+  geom_bar(
+    stat = "identity", position = "dodge",
+    width = 0.7
+  ) +
   geom_errorbar(aes(y = Cluster, xmin = mean_norm_count - se_mean, xmax = mean_norm_count + se_mean),
-                position = position_dodge(0.7),
-                width = 0.2, size = 0.2) +
+    position = position_dodge(0.7),
+    width = 0.2, size = 0.2
+  ) +
   labs(x = "Proportion", y = "Cluster") +
   theme_classic() +
   scale_fill_manual(values = palette_sex) +
   scale_x_continuous(limits = c(0, 0.05)) +
-   theme(legend.position = "none",
-        axis.text.y = element_text(color = rep(c("#000000", "#555555"), 
-                                             length.out = length(unique(calcnums$Cluster)))))
+  theme(
+    legend.position = "none",
+    axis.text.y = element_text(color = rep(c("#000000", "#555555"),
+      length.out = length(unique(calcnums$Cluster))
+    ))
+  )
 
 
 p2 <- ggplot(calcnums, aes(x = mean_norm_count_normalizedtoM, y = Cluster, fill = Sex)) +
-  geom_bar(stat = "identity", position = "dodge",
-           width = 0.7) +
+  geom_bar(
+    stat = "identity", position = "dodge",
+    width = 0.7
+  ) +
   geom_errorbar(aes(y = Cluster, xmin = mean_norm_count_normalizedtoM - se_mean_norm_count_normalizedtoM, xmax = mean_norm_count_normalizedtoM + se_mean_norm_count_normalizedtoM),
-                position = position_dodge(0.7),
-                width = 0.2, size = 0.2) +
+    position = position_dodge(0.7),
+    width = 0.2, size = 0.2
+  ) +
   labs(x = "Proportion", y = "") +
   theme_classic() +
   scale_fill_manual(values = palette_sex) +
-  theme(axis.text.y = element_blank(),
-        legend.position = "none")
+  theme(
+    axis.text.y = element_blank(),
+    legend.position = "none"
+  )
 
 
 p4 <- ggplot(calcnums, aes(x = mean_normtoM_pct, y = Cluster, fill = Sex)) +
-  geom_bar(stat = "identity", position = "dodge",
-           width = 0.7) +
+  geom_bar(
+    stat = "identity", position = "dodge",
+    width = 0.7
+  ) +
   geom_errorbar(aes(y = Cluster, xmin = mean_normtoM_pct - se_mean_normtoM_pct, xmax = mean_normtoM_pct + se_mean_normtoM_pct),
-                position = position_dodge(0.7),
-                width = 0.2, size = 0.2) +
+    position = position_dodge(0.7),
+    width = 0.2, size = 0.2
+  ) +
   labs(x = "Percent change in proportion") +
   theme_classic() +
   scale_fill_manual(values = palette_sex) +
-  theme(axis.text.y = element_blank(),
-        legend.position = "right")
+  theme(
+    axis.text.y = element_blank(),
+    legend.position = "right"
+  )
 
 
 wrap_plots(p1, p2, p4)
-ggsave('../results/proportions/intermed-figs/250301_proportionsbySex_1-5_5pct_res1.8_50dims_neuronal.png',
-       device = png,
-       width = 12,
-       height = 8)
+ggsave("../results/proportions/intermed-figs/250301_proportionsbySex_1-5_5pct_res1.8_50dims_neuronal.png",
+  device = png,
+  width = 12,
+  height = 8
+)
 ```
 
 ```{r propeller by sex}
@@ -693,7 +781,7 @@ props.sex
 significant_clusters <- props.sex[props.sex$P.Value < 0.051, ]
 
 # Extract the BaselineProp.clusters for the significant results
-significant_cluster_names <-sort(as.character(significant_clusters$BaselineProp.clusters))
+significant_cluster_names <- sort(as.character(significant_clusters$BaselineProp.clusters))
 
 # Print the list of significant clusters
 print(significant_cluster_names)
@@ -711,35 +799,44 @@ sig_cellsgenes_df$Cluster <- factor(sig_cellsgenes_df$Cluster, levels = rev(sign
 cells <- ggplot(sig_cellsgenes_df, aes(x = 1, y = Cluster, fill = CellsPerCluster)) +
   geom_tile(color = "black", lwd = 0.1) +
   geom_text(aes(label = CellsPerCluster)) +
-  scale_fill_gradient2(low = "#757575",
-                       mid = "#9E9E9E",
-                       high = "#FAFAFA",
-                       midpoint = 2000) +
+  scale_fill_gradient2(
+    low = "#757575",
+    mid = "#9E9E9E",
+    high = "#FAFAFA",
+    midpoint = 2000
+  ) +
   ylab("") +
   xlab("Nuclei") +
   theme_classic() +
   scale_y_discrete(limits = rev(significant_cluster_names)) +
-  theme(axis.text.x = element_blank(),
-        legend.position = "none",
-        axis.text.y = element_text(color = rep(c("#000000", "#555555"), 
-                                             length.out = length(unique(calcnums$Cluster)))))
+  theme(
+    axis.text.x = element_blank(),
+    legend.position = "none",
+    axis.text.y = element_text(color = rep(c("#000000", "#555555"),
+      length.out = length(unique(calcnums$Cluster))
+    ))
+  )
 
 genes <- ggplot(sig_cellsgenes_df, aes(x = 1, y = Cluster, fill = GenesPerCluster)) +
   geom_tile(color = "black", lwd = 0.1) +
   geom_text(aes(label = GenesPerCluster)) +
-  scale_fill_gradient2(low = "#757575",
-                       mid = "#9E9E9E",
-                       high = "#FAFAFA",
-                       midpoint = 19000) +
+  scale_fill_gradient2(
+    low = "#757575",
+    mid = "#9E9E9E",
+    high = "#FAFAFA",
+    midpoint = 19000
+  ) +
   ylab("") +
   xlab("Genes") +
   theme_classic() +
-    scale_y_discrete(limits = rev(significant_cluster_names)) +
-  theme(axis.text.x = element_blank(),
-        axis.text.y = element_blank(),
-        legend.position = "none")
+  scale_y_discrete(limits = rev(significant_cluster_names)) +
+  theme(
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    legend.position = "none"
+  )
 
-wrap_plots(cells,genes)
+wrap_plots(cells, genes)
 ```
 
 ```{r bar plot sig clusters only sex}
@@ -751,21 +848,27 @@ sig_calcnums <- calcnums %>%
 sig_calcnums$Cluster <- factor(sig_calcnums$Cluster, levels = rev(significant_cluster_names))
 
 sig_p1 <- ggplot(sig_calcnums, aes(x = mean_norm_count, y = Cluster, fill = Sex)) +
-  geom_bar(stat = "identity", position = "dodge",
-           width = 0.7) +
- geom_point(aes(x = norm_count, y = Cluster),
-             position = position_dodge(width = 0.7),
-             color = "black",
-             size = 0.01) +
+  geom_bar(
+    stat = "identity", position = "dodge",
+    width = 0.7
+  ) +
+  geom_point(aes(x = norm_count, y = Cluster),
+    position = position_dodge(width = 0.7),
+    color = "black",
+    size = 0.01
+  ) +
   geom_errorbar(aes(y = Cluster, xmin = mean_norm_count - se_mean, xmax = mean_norm_count + se_mean),
-                position = position_dodge(0.7),
-                width = 0.2, size = 0.2) +
+    position = position_dodge(0.7),
+    width = 0.2, size = 0.2
+  ) +
   labs(x = "Proportion", y = "") +
   theme_classic() +
   scale_fill_manual(values = palette_sex) +
   scale_x_continuous(limits = c(0, 0.05)) +
-   theme(legend.position = "right", 
-         axis.text.y = element_blank())
+  theme(
+    legend.position = "right",
+    axis.text.y = element_blank()
+  )
 
 sig_p1
 ```
@@ -773,16 +876,17 @@ sig_p1
 ```{r save wrapped plots sex}
 wrap_plots(cells, genes, sig_p1, nrow = 1)
 
-ggsave('../results/proportions/intermed-figs/250301_propsandDEGsbySex_sigonly.pdf',
-       device = pdf,
-       width = 20,
-       height = 4)
+ggsave("../results/proportions/intermed-figs/250301_propsandDEGsbySex_sigonly.pdf",
+  device = pdf,
+  width = 20,
+  height = 4
+)
 ```
 
 ### props diff. by Region
 ```{r add region to props df sex}
 props.sex$region <- anatomical_dict[as.character(props.sex$BaselineProp.clusters)]
-props.sex<- props.sex %>%
+props.sex <- props.sex %>%
   dplyr::arrange(region, P.Value)
 props.sex <- props.sex[order(props.sex$region, props.sex$P.Value, decreasing = TRUE), ]
 ```
@@ -791,27 +895,36 @@ props.sex <- props.sex[order(props.sex$region, props.sex$P.Value, decreasing = T
 n_clusters <- length(unique(props.sex$BaselineProp.clusters))
 text_colors <- rep(c("#000000", "#555555"), length.out = n_clusters)
 
-ggplot(props.sex, aes(x = -log10(P.Value), 
-                      y = factor(BaselineProp.clusters, 
-                               levels = unique(props.sex$BaselineProp.clusters)), 
-                      color = region)) +
+ggplot(props.sex, aes(
+  x = -log10(P.Value),
+  y = factor(BaselineProp.clusters,
+    levels = unique(props.sex$BaselineProp.clusters)
+  ),
+  color = region
+)) +
   geom_point(size = 3) +
   geom_vline(xintercept = -log10(0.05), linetype = "dashed") +
   theme_minimal() +
   scale_color_manual(values = region_two_colors) +
-  labs(x = "-log10(P-value)",
-       y = "Cluster",
-       title = "Sex differences in cluster proportions") +
+  labs(
+    x = "-log10(P-value)",
+    y = "Cluster",
+    title = "Sex differences in cluster proportions"
+  ) +
   theme(
-    axis.text.y = element_text(size = 8,
-                              color = rev(text_colors)),  # rev() to match the order of clusters
+    axis.text.y = element_text(
+      size = 8,
+      color = rev(text_colors)
+    ), # rev() to match the order of clusters
     legend.position = "right"
   )
 
- ggsave(filename = "../results/proportions/intermed-figs/250301_sexdiff_pvalues_hypovother.pdf",
-        width = 12,
-        height = 12,
-        dpi = 300)
+ggsave(
+  filename = "../results/proportions/intermed-figs/250301_sexdiff_pvalues_hypovother.pdf",
+  width = 12,
+  height = 12,
+  dpi = 300
+)
 ```
 
 ```{r p-values by region plot sex top 10}
@@ -823,33 +936,42 @@ filtered_props <- props.sex %>%
   arrange(rev(region))
 
 # Then use the filtered data in your plot
-ggplot(filtered_props, aes(x = -log10(P.Value), 
-                          y = factor(BaselineProp.clusters, 
-                                   levels = unique(filtered_props$BaselineProp.clusters)), 
-                          color = region)) +
+ggplot(filtered_props, aes(
+  x = -log10(P.Value),
+  y = factor(BaselineProp.clusters,
+    levels = unique(filtered_props$BaselineProp.clusters)
+  ),
+  color = region
+)) +
   geom_point(size = 3) +
   geom_vline(xintercept = -log10(0.05), linetype = "dashed") +
   theme_minimal() +
   scale_color_manual(values = region_two_colors) +
-  labs(x = "-log10(P-value)",
-       y = "Cluster",
-       title = "Sex differences in cluster proportions") +
+  labs(
+    x = "-log10(P-value)",
+    y = "Cluster",
+    title = "Sex differences in cluster proportions"
+  ) +
   theme(
-    axis.text.y = element_text(size = 8,
-                              color = rev(text_colors)[1:nrow(filtered_props)]),  # adjust colors to match filtered data
+    axis.text.y = element_text(
+      size = 8,
+      color = rev(text_colors)[1:nrow(filtered_props)]
+    ), # adjust colors to match filtered data
     legend.position = "right",
     panel.grid = element_blank(),
     axis.line = element_line(color = "black"),
     axis.line.y = element_line(color = "black"),
-    axis.ticks.x = element_line(color = "black"),  
+    axis.ticks.x = element_line(color = "black"),
     axis.ticks.y = element_line(color = "black")
-    )
-  
+  )
 
- ggsave(filename = "../results/proportions/250301_sexdiff_pvalues_hypovother_sigonly.pdf",
-        width = 8,
-        height = 12,
-        dpi = 300)
+
+ggsave(
+  filename = "../results/proportions/250301_sexdiff_pvalues_hypovother_sigonly.pdf",
+  width = 8,
+  height = 12,
+  dpi = 300
+)
 ```
 
 ```{r Fisher's for props significance by region}
@@ -871,9 +993,9 @@ print("\nFisher's exact test results:")
 print(fisher_result)
 
 # Calculate and print percentages for easier interpretation
-percentages <- prop.table(cont_table, margin = 1) * 100  # margin=1 calculates percentages within each region
+percentages <- prop.table(cont_table, margin = 1) * 100 # margin=1 calculates percentages within each region
 print("\nPercentage of significant clusters by region:")
-print(percentages[,"TRUE"])
+print(percentages[, "TRUE"])
 ```
 
 ## by dissector
@@ -881,7 +1003,9 @@ Since two people were dissecting the brains, we want to compare to see if
 proportions differ by dissector. 
 ```{r load in dissector data}
 dissector_data <- read.csv("../doc/073123_Dissector_forR.csv", stringsAsFactors = FALSE)
-dissector_data <- dissector_data[,apply(dissector_data, 2, function(x) { sum(!is.na(x)) > 0 })]
+dissector_data <- dissector_data[, apply(dissector_data, 2, function(x) {
+  sum(!is.na(x)) > 0
+})]
 dissector_data <- subset(dissector_data, select = -c(Sac_Learner, Ever_Learner, Coded_ID))
 head(dissector_data)
 ```
@@ -891,7 +1015,7 @@ head(dissector_data)
 metadata <- merge(combined_neuronal@meta.data, dissector_data, by = "sample", all.x = TRUE, sort = FALSE)
 
 # Set the rownames of the merged metadata to the preserved rownames
-rownames(metadata) <- rownames(combined_neuronal@meta.data) 
+rownames(metadata) <- rownames(combined_neuronal@meta.data)
 
 dim(metadata)
 dim(combined_neuronal@meta.data)
@@ -905,57 +1029,63 @@ levels(combined_neuronal$Dissector) <- c("Din", "Simona")
 First let's plot UMAPs and PCAs. 
 ```{r umap by dissector}
 DimPlot_scCustom(combined_neuronal,
-                 colors_use = palette_dissector,
-                 group.by = "Dissector",
-                 reduction = 'umap',
-                 label = FALSE,
-                 raster = FALSE,
-                 split_seurat = TRUE,
-                 pt.size = 0.01) +
-  theme(legend.position = 'right')
+  colors_use = palette_dissector,
+  group.by = "Dissector",
+  reduction = "umap",
+  label = FALSE,
+  raster = FALSE,
+  split_seurat = TRUE,
+  pt.size = 0.01
+) +
+  theme(legend.position = "right")
 
- ggsave(filename = "../results/proportions/250301_umap_neuronal_bydissector.png",
-        width = 12,
-        height = 12,
-        dpi = 300)
-
+ggsave(
+  filename = "../results/proportions/250301_umap_neuronal_bydissector.png",
+  width = 12,
+  height = 12,
+  dpi = 300
+)
 ```
 
 ```{r pca by dissector}
 DimPlot_scCustom(combined_neuronal,
-                 colors_use = palette_dissector,
-                 group.by = 'Dissector',
-                 reduction = 'pca',
-                 label = FALSE,
-                 raster = FALSE,
-                 split_seurat = TRUE,
-                 pt.size = 0.01) +
-  theme(legend.position = 'right')
+  colors_use = palette_dissector,
+  group.by = "Dissector",
+  reduction = "pca",
+  label = FALSE,
+  raster = FALSE,
+  split_seurat = TRUE,
+  pt.size = 0.01
+) +
+  theme(legend.position = "right")
 
 
- ggsave(filename = "../results/proportions/intermed-figs/250301_pca_neuronal_bydissector.png",
-        width = 12,
-        height = 12,
-        dpi = 300)
+ggsave(
+  filename = "../results/proportions/intermed-figs/250301_pca_neuronal_bydissector.png",
+  width = 12,
+  height = 12,
+  dpi = 300
+)
 ```
 
 
 ```{r proprotions df with dissector}
 celldistribution <- data.frame(table(combined_neuronal@meta.data$cell_type, combined_neuronal@meta.data$sample))
-colnames(celldistribution) <- c('Cluster', 'Sample', 'Number')
-celldistribution$Sex <- gsub('.*_(\\w)_.*', '\\1', celldistribution$Sample)
-celldistribution$Genotype <- gsub('^(.*?)_.*$', '\\1', celldistribution$Sample)
+colnames(celldistribution) <- c("Cluster", "Sample", "Number")
+celldistribution$Sex <- gsub(".*_(\\w)_.*", "\\1", celldistribution$Sample)
+celldistribution$Genotype <- gsub("^(.*?)_.*$", "\\1", celldistribution$Sample)
 
 celldistribution <- left_join(celldistribution,
-                             dissector_data[, c("sample", "Dissector")],
-                             by = c("Sample" = "sample"))
+  dissector_data[, c("sample", "Dissector")],
+  by = c("Sample" = "sample")
+)
 
 celldistribution <- celldistribution %>%
   group_by(Sample) %>%
   mutate(norm_count = Number / sum(Number)) %>%
   ungroup()
 
-celldistribution$Dissector <- factor(celldistribution$Dissector, levels = c('Din', 'Simona'))
+celldistribution$Dissector <- factor(celldistribution$Dissector, levels = c("Din", "Simona"))
 
 celldistribution
 ```
@@ -965,7 +1095,7 @@ celldistribution
 calcnums <- celldistribution %>%
   group_by(Cluster, Dissector) %>%
   mutate(mean_norm_count = mean(norm_count)) %>%
-  mutate(se_mean = sd(norm_count)/sqrt(36)) %>%
+  mutate(se_mean = sd(norm_count) / sqrt(36)) %>%
   drop_na()
 
 mean_norm_count_WT_M1 <- calcnums$mean_norm_count[calcnums$Sample == "WT_M_1"]
@@ -984,7 +1114,7 @@ calcnums %>%
 calcnums <- calcnums %>%
   group_by(Cluster, Dissector) %>%
   mutate(mean_norm_count_normalizedtoNL = mean(norm_count_normalizedtoNL)) %>%
-  mutate(se_mean_norm_count_normalizedtoNL = sd(norm_count_normalizedtoNL)/sqrt(36)) %>%
+  mutate(se_mean_norm_count_normalizedtoNL = sd(norm_count_normalizedtoNL) / sqrt(36)) %>%
   drop_na()
 
 calcnums <- calcnums %>%
@@ -994,66 +1124,90 @@ calcnums <- calcnums %>%
   drop_na() %>%
   ungroup()
 
-calcnums$Dissector <- factor(calcnums$Dissector, levels = c('Din', 'Simona'))
+calcnums$Dissector <- factor(calcnums$Dissector, levels = c("Din", "Simona"))
 calcnums
 ```
 
 ```{r bar plots props by dissector}
 cluster_order <- sort(as.character(unique(calcnums$Cluster), decreasing = TRUE))
 
-p1 <- ggplot(calcnums, aes(x = mean_norm_count, 
-                           y = factor(Cluster, levels = rev(cluster_order)), 
-                           fill = Dissector)) +
-  geom_bar(stat = "identity", position = "dodge",
-           width = 0.7) +
+p1 <- ggplot(calcnums, aes(
+  x = mean_norm_count,
+  y = factor(Cluster, levels = rev(cluster_order)),
+  fill = Dissector
+)) +
+  geom_bar(
+    stat = "identity", position = "dodge",
+    width = 0.7
+  ) +
   geom_errorbar(aes(y = Cluster, xmin = mean_norm_count - se_mean, xmax = mean_norm_count + se_mean),
-                position = position_dodge(0.7),
-                width = 0.2, size = 0.2) +
+    position = position_dodge(0.7),
+    width = 0.2, size = 0.2
+  ) +
   labs(x = "Proportion", y = "Cluster") +
   theme_classic() +
   scale_fill_manual(values = palette_dissector) +
   scale_x_continuous(limits = c(0, 0.05)) +
-   theme(legend.position = "none",
-        axis.text.y = element_text(color = rep(c("#000000", "#555555"), 
-                                             length.out = length(unique(calcnums$Cluster)))))
+  theme(
+    legend.position = "none",
+    axis.text.y = element_text(color = rep(c("#000000", "#555555"),
+      length.out = length(unique(calcnums$Cluster))
+    ))
+  )
 
-p2 <- ggplot(calcnums, aes(x = mean_norm_count_normalizedtoNL,
-                           y = factor(Cluster, levels = rev(cluster_order)),  fill = Dissector)) +
-  geom_bar(stat = "identity", position = "dodge",
-           width = 0.7) +
+p2 <- ggplot(calcnums, aes(
+  x = mean_norm_count_normalizedtoNL,
+  y = factor(Cluster, levels = rev(cluster_order)), fill = Dissector
+)) +
+  geom_bar(
+    stat = "identity", position = "dodge",
+    width = 0.7
+  ) +
   geom_errorbar(aes(y = Cluster, xmin = mean_norm_count_normalizedtoNL - se_mean_norm_count_normalizedtoNL, xmax = mean_norm_count_normalizedtoNL + se_mean_norm_count_normalizedtoNL),
-                position = position_dodge(0.7),
-                width = 0.2, size = 0.2) +
+    position = position_dodge(0.7),
+    width = 0.2, size = 0.2
+  ) +
   labs(x = "Proportion", y = "") +
   theme_classic() +
   scale_fill_manual(values = palette_dissector) +
-  theme(axis.text.y = element_blank(),
-        legend.position = "none")
+  theme(
+    axis.text.y = element_blank(),
+    legend.position = "none"
+  )
 
-p4 <- ggplot(calcnums, aes(x = mean_normtoNL_pct, 
-                           y = factor(Cluster, levels = rev(cluster_order)), fill = Dissector)) +
-  geom_bar(stat = "identity", position = "dodge",
-           width = 0.7) +
+p4 <- ggplot(calcnums, aes(
+  x = mean_normtoNL_pct,
+  y = factor(Cluster, levels = rev(cluster_order)), fill = Dissector
+)) +
+  geom_bar(
+    stat = "identity", position = "dodge",
+    width = 0.7
+  ) +
   geom_errorbar(aes(y = Cluster, xmin = mean_normtoNL_pct - se_mean_normtoNL_pct, xmax = mean_normtoNL_pct + se_mean_normtoNL_pct),
-                position = position_dodge(0.7),
-                width = 0.2, size = 0.2) +
+    position = position_dodge(0.7),
+    width = 0.2, size = 0.2
+  ) +
   labs(x = "Percent change in proportion", y = "") +
   theme_classic() +
   scale_fill_manual(values = palette_dissector) +
-  theme(axis.text.y = element_blank(),
-        legend.position = "right")
+  theme(
+    axis.text.y = element_blank(),
+    legend.position = "right"
+  )
 
 wrap_plots(p1, p2, p4)
-ggsave('../results/proportions/intermed-figs/250301_proportionsbyDissector_1-5_5pct_res1.8_50dims_neuronal.pdf',
-       device = pdf,
-       width = 12,
-       height = 8)
+ggsave("../results/proportions/intermed-figs/250301_proportionsbyDissector_1-5_5pct_res1.8_50dims_neuronal.pdf",
+  device = pdf,
+  width = 12,
+  height = 8
+)
 
 p1
-ggsave('../results/proportions/250301_proportionsbyDissector_1-5_5pct_res1.8_50dims_neuronal_final.pdf',
-       device = pdf,
-       width = 12,
-       height = 8)
+ggsave("../results/proportions/250301_proportionsbyDissector_1-5_5pct_res1.8_50dims_neuronal_final.pdf",
+  device = pdf,
+  width = 12,
+  height = 8
+)
 ```
 
 ```{r propeller by dissector}
@@ -1067,36 +1221,42 @@ props.dissector
 First let's look at the UMAP and PCA:
 ```{r umap by learner}
 DimPlot_scCustom(combined_neuronal,
-                 colors_use = palette_learner,
-                 group.by = 'Sac_Learner',
-                 reduction = 'umap',
-                 label = FALSE,
-                 raster = FALSE,
-                 split_seurat = TRUE,
-                 pt.size = 0.01) +
-  theme(legend.position = 'right')
+  colors_use = palette_learner,
+  group.by = "Sac_Learner",
+  reduction = "umap",
+  label = FALSE,
+  raster = FALSE,
+  split_seurat = TRUE,
+  pt.size = 0.01
+) +
+  theme(legend.position = "right")
 
- ggsave(filename = "../results/proportions/250301_umap_1-5_5pct_res1.8_50dims_neuronal_bylearner.png",
-        width = 12,
-        height = 12,
-        dpi = 300)
+ggsave(
+  filename = "../results/proportions/250301_umap_1-5_5pct_res1.8_50dims_neuronal_bylearner.png",
+  width = 12,
+  height = 12,
+  dpi = 300
+)
 ```
 
 ```{r pca by learner}
 DimPlot_scCustom(combined_neuronal,
-                 colors_use = palette_learner,
-                 group.by = 'Sac_Learner',
-                 reduction = 'pca',
-                 label = FALSE,
-                 raster = FALSE,
-                 split_seurat = TRUE,
-                 pt.size = 0.01) +
-  theme(legend.position = 'right')
+  colors_use = palette_learner,
+  group.by = "Sac_Learner",
+  reduction = "pca",
+  label = FALSE,
+  raster = FALSE,
+  split_seurat = TRUE,
+  pt.size = 0.01
+) +
+  theme(legend.position = "right")
 
- ggsave(filename = "../results/proportions/intermed-figs/250301_pca_1-5_5pct_res1.8_50dims_neuronal_bylearner.png",
-        width = 12,
-        height = 12,
-        dpi = 300)
+ggsave(
+  filename = "../results/proportions/intermed-figs/250301_pca_1-5_5pct_res1.8_50dims_neuronal_bylearner.png",
+  width = 12,
+  height = 12,
+  dpi = 300
+)
 ```
 
 ```{r add learner info to df}
@@ -1110,15 +1270,16 @@ celldistribution <- celldistribution %>%
   left_join(sample_to_learner, by = "Sample")
 
 celldistribution <- celldistribution %>%
-  mutate(Sac_Learner = ifelse(Sac_Learner == 1, "Learner", 
-                              ifelse(Sac_Learner == 0, "Non-Learner", as.character(Sac_Learner))))
+  mutate(Sac_Learner = ifelse(Sac_Learner == 1, "Learner",
+    ifelse(Sac_Learner == 0, "Non-Learner", as.character(Sac_Learner))
+  ))
 ```
 
 ```{r df with prop means by learner}
 calcnums <- celldistribution %>%
   group_by(Cluster, Sac_Learner) %>%
   mutate(mean_norm_count = mean(norm_count)) %>%
-  mutate(se_mean = sd(norm_count)/sqrt(36)) %>%
+  mutate(se_mean = sd(norm_count) / sqrt(36)) %>%
   drop_na()
 
 mean_norm_count_NL_M10 <- calcnums$mean_norm_count[calcnums$Sample == "WT_M_10"]
@@ -1137,7 +1298,7 @@ calcnums %>%
 calcnums <- calcnums %>%
   group_by(Cluster, Sac_Learner) %>%
   mutate(mean_norm_count_normalizedtoNL = mean(norm_count_normalizedtoNL)) %>%
-  mutate(se_mean_norm_count_normalizedtoNL = sd(norm_count_normalizedtoNL)/sqrt(36)) %>%
+  mutate(se_mean_norm_count_normalizedtoNL = sd(norm_count_normalizedtoNL) / sqrt(36)) %>%
   drop_na()
 
 calcnums <- calcnums %>%
@@ -1151,58 +1312,74 @@ calcnums$Cluster <- factor(calcnums$Cluster)
 
 ```{r bar plot props by learner}
 p1 <- ggplot(calcnums, aes(x = mean_norm_count, y = Cluster, fill = Sac_Learner)) +
-  geom_bar(stat = "identity", position = "dodge",
-           width = 0.7) +
+  geom_bar(
+    stat = "identity", position = "dodge",
+    width = 0.7
+  ) +
   geom_point(aes(x = norm_count, y = Cluster),
-             position = position_dodge(width = 0.7),
-             color = "black",
-             size = 0.01) +
+    position = position_dodge(width = 0.7),
+    color = "black",
+    size = 0.01
+  ) +
   geom_errorbar(aes(y = Cluster, xmin = mean_norm_count - se_mean, xmax = mean_norm_count + se_mean),
-                position = position_dodge(0.7),
-                width = 0.2, size = 0.2) +
+    position = position_dodge(0.7),
+    width = 0.2, size = 0.2
+  ) +
   labs(x = "Proportion", y = "Cluster") +
   theme_classic() +
   scale_fill_manual(values = palette_learner) +
-  theme(legend.position = "none", axis.text.y = element_text(color = rep(c("#000000", "#555555"), 
-                                             length.out = length(unique(calcnums$Cluster)))))
+  theme(legend.position = "none", axis.text.y = element_text(color = rep(c("#000000", "#555555"),
+    length.out = length(unique(calcnums$Cluster))
+  )))
 
 
 p2 <- ggplot(calcnums, aes(x = mean_norm_count_normalizedtoNL, y = Cluster, fill = Sac_Learner)) +
-  geom_bar(stat = "identity", position = "dodge",
-           width = 0.7) +
+  geom_bar(
+    stat = "identity", position = "dodge",
+    width = 0.7
+  ) +
   geom_point(aes(x = norm_count, y = Cluster),
-             position = position_dodge(width = 0.7),
-             color = "black",
-             size = 0.01) +
+    position = position_dodge(width = 0.7),
+    color = "black",
+    size = 0.01
+  ) +
   geom_errorbar(aes(y = Cluster, xmin = mean_norm_count_normalizedtoNL - se_mean_norm_count_normalizedtoNL, xmax = mean_norm_count_normalizedtoNL + se_mean_norm_count_normalizedtoNL),
-                position = position_dodge(0.7),
-                width = 0.2, size = 0.2) +
+    position = position_dodge(0.7),
+    width = 0.2, size = 0.2
+  ) +
   labs(x = "Proportion", y = "") +
   theme_classic() +
   scale_fill_manual(values = palette_learner) +
-  theme(axis.text.y = element_blank(),
-        legend.position = "none")
+  theme(
+    axis.text.y = element_blank(),
+    legend.position = "none"
+  )
 
 p4 <- ggplot(calcnums, aes(x = mean_normtoNL_pct, y = Cluster, fill = Sac_Learner)) +
-  geom_bar(stat = "identity", position = "dodge",
-           width = 0.7) +
+  geom_bar(
+    stat = "identity", position = "dodge",
+    width = 0.7
+  ) +
   geom_point(aes(x = norm_count, y = Cluster),
-             position = position_dodge(width = 0.7),
-             color = "black",
-             size = 0.01) +
+    position = position_dodge(width = 0.7),
+    color = "black",
+    size = 0.01
+  ) +
   geom_errorbar(aes(y = Cluster, xmin = mean_normtoNL_pct - se_mean_normtoNL_pct, xmax = mean_normtoNL_pct + se_mean_normtoNL_pct),
-                position = position_dodge(0.7),
-                width = 0.2, size = 0.2) +
+    position = position_dodge(0.7),
+    width = 0.2, size = 0.2
+  ) +
   labs(x = "Percent change in proportion", y = "") +
   theme_classic() +
   theme(axis.text.y = element_blank()) +
   scale_fill_manual(values = palette_learner)
 
 wrap_plots(p1, p2, p4)
-ggsave('../results/proportions/intermed-figs/250301_proportionsbyLearner_1-5_5pct_res1.8_50dims_neuronal.png',
-       device = png,
-       width = 12,
-       height = 8)
+ggsave("../results/proportions/intermed-figs/250301_proportionsbyLearner_1-5_5pct_res1.8_50dims_neuronal.png",
+  device = png,
+  width = 12,
+  height = 8
+)
 ```
 
 ```{r propeller by learner}
@@ -1217,7 +1394,7 @@ write.csv(props.learner, file = "../results/proportions/250301_props_Learner_1-5
 significant_clusters <- props.learner[props.learner$P.Value < 0.05, ]
 
 # Extract the BaselineProp.clusters for the significant results
-significant_cluster_names <-sort( as.character(significant_clusters$BaselineProp.clusters))
+significant_cluster_names <- sort(as.character(significant_clusters$BaselineProp.clusters))
 
 print(significant_cluster_names)
 ```
@@ -1232,12 +1409,14 @@ calcnums_filtered$Cluster <- factor(calcnums_filtered$Cluster, levels = rev(sign
 sig_p1 <- ggplot(calcnums_filtered, aes(x = mean_norm_count, y = Cluster, fill = Sac_Learner)) +
   geom_bar(stat = "identity", position = "dodge", width = 0.7) +
   geom_point(aes(x = norm_count, y = Cluster),
-             position = position_dodge(width = 0.7),
-             color = "black",
-             size = 0.01) +
+    position = position_dodge(width = 0.7),
+    color = "black",
+    size = 0.01
+  ) +
   geom_errorbar(aes(y = Cluster, xmin = mean_norm_count - se_mean, xmax = mean_norm_count + se_mean),
-                position = position_dodge(0.7),
-                width = 0.2, size = 0.2) +
+    position = position_dodge(0.7),
+    width = 0.2, size = 0.2
+  ) +
   labs(x = "Proportion", y = "") +
   theme_classic() +
   scale_fill_manual(values = palette_learner) +
@@ -1258,53 +1437,65 @@ sig_cellsgenes_df$Cluster <- factor(sig_cellsgenes_df$Cluster, levels = rev(sign
 cells <- ggplot(sig_cellsgenes_df, aes(x = 1, y = Cluster, fill = CellsPerCluster)) +
   geom_tile(color = "black", lwd = 0.1) +
   geom_text(aes(label = CellsPerCluster)) +
-  scale_fill_gradient2(low = "#757575",
-                       mid = "#9E9E9E",
-                       high = "#FAFAFA",
-                       midpoint = 2000) +
+  scale_fill_gradient2(
+    low = "#757575",
+    mid = "#9E9E9E",
+    high = "#FAFAFA",
+    midpoint = 2000
+  ) +
   xlab("Cells") +
   ylab("") +
   theme_classic() +
   scale_y_discrete(limits = rev(significant_cluster_names)) +
-  theme(axis.text.x = element_blank(),
-        legend.position = "none", 
-        axis.text.y = element_text(color = rep(c("#000000", "#555555"), 
-                                             length.out = 
-                                               length(unique(calcnums$Cluster)))))
+  theme(
+    axis.text.x = element_blank(),
+    legend.position = "none",
+    axis.text.y = element_text(color = rep(c("#000000", "#555555"),
+      length.out =
+        length(unique(calcnums$Cluster))
+    ))
+  )
 
 genes <- ggplot(sig_cellsgenes_df, aes(x = 1, y = Cluster, fill = GenesPerCluster)) +
   geom_tile(color = "black", lwd = 0.1) +
   geom_text(aes(label = GenesPerCluster)) +
-  scale_fill_gradient2(low = "#757575",
-                       mid = "#9E9E9E",
-                       high = "#FAFAFA",
-                       midpoint = 19000) +
+  scale_fill_gradient2(
+    low = "#757575",
+    mid = "#9E9E9E",
+    high = "#FAFAFA",
+    midpoint = 19000
+  ) +
   xlab("Genes") +
   ylab("") +
   theme_classic() +
-    scale_y_discrete(limits = rev(significant_cluster_names)) +
-  theme(axis.text.x = element_blank(),
-        axis.text.y = element_blank(),
-        legend.position = "none")
+  scale_y_discrete(limits = rev(significant_cluster_names)) +
+  theme(
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    legend.position = "none"
+  )
 
-wrap_plots(cells,genes)
+wrap_plots(cells, genes)
 ```
 
 ```{r save wrapped plot for learner}
 wrap_plots(cells, genes, sig_p1)
 ggsave("../results/proportions/intermed-figs/250301_propsbyLearner_sigonly.pdf",
-       device = pdf,
-       width = 12,
-       height = 6)
+  device = pdf,
+  width = 12,
+  height = 6
+)
 ```
 
 ### adding sex as co-variate
 First, let's deconstrucut propeller, according to their vignette, and make sure 
 the results are the same as when running the function.
 ```{r propeller logit transform props}
-props <- getTransformedProps(clusters = combined_neuronal$cell_type, 
-                                  sample = combined_neuronal$sample, 
-                                  transform = "logit")
+props <- getTransformedProps(
+  clusters = combined_neuronal$cell_type,
+  sample = combined_neuronal$sample,
+  transform = "logit"
+)
 ```
 
 ```{r propeller by learner step-by-step}
@@ -1312,14 +1503,16 @@ props <- getTransformedProps(clusters = combined_neuronal$cell_type,
 var1 <- combined_neuronal@meta.data$Sac_Learner
 
 # Create a data frame with sample information
-sample_info <- data.frame(sample = combined_neuronal$sample, 
-                          var1 = var1)
+sample_info <- data.frame(
+  sample = combined_neuronal$sample,
+  var1 = var1
+)
 
 # Order the sample information based on the order of samples in prop.logit
 sample_info <- sample_info[match(colnames(props$TransformedProps), sample_info$sample), ]
 
 # Create the design matrix with var1 and var2
-des <- model.matrix(~ var1, data = sample_info)
+des <- model.matrix(~var1, data = sample_info)
 
 # Fit the linear model
 fit <- lmFit(props$TransformedProps, des)
@@ -1328,12 +1521,12 @@ fit <- lmFit(props$TransformedProps, des)
 fit <- eBayes(fit, robust = TRUE)
 
 # and results for transformed proportions:
-res <- topTable(fit, number=76)
+res <- topTable(fit, number = 76)
 
 # Fit the model on the original proportions scale
 fit.prop <- lmFit(props$Proportions, des)
 fit.prop <- eBayes(fit.prop, robust = TRUE)
-res.prop <- topTable(fit.prop, number=76)
+res.prop <- topTable(fit.prop, number = 76)
 
 # Extract full results table for transformed proportions
 res.var1 <- topTable(fit, number = Inf)
@@ -1363,15 +1556,17 @@ Sac_Learner <- combined_neuronal@meta.data$Sac_Learner
 Sex <- as.factor(combined_neuronal@meta.data$sex)
 
 # Create a data frame with sample information
-sample_info <- data.frame(sample = combined_neuronal$sample, 
-                          Sac_Learner = Sac_Learner,
-                          Sex = Sex)
+sample_info <- data.frame(
+  sample = combined_neuronal$sample,
+  Sac_Learner = Sac_Learner,
+  Sex = Sex
+)
 
 # Order the sample information based on the order of samples in prop.logit
 sample_info <- sample_info[match(colnames(props$TransformedProps), sample_info$sample), ]
 
 # Create the design matrix
-des <- model.matrix(~ Sac_Learner + Sex , data = sample_info)
+des <- model.matrix(~ Sac_Learner + Sex, data = sample_info)
 
 # Fit the linear model
 fit <- lmFit(props$TransformedProps, des)
@@ -1380,12 +1575,12 @@ fit <- lmFit(props$TransformedProps, des)
 fit <- eBayes(fit, robust = TRUE)
 
 # and results for transformed proportions:
-res <- topTable(fit, number=76)
+res <- topTable(fit, number = 76)
 
 # Fit the model on the original proportions scale
 fit.prop <- lmFit(props$Proportions, des)
 fit.prop <- eBayes(fit.prop, robust = TRUE)
-res.prop <- topTable(fit.prop, number=76)
+res.prop <- topTable(fit.prop, number = 76)
 ```
 
 ```{r props by learner and sex table and save}
@@ -1404,13 +1599,13 @@ res.combined <- data.frame(
   Sac_Learner_P.Value = res.sac_learner$P.Value,
   Sac_Learner_adj.P.Val = res.sac_learner$adj.P.Val,
   B_Sac_Learner = res.sac_learner$B,
-  Sac_Learner_Ratio = 2^res.prop.sac_learner$logFC,  # Add this line
+  Sac_Learner_Ratio = 2^res.prop.sac_learner$logFC, # Add this line
   Sex_Coef = res.prop.sex$logFC,
   Sex_P.Value = res.sex$P.Value,
   Sex_adj.P.Val = res.sex$adj.P.Val,
   B_Sex = res.sex$B,
-  Sex_Ratio = 2^res.prop.sex$logFC,  # Add this line
-  AveExpr = res.sac_learner$AveExpr  # AveExpr should be the same for both
+  Sex_Ratio = 2^res.prop.sex$logFC, # Add this line
+  AveExpr = res.sac_learner$AveExpr # AveExpr should be the same for both
 )
 
 # Get untransformed proportions
@@ -1444,15 +1639,16 @@ head(res.combined)
 
 # Write to CSV
 write.csv(res.combined,
-          file = "../results/proportions/250301_props_Learner_Sex_neuronal_1-5_5pct_50dims.csv",
-          row.names = FALSE)
+  file = "../results/proportions/250301_props_Learner_Sex_neuronal_1-5_5pct_50dims.csv",
+  row.names = FALSE
+)
 ```
 
 
 ### props diff. by Region
 ```{r add region to props df learner}
 props.learner$region <- anatomical_dict[props.learner$BaselineProp.clusters]
-props.learner<- props.learner %>%
+props.learner <- props.learner %>%
   dplyr::arrange(region, FDR)
 props.learner <- props.learner[order(props.learner$region, props.learner$FDR, decreasing = TRUE), ]
 ```
@@ -1461,27 +1657,36 @@ props.learner <- props.learner[order(props.learner$region, props.learner$FDR, de
 n_clusters <- length(unique(props.learner$BaselineProp.clusters))
 text_colors <- rep(c("#000000", "#555555"), length.out = n_clusters)
 
-ggplot(props.learner, aes(x = -log10(FDR ), 
-                      y = factor(BaselineProp.clusters, 
-                               levels = unique(props.learner$BaselineProp.clusters)), 
-                      color = region)) +
+ggplot(props.learner, aes(
+  x = -log10(FDR),
+  y = factor(BaselineProp.clusters,
+    levels = unique(props.learner$BaselineProp.clusters)
+  ),
+  color = region
+)) +
   geom_point(size = 3) +
   geom_vline(xintercept = -log10(0.05), linetype = "dashed") +
   theme_minimal() +
   scale_color_manual(values = region_two_colors) +
-  labs(x = "-log10(P-value)",
-       y = "Cluster",
-       title = "Learner differences in cluster proportions") +
+  labs(
+    x = "-log10(P-value)",
+    y = "Cluster",
+    title = "Learner differences in cluster proportions"
+  ) +
   theme(
-    axis.text.y = element_text(size = 8,
-                              color = rev(text_colors)),  # rev() to match the order of clusters
+    axis.text.y = element_text(
+      size = 8,
+      color = rev(text_colors)
+    ), # rev() to match the order of clusters
     legend.position = "right"
   )
 
- ggsave(filename = "../results/proportions/intermed-figs/250301_learnerprops_pvalues_hypovother.pdf",
-        width = 12,
-        height = 12,
-        dpi = 300)
+ggsave(
+  filename = "../results/proportions/intermed-figs/250301_learnerprops_pvalues_hypovother.pdf",
+  width = 12,
+  height = 12,
+  dpi = 300
+)
 ```
 
 ```{r p-values by region plot learner top 10}
@@ -1495,32 +1700,41 @@ filtered_props <- props.learner %>%
 filtered_props <- filtered_props[order(filtered_props$region, filtered_props$FDR, decreasing = TRUE), ]
 
 # Then use the filtered data in your plot
-ggplot(filtered_props, aes(x = -log10(FDR), 
-                          y = factor(BaselineProp.clusters, 
-                                   levels = unique(filtered_props$BaselineProp.clusters)), 
-                          color = region)) +
+ggplot(filtered_props, aes(
+  x = -log10(FDR),
+  y = factor(BaselineProp.clusters,
+    levels = unique(filtered_props$BaselineProp.clusters)
+  ),
+  color = region
+)) +
   geom_point(size = 3) +
   geom_vline(xintercept = -log10(0.05), linetype = "dashed") +
   theme_minimal() +
   scale_color_manual(values = region_two_colors) +
-  labs(x = "-log10(P-value)",
-       y = "Cluster",
-       title = "Learner differences in cluster proportions") +
+  labs(
+    x = "-log10(P-value)",
+    y = "Cluster",
+    title = "Learner differences in cluster proportions"
+  ) +
   theme(
-    axis.text.y = element_text(size = 8,
-                              color = rev(text_colors)[1:nrow(filtered_props)]),  # adjust colors to match filtered data
+    axis.text.y = element_text(
+      size = 8,
+      color = rev(text_colors)[1:nrow(filtered_props)]
+    ), # adjust colors to match filtered data
     legend.position = "right",
     panel.grid = element_blank(),
     axis.line = element_line(color = "black"),
     axis.line.y = element_line(color = "black"),
-    axis.ticks.x = element_line(color = "black"),  
+    axis.ticks.x = element_line(color = "black"),
     axis.ticks.y = element_line(color = "black")
-    )
-  
- ggsave(filename = "../results/proportions/intermed-figs/250301_learnerprops_pvalues_hypovother_sigonly.pdf",
-        width = 6,
-        height = 8,
-        dpi = 300)
+  )
+
+ggsave(
+  filename = "../results/proportions/intermed-figs/250301_learnerprops_pvalues_hypovother_sigonly.pdf",
+  width = 6,
+  height = 8,
+  dpi = 300
+)
 ```
 
 ```{r Fisher's for props significance by region}
@@ -1542,9 +1756,9 @@ print("\nFisher's exact test results:")
 print(fisher_result)
 
 # Calculate and print percentages for easier interpretation
-percentages <- prop.table(cont_table, margin = 1) * 100  # margin=1 calculates percentages within each region
+percentages <- prop.table(cont_table, margin = 1) * 100 # margin=1 calculates percentages within each region
 print("\nPercentage of significant clusters by region:")
-print(percentages[,"TRUE"])
+print(percentages[, "TRUE"])
 ```
 
 ## by geno and sex 
@@ -1553,9 +1767,11 @@ print(percentages[,"TRUE"])
 Geno <- combined_neuronal@meta.data$genotype
 Sex <- as.factor(combined_neuronal@meta.data$sex)
 # Create a data frame with sample information
-sample_info <- data.frame(sample = combined_neuronal$sample, 
-                          Geno = Geno,
-                          Sex = Sex)
+sample_info <- data.frame(
+  sample = combined_neuronal$sample,
+  Geno = Geno,
+  Sex = Sex
+)
 # Order the sample information based on the order of samples in prop.logit
 sample_info <- sample_info[match(colnames(props$TransformedProps), sample_info$sample), ]
 # Create the design matrix with interaction term
@@ -1565,11 +1781,11 @@ fit <- lmFit(props$TransformedProps, des)
 # Perform empirical Bayes shrinkage of the variances
 fit <- eBayes(fit, robust = TRUE)
 # and results for transformed proportions:
-res <- topTable(fit, number=76)
+res <- topTable(fit, number = 76)
 # Fit the model on the original proportions scale
 fit.prop <- lmFit(props$Proportions, des)
 fit.prop <- eBayes(fit.prop, robust = TRUE)
-res.prop <- topTable(fit.prop, number=76)
+res.prop <- topTable(fit.prop, number = 76)
 ```
 
 
@@ -1635,17 +1851,20 @@ head(res.combined)
 
 # Write to CSV - you may need to create a subdirectory
 write.csv(res.combined,
-          file = "../results/proportions/250301_props_Geno_Sex_Interaction_neuronal.csv",
-          row.names = FALSE)
+  file = "../results/proportions/250301_props_Geno_Sex_Interaction_neuronal.csv",
+  row.names = FALSE
+)
 ```
 
 # Rewards by props
 
 ```{r propeller logit transform props}
 # Extract the cell type proportions and transform them
-props <- getTransformedProps(cluster = combined_neuronal$cell_type, 
-                                  sample = combined_neuronal$sample, 
-                                  transform = "logit")
+props <- getTransformedProps(
+  cluster = combined_neuronal$cell_type,
+  sample = combined_neuronal$sample,
+  transform = "logit"
+)
 
 head(props$TransformedProps)
 
@@ -1660,15 +1879,17 @@ str(props_df)
 
 ```{r merge with sample metadata}
 # Create a data frame with sample information
-sample_info <- data.frame(sample = combined_neuronal$sample, 
-                          distance = combined_neuronal$Avg_Test_Distance,
-                          rewards = combined_neuronal$Avg_Total_Rewards,
-                          time = combined_neuronal$Avg_Exp_Zone_Time,
-                          entries = combined_neuronal$Avg_Exp_Zone_Entries,
-                          clusters = combined_neuronal$cell_type,
-                          geno = combined_neuronal$genotype,
-                          sex = combined_neuronal$sex,
-                          learner = combined_neuronal$Sac_Learner)
+sample_info <- data.frame(
+  sample = combined_neuronal$sample,
+  distance = combined_neuronal$Avg_Test_Distance,
+  rewards = combined_neuronal$Avg_Total_Rewards,
+  time = combined_neuronal$Avg_Exp_Zone_Time,
+  entries = combined_neuronal$Avg_Exp_Zone_Entries,
+  clusters = combined_neuronal$cell_type,
+  geno = combined_neuronal$genotype,
+  sex = combined_neuronal$sex,
+  learner = combined_neuronal$Sac_Learner
+)
 
 head(sample_info)
 str(sample_info)
@@ -1690,16 +1911,16 @@ model_summary_df <- data.frame()
 # Loop over each cluster
 for (cluster in unique(merged_df$clusters)) {
   # Filter the data frame for the current cluster
-  cluster_df <- merged_df %>% 
-    filter(clusters == cluster) %>% 
-    distinct
-  
+  cluster_df <- merged_df %>%
+    filter(clusters == cluster) %>%
+    distinct()
+
   # Fit the linear regression model
   lm_model <- lm(rewards ~ props_trans, data = cluster_df)
-  
+
   # Extract the model summary
   model_summary <- summary(lm_model)
-  
+
   # Create a named vector with model summary statistics
   model_summary_vec <- c(
     `(Intercept)` = coef(lm_model)[1],
@@ -1713,13 +1934,13 @@ for (cluster in unique(merged_df$clusters)) {
     f_statistic = model_summary$fstatistic[1],
     f_pvalue = pf(model_summary$fstatistic[1], model_summary$fstatistic[2], model_summary$fstatistic[3], lower.tail = FALSE)
   )
-  
+
   # Convert the named vector to a data frame
   model_summary_vec_df <- data.frame(t(model_summary_vec))
-  
+
   # Add a column for the cluster
   model_summary_vec_df$cluster <- cluster
-  
+
   # Append the data frame to the overall result
   model_summary_df <- rbind(model_summary_df, model_summary_vec_df)
 }
@@ -1734,7 +1955,7 @@ bh_adjusted_pvalues <- p.adjust(props_pvalues, method = "BH")
 model_summary_df$bh_adjusted_pvalues <- bh_adjusted_pvalues
 
 model_summary_df %>%
-  ungroup() %>% 
+  ungroup() %>%
   arrange(bh_adjusted_pvalues)
 
 # Print the resulting data frame
@@ -1751,16 +1972,16 @@ model_summary_sex_df <- data.frame()
 # Loop over each cluster
 for (cluster in unique(merged_df$clusters)) {
   # Filter the data frame for the current cluster
-  cluster_df <- merged_df %>% 
-    filter(clusters == cluster) %>% 
-    distinct
-  
+  cluster_df <- merged_df %>%
+    filter(clusters == cluster) %>%
+    distinct()
+
   # Fit the linear regression model with sex added
   lm_model_sex <- lm(rewards ~ props_trans + sex, data = cluster_df)
-  
+
   # Extract the model summary
   model_summary_sex <- summary(lm_model_sex)
-  
+
   # Create a named vector with model summary statistics
   model_summary_vec_sex <- c(
     `(Intercept)` = coef(lm_model_sex)[1],
@@ -1778,13 +1999,13 @@ for (cluster in unique(merged_df$clusters)) {
     f_statistic = model_summary_sex$fstatistic[1],
     f_pvalue = pf(model_summary_sex$fstatistic[1], model_summary_sex$fstatistic[2], model_summary_sex$fstatistic[3], lower.tail = FALSE)
   )
-  
+
   # Convert the named vector to a data frame
   model_summary_vec_sex_df <- data.frame(t(model_summary_vec_sex))
-  
+
   # Add a column for the cluster
   model_summary_vec_sex_df$cluster <- cluster
-  
+
   # Append the data frame to the overall result
   model_summary_sex_df <- rbind(model_summary_sex_df, model_summary_vec_sex_df)
 }
@@ -1802,7 +2023,7 @@ model_summary_sex_df$bh_pvalues_props <- bh_adjusted_pvalues_props
 model_summary_sex_df$bh_pvalues_sex <- bh_adjusted_pvalues_sex
 
 model_summary_sex_df %>%
-  ungroup() %>% 
+  ungroup() %>%
   arrange(bh_pvalues_props)
 
 # Print the resulting data frame
@@ -1820,16 +2041,16 @@ model_summary_learner_df <- data.frame()
 # Loop over each cluster
 for (cluster in unique(merged_df$clusters)) {
   # Filter the data frame for the current cluster
-  cluster_df <- merged_df %>% 
-    filter(clusters == cluster) %>% 
-    distinct
-  
+  cluster_df <- merged_df %>%
+    filter(clusters == cluster) %>%
+    distinct()
+
   # Fit the linear regression model with learner added
   lm_model_learner <- lm(rewards ~ props_trans + learner, data = cluster_df)
-  
+
   # Extract the model summary
   model_summary_learner <- summary(lm_model_learner)
-  
+
   # Create a named vector with model summary statistics
   model_summary_vec_learner <- c(
     `(Intercept)` = coef(lm_model_learner)[1],
@@ -1847,13 +2068,13 @@ for (cluster in unique(merged_df$clusters)) {
     f_statistic = model_summary_learner$fstatistic[1],
     f_pvalue = pf(model_summary_learner$fstatistic[1], model_summary_learner$fstatistic[2], model_summary_learner$fstatistic[3], lower.tail = FALSE)
   )
-  
+
   # Convert the named vector to a data frame
   model_summary_vec_learner_df <- data.frame(t(model_summary_vec_learner))
-  
+
   # Add a column for the cluster
   model_summary_vec_learner_df$cluster <- cluster
-  
+
   # Append the data frame to the overall result
   model_summary_learner_df <- rbind(model_summary_learner_df, model_summary_vec_learner_df)
 }
@@ -1871,7 +2092,7 @@ model_summary_learner_df$bh_pvalues_props <- bh_adjusted_pvalues_props
 model_summary_learner_df$bh_pvalues_learner <- bh_adjusted_pvalues_learner
 
 model_summary_learner_df %>%
-  ungroup() %>% 
+  ungroup() %>%
   arrange(bh_pvalues_props)
 
 # Print the resulting data frame
@@ -1893,7 +2114,7 @@ head(unprops_df)
 str(unprops_df)
 
 new_merged_df <- merge(unprops_df, sample_info, by = c("sample", "clusters"))
-#rownames(merged_df) <- rownames(sample_info)
+# rownames(merged_df) <- rownames(sample_info)
 
 # Print the first few rows of the merged data
 head(new_merged_df)
@@ -1907,16 +2128,16 @@ new_model_summary_df <- data.frame()
 # Loop over each cluster
 for (cluster in unique(new_merged_df$clusters)) {
   # Filter the data frame for the current cluster
-  cluster_df <- new_merged_df %>% 
-    filter(clusters == cluster) %>% 
-    distinct
-  
+  cluster_df <- new_merged_df %>%
+    filter(clusters == cluster) %>%
+    distinct()
+
   # Fit the linear regression model
   lm_model <- lm(rewards ~ props_untrans, data = cluster_df)
-  
+
   # Extract the model summary
   new_model_summary <- summary(lm_model)
-  
+
   # Create a named vector with model summary statistics
   new_model_summary_vec <- c(
     `(Intercept)` = coef(lm_model)[1],
@@ -1930,13 +2151,13 @@ for (cluster in unique(new_merged_df$clusters)) {
     f_statistic = new_model_summary$fstatistic[1],
     f_pvalue = pf(new_model_summary$fstatistic[1], new_model_summary$fstatistic[2], new_model_summary$fstatistic[3], lower.tail = FALSE)
   )
-  
+
   # Convert the named vector to a data frame
   new_model_summary_vec_df <- data.frame(t(new_model_summary_vec))
-  
+
   # Add a column for the cluster
   new_model_summary_vec_df$cluster <- cluster
-  
+
   # Append the data frame to the overall result
   new_model_summary_df <- rbind(new_model_summary_df, new_model_summary_vec_df)
 }
@@ -1965,16 +2186,16 @@ new_model_summary_df_sex <- data.frame()
 # Loop over each cluster
 for (cluster in unique(new_merged_df$clusters)) {
   # Filter the data frame for the current cluster
-  cluster_df <- new_merged_df %>% 
-    filter(clusters == cluster) %>% 
-    distinct
-  
+  cluster_df <- new_merged_df %>%
+    filter(clusters == cluster) %>%
+    distinct()
+
   # Fit the linear regression model with sex added
   lm_model_sex <- lm(rewards ~ props_untrans + sex, data = cluster_df)
-  
+
   # Extract the model summary
   new_model_summary_sex <- summary(lm_model_sex)
-  
+
   # Create a named vector with model summary statistics
   new_model_summary_vec_sex <- c(
     `(Intercept)` = coef(lm_model_sex)[1],
@@ -1992,13 +2213,13 @@ for (cluster in unique(new_merged_df$clusters)) {
     f_statistic = new_model_summary_sex$fstatistic[1],
     f_pvalue = pf(new_model_summary_sex$fstatistic[1], new_model_summary_sex$fstatistic[2], new_model_summary_sex$fstatistic[3], lower.tail = FALSE)
   )
-  
+
   # Convert the named vector to a data frame
   new_model_summary_vec_sex_df <- data.frame(t(new_model_summary_vec_sex))
-  
+
   # Add a column for the cluster
   new_model_summary_vec_sex_df$cluster <- cluster
-  
+
   # Append the data frame to the overall result
   new_model_summary_df_sex <- rbind(new_model_summary_df_sex, new_model_summary_vec_sex_df)
 }
@@ -2032,16 +2253,16 @@ new_model_summary_df_learner <- data.frame()
 # Loop over each cluster
 for (cluster in unique(new_merged_df$clusters)) {
   # Filter the data frame for the current cluster
-  cluster_df <- new_merged_df %>% 
-    filter(clusters == cluster) %>% 
-    distinct
-  
+  cluster_df <- new_merged_df %>%
+    filter(clusters == cluster) %>%
+    distinct()
+
   # Fit the linear regression model with learner added
   lm_model_learner <- lm(rewards ~ props_untrans + learner, data = cluster_df)
-  
+
   # Extract the model summary
   new_model_summary_learner <- summary(lm_model_learner)
-  
+
   # Create a named vector with model summary statistics
   new_model_summary_vec_learner <- c(
     `(Intercept)` = coef(lm_model_learner)[1],
@@ -2059,13 +2280,13 @@ for (cluster in unique(new_merged_df$clusters)) {
     f_statistic = new_model_summary_learner$fstatistic[1],
     f_pvalue = pf(new_model_summary_learner$fstatistic[1], new_model_summary_learner$fstatistic[2], new_model_summary_learner$fstatistic[3], lower.tail = FALSE)
   )
-  
+
   # Convert the named vector to a data frame
   new_model_summary_vec_learner_df <- data.frame(t(new_model_summary_vec_learner))
-  
+
   # Add a column for the cluster
   new_model_summary_vec_learner_df$cluster <- cluster
-  
+
   # Append the data frame to the overall result
   new_model_summary_df_learner <- rbind(new_model_summary_df_learner, new_model_summary_vec_learner_df)
 }
@@ -2097,45 +2318,47 @@ write.csv(new_model_summary_df_learner, file = "../results/proportions/intermed-
 plot_cluster <- function(i, model_summary_df, new_merged_df) {
   # Extract the results for the specific cluster we're plotting
   cluster_results <- model_summary_df[model_summary_df$cluster == i, ]
-  
+
   # Filter the data for the specific cluster
-  cluster_df <- new_merged_df %>% 
-    filter(clusters == i) %>% 
+  cluster_df <- new_merged_df %>%
+    filter(clusters == i) %>%
     distinct()
-  
+
   # Create the plot with untransformed data
-  plot(cluster_df$props_untrans, cluster_df$rewards, 
-       main = paste("Cluster", i),
-       pch = 16, cex = 2, 
-       xlab = "Props_untrans", ylab = "Rewards", 
-       cex.lab = 1.5, cex.axis = 1.5,
-       xlim = c(0, max(cluster_df$props_untrans)),
-       cex.main = 2)
-  
+  plot(cluster_df$props_untrans, cluster_df$rewards,
+    main = paste("Cluster", i),
+    pch = 16, cex = 2,
+    xlab = "Props_untrans", ylab = "Rewards",
+    cex.lab = 1.5, cex.axis = 1.5,
+    xlim = c(0, max(cluster_df$props_untrans)),
+    cex.main = 2
+  )
+
   # Fit lines for all data, male, and female
   fit_all <- lm(rewards ~ props_untrans, data = cluster_df)
-  
+
   # Add the fit lines
   abline(fit_all, col = "black", lwd = 2)
-  
+
   # Calculate R-squared value
   r2_all <- summary(fit_all)$r.squared
-  
+
   # Create legend labels with statistics
   legend_labels <- c(
     paste("All (R² =", round(r2_all, 3), ")"),
     paste("Model Adj. R² =", round(cluster_results$adj_r_squared, 3)),
     paste("Props p-value =", format.pval(cluster_results$Props.p.value, digits = 3)),
-    paste("BH Adj. p-value =", format.pval(cluster_results$bh_adjusted_pvalues , digits = 3))
+    paste("BH Adj. p-value =", format.pval(cluster_results$bh_adjusted_pvalues, digits = 3))
   )
-  
+
   # Add legend
-  legend("topleft", 
-         legend = legend_labels,
-         col = c("black", "black", "black", "black"),
-         lty = c(1, NA, NA, NA),
-         cex = 1.2,
-         bty = "n")
+  legend("topleft",
+    legend = legend_labels,
+    col = c("black", "black", "black", "black"),
+    lty = c(1, NA, NA, NA),
+    cex = 1.2,
+    bty = "n"
+  )
 }
 ```
 
@@ -2150,13 +2373,13 @@ dir.create("../results/proportions/RewardsbyProp_Figs", showWarnings = FALSE)
 for (cluster in clusters) {
   # Open a PDF device
   pdf(file = paste0("../results/proportions/RewardsbyProp_Figs/cluster_", cluster, "_plot.pdf"), width = 6, height = 8)
-  
+
   # Create the plot
   plot_cluster(cluster, model_summary_df, new_merged_df)
-  
+
   # Close the PDF device
   dev.off()
-  
+
   # Print progress
   cat("Saved plot for cluster", cluster, "\n")
 }
@@ -2168,39 +2391,40 @@ cat("All plots have been saved in the 'RewardsbyProp_Figs' directory.\n")
 
 ```{r  fxn for scatterplots rewards by untrans props and sex}
 plot_cluster_bysex <- function(i, model_summary_sex_df, new_merged_df) {
-     # Extract the results for the specific cluster we're plotting
+  # Extract the results for the specific cluster we're plotting
   cluster_results <- model_summary_sex_df[model_summary_sex_df$cluster == i, ]
-  
+
   # Filter the data for the specific cluster
-  cluster_df <- new_merged_df %>% 
-    filter(clusters == i) %>% 
+  cluster_df <- new_merged_df %>%
+    filter(clusters == i) %>%
     distinct()
-   
+
   # Create the plot with untransformed data
-  plot(cluster_df$props_untrans, cluster_df$rewards, 
-       main = paste("Cluster", i),
-       pch = 16, cex = 2, 
-       xlab = "Props_untrans", ylab = "Rewards", 
-       cex.lab = 1.5, cex.axis = 1.5,
-       cex.main = 2, 
-       xlim = c(0, max(cluster_df$props_untrans)),         
-       col = ifelse(cluster_df$sex == "M", "#4478AB", "#ED6677"))
-  
+  plot(cluster_df$props_untrans, cluster_df$rewards,
+    main = paste("Cluster", i),
+    pch = 16, cex = 2,
+    xlab = "Props_untrans", ylab = "Rewards",
+    cex.lab = 1.5, cex.axis = 1.5,
+    cex.main = 2,
+    xlim = c(0, max(cluster_df$props_untrans)),
+    col = ifelse(cluster_df$sex == "M", "#4478AB", "#ED6677")
+  )
+
   # Fit lines for all data, male, and female
   fit_all <- lm(rewards ~ props_untrans, data = cluster_df)
   fit_male <- lm(rewards ~ props_untrans, data = cluster_df[cluster_df$sex == "M", ])
   fit_female <- lm(rewards ~ props_untrans, data = cluster_df[cluster_df$sex == "F", ])
-  
+
   # Add the fit lines
   abline(fit_all, col = "black", lwd = 2)
   abline(fit_male, col = "#4478AB", lwd = 2)
   abline(fit_female, col = "#ED6677", lwd = 2)
-  
+
   # Calculate R-squared values for each fit
   r2_all <- summary(fit_all)$r.squared
   r2_male <- summary(fit_male)$r.squared
   r2_female <- summary(fit_female)$r.squared
-  
+
   # Create legend labels with statistics
   legend_labels <- c(
     paste("All (R² =", round(r2_all, 3), ")"),
@@ -2208,16 +2432,17 @@ plot_cluster_bysex <- function(i, model_summary_sex_df, new_merged_df) {
     paste("Female (R² =", round(r2_female, 3), ")"),
     paste("Model Adj. R² =", round(cluster_results$adj_r_squared, 3)),
     paste("Props p-value =", format.pval(cluster_results$Props.p.value, digits = 3)),
-    paste("BH Adj. p-value =", format.pval(cluster_results$bh_pvalues_props , digits = 3))
+    paste("BH Adj. p-value =", format.pval(cluster_results$bh_pvalues_props, digits = 3))
   )
-  
+
   # Add legend
-  legend("topleft", 
-         legend = legend_labels,
-         col = c("black", "#4478AB", "#ED6677", "black", "black", "black"),
-         lty = c(1, 1, 1, NA, NA, NA),
-         cex = 1.2,
-         bty = "n")
+  legend("topleft",
+    legend = legend_labels,
+    col = c("black", "#4478AB", "#ED6677", "black", "black", "black"),
+    lty = c(1, 1, 1, NA, NA, NA),
+    cex = 1.2,
+    bty = "n"
+  )
 }
 ```
 
@@ -2232,13 +2457,13 @@ dir.create("../results/proportions/RewardsbyProp_Figs", showWarnings = FALSE)
 for (cluster in clusters) {
   # Open a PDF device
   pdf(file = paste0("../results/proportions/RewardsbyProp_Figs/cluster_", cluster, "_plotwithSex.pdf"), width = 6, height = 8)
-  
+
   # Create the plot
   plot_cluster_bysex(cluster, model_summary_sex_df, new_merged_df)
-  
+
   # Close the PDF device
   dev.off()
-  
+
   # Print progress
   cat("Saved plot for cluster", cluster, "\n")
 }
@@ -2252,37 +2477,38 @@ cat("All plots have been saved in the 'RewardsbyProp_Figs' directory.\n")
 plot_cluster_bylearner <- function(i, model_summary_learner_df, new_merged_df) {
   # Extract the results for the specific cluster we're plotting
   cluster_results <- model_summary_learner_df[model_summary_learner_df$cluster == i, ]
-  
+
   # Filter the data for the specific cluster
-  cluster_df <- new_merged_df %>% 
-    filter(clusters == i) %>% 
+  cluster_df <- new_merged_df %>%
+    filter(clusters == i) %>%
     distinct()
-  
+
   # Create the plot with untransformed data
-  plot(cluster_df$props_untrans, cluster_df$rewards, 
-       main = paste("Cluster", i),
-       pch = 16, cex = 2, 
-       xlab = "Props_untrans", ylab = "Rewards", 
-       cex.lab = 1.5, cex.axis = 1.5,
-       cex.main = 2, 
-       xlim = c(0, max(cluster_df$props_untrans)),         
-       col = ifelse(cluster_df$learner == "Learner", "#547B80", "#D1D3D4"))
-  
+  plot(cluster_df$props_untrans, cluster_df$rewards,
+    main = paste("Cluster", i),
+    pch = 16, cex = 2,
+    xlab = "Props_untrans", ylab = "Rewards",
+    cex.lab = 1.5, cex.axis = 1.5,
+    cex.main = 2,
+    xlim = c(0, max(cluster_df$props_untrans)),
+    col = ifelse(cluster_df$learner == "Learner", "#547B80", "#D1D3D4")
+  )
+
   # Fit lines for all data, learner, and non_learner
   fit_all <- lm(rewards ~ props_untrans, data = cluster_df)
   fit_learner <- lm(rewards ~ props_untrans, data = cluster_df[cluster_df$learner == "Learner", ])
   fit_non_learner <- lm(rewards ~ props_untrans, data = cluster_df[cluster_df$learner == "Non_Learner", ])
-  
+
   # Add the fit lines
   abline(fit_all, col = "black", lwd = 2)
   abline(fit_learner, col = "#547B80", lwd = 2)
   abline(fit_non_learner, col = "#D1D3D4", lwd = 2)
-  
+
   # Calculate R-squared values for each fit
   r2_all <- summary(fit_all)$r.squared
   r2_learner <- summary(fit_learner)$r.squared
   r2_non_learner <- summary(fit_non_learner)$r.squared
-  
+
   # Create legend labels with statistics
   legend_labels <- c(
     paste("All (R² =", round(r2_all, 3), ")"),
@@ -2290,16 +2516,17 @@ plot_cluster_bylearner <- function(i, model_summary_learner_df, new_merged_df) {
     paste("non_learner (R² =", round(r2_non_learner, 3), ")"),
     paste("Model Adj. R² =", round(cluster_results$adj_r_squared, 3)),
     paste("Props p-value =", format.pval(cluster_results$Props.p.value, digits = 3)),
-    paste("BH Adj. p-value =", format.pval(cluster_results$bh_pvalues_props , digits = 3))
+    paste("BH Adj. p-value =", format.pval(cluster_results$bh_pvalues_props, digits = 3))
   )
-  
+
   # Add legend
-  legend("topleft", 
-         legend = legend_labels,
-         col = c("black", "#547B80", "#D1D3D4", "black", "black", "black"),
-         lty = c(1, 1, 1, NA, NA, NA),
-         cex = 1.2,
-         bty = "n")
+  legend("topleft",
+    legend = legend_labels,
+    col = c("black", "#547B80", "#D1D3D4", "black", "black", "black"),
+    lty = c(1, 1, 1, NA, NA, NA),
+    cex = 1.2,
+    bty = "n"
+  )
 }
 ```
 
@@ -2314,13 +2541,13 @@ dir.create("../results/proportions/RewardsbyProp_Figs/p", showWarnings = FALSE)
 for (cluster in clusters) {
   # Open a PDF device
   pdf(file = paste0("../results/proportions/RewardsbyProp_Figs/cluster_", cluster, "_plotwithLearner.pdf"), width = 6, height = 8)
-  
+
   # Create the plot
   plot_cluster_bylearner(cluster, model_summary_learner_df, new_merged_df)
-  
+
   # Close the PDF device
   dev.off()
-  
+
   # Print progress
   cat("Saved plot for cluster", cluster, "\n")
 }
@@ -2331,40 +2558,54 @@ cat("All plots have been saved in the 'RewardsbyProp_Figs' directory.\n")
 ## Plotting B values
 ```{r plotting beta coefficients rewards}
 # Assuming your data frame is called model_summary_df
-p_beta <- ggplot(model_summary_df, 
-       aes(x = Props.props_trans, y = cluster)) +
-  geom_bar(stat = "identity", 
-           width = 0.7,
-           fill = "#888888") +
-  geom_errorbar(aes(xmin = Props.props_trans - Props.Std..Error, 
-                    xmax = Props.props_trans + Props.Std..Error),
-                position = position_dodge(0.7),
-                width = 0.2, 
-                size = 0.2) +
-  labs(x = "Beta Coefficient", 
-       y = "Cluster") +
+p_beta <- ggplot(
+  model_summary_df,
+  aes(x = Props.props_trans, y = cluster)
+) +
+  geom_bar(
+    stat = "identity",
+    width = 0.7,
+    fill = "#888888"
+  ) +
+  geom_errorbar(
+    aes(
+      xmin = Props.props_trans - Props.Std..Error,
+      xmax = Props.props_trans + Props.Std..Error
+    ),
+    position = position_dodge(0.7),
+    width = 0.2,
+    size = 0.2
+  ) +
+  labs(
+    x = "Beta Coefficient",
+    y = "Cluster"
+  ) +
   theme_classic() +
-  theme(legend.position = "none",
-        axis.text.y = element_text(color = rep(c("#000000", "#555555"), 
-                                 length.out = length(unique(model_summary_df$cluster)))))
+  theme(
+    legend.position = "none",
+    axis.text.y = element_text(color = rep(c("#000000", "#555555"),
+      length.out = length(unique(model_summary_df$cluster))
+    ))
+  )
 
 p_beta
-ggsave('../results/proportions/intermed-figs/250301_rewardsbyprops_betacoeffs.pdf',
-       device = pdf,
-       width = 6,
-       height = 8)
+ggsave("../results/proportions/intermed-figs/250301_rewardsbyprops_betacoeffs.pdf",
+  device = pdf,
+  width = 6,
+  height = 8
+)
 ```
 
 ```{r selecting sig clusters from rewards by props}
 significant_clusters_rewards <- model_summary_df[model_summary_df$bh_adjusted_pvalues < 0.05, ]
 
-significant_clusters_rewards_names <-sort(as.character(significant_clusters_rewards$cluster))
+significant_clusters_rewards_names <- sort(as.character(significant_clusters_rewards$cluster))
 print(significant_clusters_rewards_names)
 ```
 
 ```{r merging sig clusters for rewards and learner}
 merged_sig_clusters <- union(significant_cluster_names, significant_clusters_rewards_names)
-merged_sig_clusters <-sort(as.character(merged_sig_clusters))
+merged_sig_clusters <- sort(as.character(merged_sig_clusters))
 print(merged_sig_clusters)
 ```
 
@@ -2375,21 +2616,33 @@ model_summary_df_filtered <- model_summary_df %>%
 # Set the factor levels to match the order in significant_cluster_names
 model_summary_df_filtered$cluster <- factor(model_summary_df_filtered$cluster, levels = rev(merged_sig_clusters))
 
-p_beta_sig <- ggplot(model_summary_df_filtered, 
-       aes(x = Props.props_trans, y = cluster)) +
-  geom_bar(stat = "identity", 
-           width = 0.7,
-           fill = "#888888") +
-  geom_errorbar(aes(xmin = Props.props_trans - Props.Std..Error, 
-                    xmax = Props.props_trans + Props.Std..Error),
-                position = position_dodge(0.7),
-                width = 0.2, 
-                size = 0.2) +
-  labs(x = "Beta Coefficient", 
-       y = "") +
+p_beta_sig <- ggplot(
+  model_summary_df_filtered,
+  aes(x = Props.props_trans, y = cluster)
+) +
+  geom_bar(
+    stat = "identity",
+    width = 0.7,
+    fill = "#888888"
+  ) +
+  geom_errorbar(
+    aes(
+      xmin = Props.props_trans - Props.Std..Error,
+      xmax = Props.props_trans + Props.Std..Error
+    ),
+    position = position_dodge(0.7),
+    width = 0.2,
+    size = 0.2
+  ) +
+  labs(
+    x = "Beta Coefficient",
+    y = ""
+  ) +
   theme_classic() +
-  theme(legend.position = "none",
-        axis.text.y = element_blank())
+  theme(
+    legend.position = "none",
+    axis.text.y = element_blank()
+  )
 
 p_beta_sig
 ```
@@ -2405,35 +2658,44 @@ sig_cellsgenes_df$Cluster <- factor(sig_cellsgenes_df$Cluster, levels = rev(merg
 cells <- ggplot(sig_cellsgenes_df, aes(x = 1, y = Cluster, fill = CellsPerCluster)) +
   geom_tile(color = "black", lwd = 0.1) +
   geom_text(aes(label = CellsPerCluster)) +
-  scale_fill_gradient2(low = "#757575",
-                       mid = "#9E9E9E",
-                       high = "#FAFAFA",
-                       midpoint = 2000) +
+  scale_fill_gradient2(
+    low = "#757575",
+    mid = "#9E9E9E",
+    high = "#FAFAFA",
+    midpoint = 2000
+  ) +
   ylab("") +
   xlab("Nuclei") +
   theme_classic() +
   scale_y_discrete(limits = rev(merged_sig_clusters)) +
-  theme(axis.text.x = element_blank(),
-        legend.position = "none",
-        axis.text.y = element_text(color = rep(c("#000000", "#555555"), 
-                                             length.out = length(unique(calcnums$Cluster)))))
+  theme(
+    axis.text.x = element_blank(),
+    legend.position = "none",
+    axis.text.y = element_text(color = rep(c("#000000", "#555555"),
+      length.out = length(unique(calcnums$Cluster))
+    ))
+  )
 
 genes <- ggplot(sig_cellsgenes_df, aes(x = 1, y = Cluster, fill = GenesPerCluster)) +
   geom_tile(color = "black", lwd = 0.1) +
   geom_text(aes(label = GenesPerCluster)) +
-  scale_fill_gradient2(low = "#757575",
-                       mid = "#9E9E9E",
-                       high = "#FAFAFA",
-                       midpoint = 19000) +
+  scale_fill_gradient2(
+    low = "#757575",
+    mid = "#9E9E9E",
+    high = "#FAFAFA",
+    midpoint = 19000
+  ) +
   ylab("") +
   xlab("Genes") +
   theme_classic() +
-    scale_y_discrete(limits = rev(merged_sig_clusters)) +
-  theme(axis.text.x = element_blank(),
-        axis.text.y = element_blank(),
-        legend.position = "none")
+  scale_y_discrete(limits = rev(merged_sig_clusters)) +
+  theme(
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    legend.position = "none"
+  )
 
-wrap_plots(cells,genes)
+wrap_plots(cells, genes)
 ```
 
 ```{r bar plot props by learner for merged sig clusters}
@@ -2446,12 +2708,14 @@ calcnums_filtered$Cluster <- factor(calcnums_filtered$Cluster, levels = rev(merg
 merged_sig_p1 <- ggplot(calcnums_filtered, aes(x = mean_norm_count, y = Cluster, fill = Sac_Learner)) +
   geom_bar(stat = "identity", position = "dodge", width = 0.7) +
   geom_point(aes(x = norm_count, y = Cluster),
-             position = position_dodge(width = 0.7),
-             color = "black",
-             size = 0.01) +
+    position = position_dodge(width = 0.7),
+    color = "black",
+    size = 0.01
+  ) +
   geom_errorbar(aes(y = Cluster, xmin = mean_norm_count - se_mean, xmax = mean_norm_count + se_mean),
-                position = position_dodge(0.7),
-                width = 0.2, size = 0.2) +
+    position = position_dodge(0.7),
+    width = 0.2, size = 0.2
+  ) +
   labs(x = "Proportion", y = "") +
   theme_classic() +
   scale_fill_manual(values = palette_learner) +
@@ -2463,16 +2727,17 @@ merged_sig_p1
 ```{r save plot with beta coeffs and props by learner}
 wrap_plots(cells, genes, merged_sig_p1, p_beta_sig, nrow = 1)
 
-ggsave('../results/proportions/250301_propsbyLearnerandbetacoeffsforRewards_sigonly.pdf',
-       device = pdf,
-       width = 20,
-       height = 4)
+ggsave("../results/proportions/250301_propsbyLearnerandbetacoeffsforRewards_sigonly.pdf",
+  device = pdf,
+  width = 20,
+  height = 4
+)
 ```
 
 ## props diff. by Region
 ```{r add region to props df rewards}
 model_summary_df$region <- anatomical_dict[model_summary_df$cluster]
-model_summary_df<- model_summary_df %>%
+model_summary_df <- model_summary_df %>%
   dplyr::arrange(region, bh_adjusted_pvalues)
 model_summary_df <- model_summary_df[order(model_summary_df$region, model_summary_df$bh_adjusted_pvalues, decreasing = TRUE), ]
 ```
@@ -2481,27 +2746,36 @@ model_summary_df <- model_summary_df[order(model_summary_df$region, model_summar
 n_clusters <- length(unique(model_summary_df$bh_adjusted_pvalues))
 text_colors <- rep(c("#000000", "#555555"), length.out = n_clusters)
 
-ggplot(model_summary_df, aes(x = -log10(bh_adjusted_pvalues), 
-                      y = factor(cluster, 
-                               levels = unique(model_summary_df$cluster)), 
-                      color = region)) +
+ggplot(model_summary_df, aes(
+  x = -log10(bh_adjusted_pvalues),
+  y = factor(cluster,
+    levels = unique(model_summary_df$cluster)
+  ),
+  color = region
+)) +
   geom_point(size = 3) +
   geom_vline(xintercept = -log10(0.05), linetype = "dashed") +
   theme_minimal() +
   scale_color_manual(values = region_two_colors) +
-  labs(x = "-log10(P-value)",
-       y = "Cluster",
-       title = "Differences in cluster proportions as predictors of rewards") +
+  labs(
+    x = "-log10(P-value)",
+    y = "Cluster",
+    title = "Differences in cluster proportions as predictors of rewards"
+  ) +
   theme(
-    axis.text.y = element_text(size = 8,
-                              color = rev(text_colors)),  # rev() to match the order of clusters
+    axis.text.y = element_text(
+      size = 8,
+      color = rev(text_colors)
+    ), # rev() to match the order of clusters
     legend.position = "right"
   )
 
- ggsave(filename = "../results/proportions/intermed-figs/250301_rewardsprops_pvalues_hypovother.pdf",
-        width = 12,
-        height = 12,
-        dpi = 300)
+ggsave(
+  filename = "../results/proportions/intermed-figs/250301_rewardsprops_pvalues_hypovother.pdf",
+  width = 12,
+  height = 12,
+  dpi = 300
+)
 ```
 
 ```{r p-values by region plot rewards top 10}
@@ -2513,32 +2787,41 @@ filtered_model_summary_df <- model_summary_df %>%
   arrange(rev(region))
 
 # Then use the filtered data in your plot
-ggplot(filtered_model_summary_df, aes(x = -log10(bh_adjusted_pvalues), 
-                          y = factor(cluster, 
-                                   levels = unique(filtered_model_summary_df$cluster)), 
-                          color = region)) +
+ggplot(filtered_model_summary_df, aes(
+  x = -log10(bh_adjusted_pvalues),
+  y = factor(cluster,
+    levels = unique(filtered_model_summary_df$cluster)
+  ),
+  color = region
+)) +
   geom_point(size = 3) +
   geom_vline(xintercept = -log10(0.05), linetype = "dashed") +
   theme_minimal() +
   scale_color_manual(values = region_two_colors) +
-  labs(x = "-log10(P-value)",
-       y = "Cluster",
-       title = "Differences in cluster proportions as predictors of rewards") +
+  labs(
+    x = "-log10(P-value)",
+    y = "Cluster",
+    title = "Differences in cluster proportions as predictors of rewards"
+  ) +
   theme(
-    axis.text.y = element_text(size = 8,
-                              color = rev(text_colors)[1:nrow(filtered_model_summary_df)]),  # adjust colors to match filtered data
+    axis.text.y = element_text(
+      size = 8,
+      color = rev(text_colors)[1:nrow(filtered_model_summary_df)]
+    ), # adjust colors to match filtered data
     legend.position = "right",
     panel.grid = element_blank(),
     axis.line = element_line(color = "black"),
     axis.line.y = element_line(color = "black"),
-    axis.ticks.x = element_line(color = "black"),  
+    axis.ticks.x = element_line(color = "black"),
     axis.ticks.y = element_line(color = "black")
-    )
+  )
 
- ggsave(filename = "../results/proportions/250301_rewardsprops_pvalues_hypovother.pdf",
-        width = 6,
-        height = 8,
-        dpi = 300)
+ggsave(
+  filename = "../results/proportions/250301_rewardsprops_pvalues_hypovother.pdf",
+  width = 6,
+  height = 8,
+  dpi = 300
+)
 ```
 
 ```{r Fisher's for rewards props significance by region}
@@ -2560,9 +2843,9 @@ print("\nFisher's exact test results:")
 print(fisher_result)
 
 # Calculate and print percentages for easier interpretation
-percentages <- prop.table(cont_table, margin = 1) * 100  # margin=1 calculates percentages within each region
+percentages <- prop.table(cont_table, margin = 1) * 100 # margin=1 calculates percentages within each region
 print("\nPercentage of significant clusters by region:")
-print(percentages[,"TRUE"])
+print(percentages[, "TRUE"])
 ```
 
 # Distance by Props
@@ -2573,16 +2856,16 @@ model_summary_df <- data.frame()
 # Loop over each cluster
 for (cluster in unique(merged_df$clusters)) {
   # Filter the data frame for the current cluster
-  cluster_df <- merged_df %>% 
-    filter(clusters == cluster) %>% 
-    distinct
-  
+  cluster_df <- merged_df %>%
+    filter(clusters == cluster) %>%
+    distinct()
+
   # Fit the linear regression model
   lm_model <- lm(distance ~ props_trans, data = cluster_df)
-  
+
   # Extract the model summary
   model_summary <- summary(lm_model)
-  
+
   # Create a named vector with model summary statistics
   model_summary_vec <- c(
     `(Intercept)` = coef(lm_model)[1],
@@ -2596,13 +2879,13 @@ for (cluster in unique(merged_df$clusters)) {
     f_statistic = model_summary$fstatistic[1],
     f_pvalue = pf(model_summary$fstatistic[1], model_summary$fstatistic[2], model_summary$fstatistic[3], lower.tail = FALSE)
   )
-  
+
   # Convert the named vector to a data frame
   model_summary_vec_df <- data.frame(t(model_summary_vec))
-  
+
   # Add a column for the cluster
   model_summary_vec_df$cluster <- cluster
-  
+
   # Append the data frame to the overall result
   model_summary_df <- rbind(model_summary_df, model_summary_vec_df)
 }
@@ -2618,7 +2901,7 @@ model_summary_df$bh_pvalues_props <- bh_adjusted_pvalues
 
 
 model_summary_df %>%
-  ungroup() %>% 
+  ungroup() %>%
   arrange(bh_pvalues_props)
 
 # Print the resulting data frame
@@ -2635,16 +2918,16 @@ model_summary_sex_df <- data.frame()
 # Loop over each cluster
 for (cluster in unique(merged_df$clusters)) {
   # Filter the data frame for the current cluster
-  cluster_df <- merged_df %>% 
-    filter(clusters == cluster) %>% 
-    distinct
-  
+  cluster_df <- merged_df %>%
+    filter(clusters == cluster) %>%
+    distinct()
+
   # Fit the linear regression model with sex added
   lm_model_sex <- lm(distance ~ props_trans + sex, data = cluster_df)
-  
+
   # Extract the model summary
   model_summary_sex <- summary(lm_model_sex)
-  
+
   # Create a named vector with model summary statistics
   model_summary_vec_sex <- c(
     `(Intercept)` = coef(lm_model_sex)[1],
@@ -2662,13 +2945,13 @@ for (cluster in unique(merged_df$clusters)) {
     f_statistic = model_summary_sex$fstatistic[1],
     f_pvalue = pf(model_summary_sex$fstatistic[1], model_summary_sex$fstatistic[2], model_summary_sex$fstatistic[3], lower.tail = FALSE)
   )
-  
+
   # Convert the named vector to a data frame
   model_summary_vec_sex_df <- data.frame(t(model_summary_vec_sex))
-  
+
   # Add a column for the cluster
   model_summary_vec_sex_df$cluster <- cluster
-  
+
   # Append the data frame to the overall result
   model_summary_sex_df <- rbind(model_summary_sex_df, model_summary_vec_sex_df)
 }
@@ -2686,7 +2969,7 @@ model_summary_sex_df$bh_pvalues_props <- bh_adjusted_pvalues_props
 model_summary_sex_df$bh_pvalues_sex <- bh_adjusted_pvalues_sex
 
 model_summary_sex_df %>%
-  ungroup() %>% 
+  ungroup() %>%
   arrange(bh_pvalues_props)
 
 # Print the resulting data frame
@@ -2694,7 +2977,6 @@ model_summary_sex_df
 
 # Write the data frame to a CSV file
 write.csv(model_summary_sex_df, file = "../results/proportions/250301_distancebyprops_sex.csv")
-
 ```
 
 ## Untransformed props
@@ -2708,16 +2990,16 @@ new_model_summary_df <- data.frame()
 # Loop over each cluster
 for (cluster in unique(new_merged_df$clusters)) {
   # Filter the data frame for the current cluster
-  cluster_df <- new_merged_df %>% 
-    filter(clusters == cluster) %>% 
-    distinct
-  
+  cluster_df <- new_merged_df %>%
+    filter(clusters == cluster) %>%
+    distinct()
+
   # Fit the linear regression model
   lm_model <- lm(distance ~ props_untrans, data = cluster_df)
-  
+
   # Extract the model summary
   new_model_summary <- summary(lm_model)
-  
+
   # Create a named vector with model summary statistics
   new_model_summary_vec <- c(
     `(Intercept)` = coef(lm_model)[1],
@@ -2731,13 +3013,13 @@ for (cluster in unique(new_merged_df$clusters)) {
     f_statistic = new_model_summary$fstatistic[1],
     f_pvalue = pf(new_model_summary$fstatistic[1], new_model_summary$fstatistic[2], new_model_summary$fstatistic[3], lower.tail = FALSE)
   )
-  
+
   # Convert the named vector to a data frame
   new_model_summary_vec_df <- data.frame(t(new_model_summary_vec))
-  
+
   # Add a column for the cluster
   new_model_summary_vec_df$cluster <- cluster
-  
+
   # Append the data frame to the overall result
   new_model_summary_df <- rbind(new_model_summary_df, new_model_summary_vec_df)
 }
@@ -2766,16 +3048,16 @@ new_model_summary_df_sex <- data.frame()
 # Loop over each cluster
 for (cluster in unique(new_merged_df$clusters)) {
   # Filter the data frame for the current cluster
-  cluster_df <- new_merged_df %>% 
-    filter(clusters == cluster) %>% 
-    distinct
-  
+  cluster_df <- new_merged_df %>%
+    filter(clusters == cluster) %>%
+    distinct()
+
   # Fit the linear regression model with sex added
   lm_model_sex <- lm(distance ~ props_untrans + sex, data = cluster_df)
-  
+
   # Extract the model summary
   new_model_summary_sex <- summary(lm_model_sex)
-  
+
   # Create a named vector with model summary statistics
   new_model_summary_vec_sex <- c(
     `(Intercept)` = coef(lm_model_sex)[1],
@@ -2793,13 +3075,13 @@ for (cluster in unique(new_merged_df$clusters)) {
     f_statistic = new_model_summary_sex$fstatistic[1],
     f_pvalue = pf(new_model_summary_sex$fstatistic[1], new_model_summary_sex$fstatistic[2], new_model_summary_sex$fstatistic[3], lower.tail = FALSE)
   )
-  
+
   # Convert the named vector to a data frame
   new_model_summary_vec_sex_df <- data.frame(t(new_model_summary_vec_sex))
-  
+
   # Add a column for the cluster
   new_model_summary_vec_sex_df$cluster <- cluster
-  
+
   # Append the data frame to the overall result
   new_model_summary_df_sex <- rbind(new_model_summary_df_sex, new_model_summary_vec_sex_df)
 }
@@ -2831,45 +3113,47 @@ write.csv(new_model_summary_df_sex, file = "../results/proportions/intermed-tabl
 plot_cluster <- function(i, model_summary_df, new_merged_df) {
   # Extract the results for the specific cluster we're plotting
   cluster_results <- model_summary_df[model_summary_df$cluster == i, ]
-  
+
   # Filter the data for the specific cluster
-  cluster_df <- new_merged_df %>% 
-    filter(clusters == i) %>% 
+  cluster_df <- new_merged_df %>%
+    filter(clusters == i) %>%
     distinct()
-  
+
   # Create the plot with untransformed data
-  plot(cluster_df$props_untrans, cluster_df$distance, 
-       main = paste("Cluster", i),
-       pch = 16, cex = 2, 
-       xlab = "Props_untrans", ylab = "distance", 
-       cex.lab = 1.5, cex.axis = 1.5,
-       xlim = c(0, max(cluster_df$props_untrans)),
-       cex.main = 2)
-  
+  plot(cluster_df$props_untrans, cluster_df$distance,
+    main = paste("Cluster", i),
+    pch = 16, cex = 2,
+    xlab = "Props_untrans", ylab = "distance",
+    cex.lab = 1.5, cex.axis = 1.5,
+    xlim = c(0, max(cluster_df$props_untrans)),
+    cex.main = 2
+  )
+
   # Fit lines for all data, male, and female
   fit_all <- lm(distance ~ props_untrans, data = cluster_df)
-  
+
   # Add the fit lines
   abline(fit_all, col = "black", lwd = 2)
-  
+
   # Calculate R-squared value
   r2_all <- summary(fit_all)$r.squared
-  
+
   # Create legend labels with statistics
   legend_labels <- c(
     paste("All (R² =", round(r2_all, 3), ")"),
     paste("Model Adj. R² =", round(cluster_results$adj_r_squared, 3)),
     paste("Props p-value =", format.pval(cluster_results$Props.p.value, digits = 3)),
-    paste("BH Adj. p-value =", format.pval(cluster_results$bh_adjusted_pvalues , digits = 3))
+    paste("BH Adj. p-value =", format.pval(cluster_results$bh_adjusted_pvalues, digits = 3))
   )
-  
+
   # Add legend
-  legend("topleft", 
-         legend = legend_labels,
-         col = c("black", "black", "black", "black"),
-         lty = c(1, NA, NA, NA),
-         cex = 1.2,
-         bty = "n")
+  legend("topleft",
+    legend = legend_labels,
+    col = c("black", "black", "black", "black"),
+    lty = c(1, NA, NA, NA),
+    cex = 1.2,
+    bty = "n"
+  )
 }
 ```
 
@@ -2884,13 +3168,13 @@ dir.create("../results/proportions/DistancebyProp_Figs", showWarnings = FALSE)
 for (cluster in clusters) {
   # Open a PDF device
   pdf(file = paste0("../results/proportions/DistancebyProp_Figs/cluster_", cluster, "_plot.pdf"), width = 6, height = 8)
-  
+
   # Create the plot
   plot_cluster(cluster, model_summary_df, new_merged_df)
-  
+
   # Close the PDF device
   dev.off()
-  
+
   # Print progress
   cat("Saved plot for cluster", cluster, "\n")
 }
@@ -2904,37 +3188,38 @@ cat("All plots have been saved in the 'DistancebyProp_Figs' directory.\n")
 plot_cluster_bysex <- function(i, model_summary_sex_df, new_merged_df) {
   # Extract the results for the specific cluster we're plotting
   cluster_results <- model_summary_sex_df[model_summary_sex_df$cluster == i, ]
- 
+
   # Filter the data for the specific cluster
-  cluster_df <- new_merged_df %>% 
-    filter(clusters == i) %>% 
+  cluster_df <- new_merged_df %>%
+    filter(clusters == i) %>%
     distinct()
- 
+
   # Create the plot with untransformed data
-  plot(cluster_df$props_untrans, cluster_df$distance, 
-       main = paste("Cluster", i),
-       pch = 16, cex = 2, 
-       xlab = "Props_untrans", ylab = "Distance", 
-       cex.lab = 1.5, cex.axis = 1.5,
-       cex.main = 2, 
-       xlim = c(0, max(cluster_df$props_untrans)),         
-       col = ifelse(cluster_df$sex == "M", "#4478AB", "#ED6677"))
-  
+  plot(cluster_df$props_untrans, cluster_df$distance,
+    main = paste("Cluster", i),
+    pch = 16, cex = 2,
+    xlab = "Props_untrans", ylab = "Distance",
+    cex.lab = 1.5, cex.axis = 1.5,
+    cex.main = 2,
+    xlim = c(0, max(cluster_df$props_untrans)),
+    col = ifelse(cluster_df$sex == "M", "#4478AB", "#ED6677")
+  )
+
   # Fit lines for all data, male, and female
   fit_all <- lm(distance ~ props_untrans, data = cluster_df)
   fit_male <- lm(distance ~ props_untrans, data = cluster_df[cluster_df$sex == "M", ])
   fit_female <- lm(distance ~ props_untrans, data = cluster_df[cluster_df$sex == "F", ])
-  
+
   # Add the fit lines
   abline(fit_all, col = "black", lwd = 2)
   abline(fit_male, col = "#4478AB", lwd = 2)
   abline(fit_female, col = "#ED6677", lwd = 2)
-  
+
   # Calculate R-squared values for each fit
   r2_all <- summary(fit_all)$r.squared
   r2_male <- summary(fit_male)$r.squared
   r2_female <- summary(fit_female)$r.squared
-  
+
   # Create legend labels with statistics
   legend_labels <- c(
     paste("All (R² =", round(r2_all, 3), ")"),
@@ -2942,16 +3227,17 @@ plot_cluster_bysex <- function(i, model_summary_sex_df, new_merged_df) {
     paste("Female (R² =", round(r2_female, 3), ")"),
     paste("Model Adj. R² =", round(cluster_results$adj_r_squared, 3)),
     paste("Props p-value =", format.pval(cluster_results$Props.p.value, digits = 3)),
-    paste("BH Adj. p-value =", format.pval(cluster_results$bh_pvalues_props , digits = 3))
+    paste("BH Adj. p-value =", format.pval(cluster_results$bh_pvalues_props, digits = 3))
   )
-  
+
   # Add legend
-  legend("topleft", 
-         legend = legend_labels,
-         col = c("black", "#4478AB", "#ED6677", "black", "black", "black"),
-         lty = c(1, 1, 1, NA, NA, NA),
-         cex = 1.2,
-         bty = "n")
+  legend("topleft",
+    legend = legend_labels,
+    col = c("black", "#4478AB", "#ED6677", "black", "black", "black"),
+    lty = c(1, 1, 1, NA, NA, NA),
+    cex = 1.2,
+    bty = "n"
+  )
 }
 ```
 
@@ -2966,13 +3252,13 @@ dir.create("../results/proportions/DistancebyProp_Figs", showWarnings = FALSE)
 for (cluster in clusters) {
   # Open a PDF device
   pdf(file = paste0("../results/proportions/DistancebyProp_Figs/cluster_", cluster, "_plotwithSex.pdf"), width = 6, height = 8)
-  
+
   # Create the plot
   plot_cluster_bysex(cluster, model_summary_sex_df, new_merged_df)
-  
+
   # Close the PDF device
   dev.off()
-  
+
   # Print progress
   cat("Saved plot for cluster", cluster, "\n")
 }
@@ -2987,28 +3273,42 @@ cluster_order <- rev(sort(model_summary_df$cluster))
 model_summary_df$cluster <- factor(model_summary_df$cluster, levels = cluster_order)
 
 # Assuming your data frame is called model_summary_df
-p_beta <- ggplot(model_summary_df, 
-       aes(x = Props.props_trans, y = cluster)) +
-  geom_bar(stat = "identity", 
-           width = 0.7,
-           fill = "#888888") +
-  geom_errorbar(aes(xmin = Props.props_trans - Props.Std..Error, 
-                    xmax = Props.props_trans + Props.Std..Error),
-                position = position_dodge(0.7),
-                width = 0.2, 
-                size = 0.2) +
-  labs(x = "Beta Coefficient", 
-       y = "Cluster") +
+p_beta <- ggplot(
+  model_summary_df,
+  aes(x = Props.props_trans, y = cluster)
+) +
+  geom_bar(
+    stat = "identity",
+    width = 0.7,
+    fill = "#888888"
+  ) +
+  geom_errorbar(
+    aes(
+      xmin = Props.props_trans - Props.Std..Error,
+      xmax = Props.props_trans + Props.Std..Error
+    ),
+    position = position_dodge(0.7),
+    width = 0.2,
+    size = 0.2
+  ) +
+  labs(
+    x = "Beta Coefficient",
+    y = "Cluster"
+  ) +
   theme_classic() +
-  theme(legend.position = "none",
-        axis.text.y = element_text(color = rep(c("#000000", "#555555"), 
-                                 length.out = length(unique(model_summary_df$cluster)))))
+  theme(
+    legend.position = "none",
+    axis.text.y = element_text(color = rep(c("#000000", "#555555"),
+      length.out = length(unique(model_summary_df$cluster))
+    ))
+  )
 
 p_beta
-ggsave('../results/proportions/250301_distancebyprops_betacoeffs.pdf',
-       device = pdf,
-       width = 6,
-       height = 8)
+ggsave("../results/proportions/250301_distancebyprops_betacoeffs.pdf",
+  device = pdf,
+  width = 6,
+  height = 8
+)
 ```
 
 # Lisi score
@@ -3031,8 +3331,9 @@ table(md$sample)
 Note: lisi score may take a few minutes to complete
 ```{r compute lisi scores}
 res <- compute_lisi(Embeddings(combined_neuronal, reduction = "umap"), md,
-                    perplexity = 200,
-                    c('sample', 'genotype', 'sex'))
+  perplexity = 200,
+  c("sample", "genotype", "sex")
+)
 ```
 
 ```{r mean lisi for geno and sex}
@@ -3047,30 +3348,36 @@ sex_mean
 ggplot(res, aes(x = genotype)) +
   # geom_histogram(binwidth = 0.01, fill = "grey") +
   geom_density(fill = "#bababa") +
-  geom_vline(xintercept = median(res$genotype),
-             linetype = 3) +
+  geom_vline(
+    xintercept = median(res$genotype),
+    linetype = 3
+  ) +
   xlim(1, 2) +
   theme_classic()
 
-ggsave('../results/proportions/250301_lisi_genotype.png',
-       device = png,
-       width = 5,
-       height = 3)
+ggsave("../results/proportions/250301_lisi_genotype.png",
+  device = png,
+  width = 5,
+  height = 3
+)
 ```
 
 ```{r lisi figure sex, fig.height = 2}
 ggplot(res, aes(x = sex)) +
   # geom_histogram(binwidth = 0.01, fill = "grey") +
   geom_density(fill = "#bababa") +
-  geom_vline(xintercept = median(res$sex),
-             linetype = 3) +
+  geom_vline(
+    xintercept = median(res$sex),
+    linetype = 3
+  ) +
   xlim(1, 2) +
   theme_classic()
 
-ggsave('../results/proportions/250301_lisi_sex.png',
-       device = png,
-       width = 5,
-       height = 3)
+ggsave("../results/proportions/250301_lisi_sex.png",
+  device = png,
+  width = 5,
+  height = 3
+)
 ```
 
 
