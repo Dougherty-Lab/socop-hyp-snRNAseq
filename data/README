@@ -1,0 +1,7 @@
+This directory contains the files and R datasets required for analysis.
+The file sizes are too large to be available on GitHub.
+
+You may generate these files yourself, or download our processed data.
+
+If downloading our processed seurat object (combined_neuronal) from GEO,
+please save it to this directory to proceed.
