@@ -21,49 +21,49 @@ library(scCustomize)
 
 set.seed(420)
 
-source("/scratch/jdlab/simona/color_utils.R")
+source("color_utils.R")
 ```
 
 
 # Load in data
 ```{r load in data}
-combined.neuronal <- readRDS("/scratch/jdlab/simona/socop-hyp-snRNAseq/data/250228_combined.neuronal_1-5_5pct.rds")
-combined.neuronal
+combined_neuronal <- readRDS("../data/250228_combined.neuronal_1-5_5pct.rds")
+combined_neuronal
 ```
 
 ```{r renaming cell_types for saving}
 # Saving scatterplots won't work if you have "/" in cluster name
-combined.neuronal@meta.data$cell_type <- as.factor(gsub("/", "-", combined.neuronal@meta.data$cell_type))
+combined_neuronal@meta.data$cell_type <- as.factor(gsub("/", "-", combined_neuronal@meta.data$cell_type))
 ```
 
 ```{r subset for wt only}
 # Subset the Seurat object to keep only WT cells
-WT.only <- subset(combined.neuronal, subset = genotype == "WT")
+wt_only <- subset(combined_neuronal, subset = genotype == "WT")
 
 # Verify the subsetting worked correctly
-table(WT.only$genotype)
+table(wt_only$genotype)
 ```
 
 ```{r drop unused sample levels}
 # Drop unused factor levels from the sample column
-WT.only$sample <- droplevels(WT.only$sample)
+wt_only$sample <- droplevels(wt_only$sample)
 
 # Verify that only WT samples remain
-levels(WT.only$sample)
+levels(wt_only$sample)
 ```
 
 
 # Fos/Jun/Arc expression plots
 ```{r fos expression violin plot}
-gene_expr <- GetAssayData(WT.only, slot = "data")["Fos",]
+gene_expr <- GetAssayData(wt_only, slot = "data")["Fos",]
 
 # Create a binary vector for expression
 binary_expr <- ifelse(gene_expr > 0, 1, 0)
 
 # Calculate percentage of expressing cells per group
-expr_freq <- tapply(binary_expr, WT.only$Sac_Learner, mean) * 100
+expr_freq <- tapply(binary_expr, wt_only$Sac_Learner, mean) * 100
 
-VlnPlot_scCustom(WT.only[,gene_expr > 0],
+VlnPlot_scCustom(wt_only[,gene_expr > 0],
                  group.by = "Sac_Learner",
                  features = "Fos",
                  colors_use = palette_learner,
@@ -73,7 +73,7 @@ VlnPlot_scCustom(WT.only[,gene_expr > 0],
                  "% expressing cells: Learner=", round(expr_freq["Learner"], 1), 
                  "%, Non_Learner=", round(expr_freq["Non_Learner"], 1), "%"))
 
-ggsave(filename = '/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/250214_FosGEX_bylearner.pdf',
+ggsave(filename = '../results/IEGactivity_WTonly/250214_FosGEX_bylearner.pdf',
        device = pdf,
        width = 6,
        height = 8)
@@ -82,7 +82,7 @@ ggsave(filename = '/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_
 ```{r wilcoxon test Fos GEX}
 test_data <- data.frame(
   Fos = gene_expr,
-  learner = WT.only$Sac_Learner
+  learner = wt_only$Sac_Learner
 )
 
 # Perform Wilcoxon test on non-zero values
@@ -112,15 +112,15 @@ print(paste("Effect size (r):", round(effect_size_r, 3)))
 ```
 
 ```{r jun expression violin plot}
-gene_expr <- GetAssayData(WT.only, slot = "data")["Jun",]
+gene_expr <- GetAssayData(wt_only, slot = "data")["Jun",]
 
 # Create a binary vector for expression
 binary_expr <- ifelse(gene_expr > 0, 1, 0)
 
 # Calculate percentage of expressing cells per group
-expr_freq <- tapply(binary_expr, WT.only$Sac_Learner, mean) * 100
+expr_freq <- tapply(binary_expr, wt_only$Sac_Learner, mean) * 100
 
-VlnPlot_scCustom(WT.only[,gene_expr > 0],
+VlnPlot_scCustom(wt_only[,gene_expr > 0],
                  group.by = "Sac_Learner",
                  features = "Jun",
                  colors_use = palette_learner,
@@ -130,7 +130,7 @@ VlnPlot_scCustom(WT.only[,gene_expr > 0],
                  "% expressing cells: Learner=", round(expr_freq["Learner"], 1), 
                  "%, Non_Learner=", round(expr_freq["Non_Learner"], 1), "%"))
 
-ggsave(filename = '/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/250214_JunGEX_bylearner.pdf',
+ggsave(filename = '../results/IEGactivity_WTonly/250214_JunGEX_bylearner.pdf',
        device = pdf,
        width = 6,
        height = 8)
@@ -139,7 +139,7 @@ ggsave(filename = '/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_
 ```{r wilcoxon test Jun GEX}
 test_data <- data.frame(
   Jun = gene_expr,
-  learner = WT.only$Sac_Learner
+  learner = wt_only$Sac_Learner
 )
 
 # Perform Wilcoxon test on non-zero values
@@ -169,15 +169,15 @@ print(paste("Effect size (r):", round(effect_size_r, 3)))
 ```
 
 ```{r arc expression violin plot}
-gene_expr <- GetAssayData(WT.only, slot = "data")["Arc",]
+gene_expr <- GetAssayData(wt_only, slot = "data")["Arc",]
 
 # Create a binary vector for expression
 binary_expr <- ifelse(gene_expr > 0, 1, 0)
 
 # Calculate percentage of expressing cells per group
-expr_freq <- tapply(binary_expr, WT.only$Sac_Learner, mean) * 100
+expr_freq <- tapply(binary_expr, wt_only$Sac_Learner, mean) * 100
 
-VlnPlot_scCustom(WT.only[,gene_expr > 0],
+VlnPlot_scCustom(wt_only[,gene_expr > 0],
                  group.by = "Sac_Learner",
                  features = "Arc",
                  colors_use = palette_learner,
@@ -187,7 +187,7 @@ VlnPlot_scCustom(WT.only[,gene_expr > 0],
                  "% expressing cells: Learner=", round(expr_freq["Learner"], 1), 
                  "%, Non_Learner=", round(expr_freq["Non_Learner"], 1), "%"))
 
-ggsave(filename = '/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/250214_ArcGEX_bylearner.pdf',
+ggsave(filename = '../results/IEGactivity_WTonly/250214_ArcGEX_bylearner.pdf',
        device = pdf,
        width = 6,
        height = 8)
@@ -196,7 +196,7 @@ ggsave(filename = '/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_
 ```{r wilcoxon test Arc GEX}
 test_data <- data.frame(
   Arc = gene_expr,
-  learner = WT.only$Sac_Learner
+  learner = wt_only$Sac_Learner
 )
 
 # Perform Wilcoxon test on non-zero values
@@ -207,7 +207,6 @@ wilcox_test <- wilcox.test(
 )
 
 print(wilcox_test)
-
 
 # Calculate medians for direction
 group_medians <- tapply(test_data[test_data$Arc > 0,]$Arc, 
@@ -226,7 +225,6 @@ print(group_medians)
 print(paste("Effect size (r):", round(effect_size_r, 3)))
 ```
 
-
 # Stats on Pct activated by Sample
 
 ```{r filtered iegs list}
@@ -236,16 +234,16 @@ filtered_iegs <- c("Fos", "Fosb", "Fosl2", "Jun", "Junb", "Jund", "Egr1", "Egr3"
 ## by Sex
 
 ```{r fishers pct activated by sex}
-Idents(WT.only) <- WT.only@meta.data$cell_type
+Idents(wt_only) <- wt_only@meta.data$cell_type
 
 # Fetch expression data for all IEGs
-ieg_expression <- FetchData(WT.only, vars = filtered_iegs)
+ieg_expression <- FetchData(wt_only, vars = filtered_iegs)
 
 # Create a data frame with cluster assignments, Sex, sample, and IEG expression
 cluster_ieg_Sex_sample_df <- data.frame(
-  Cluster = Idents(WT.only),
-  Sex = WT.only$sex,
-  Sample = WT.only$sample,
+  Cluster = Idents(wt_only),
+  Sex = wt_only$sex,
+  Sample = wt_only$sample,
   ieg_expression
 )
 
@@ -258,7 +256,6 @@ cluster_ieg_Sex_sample_percentages <- cluster_ieg_Sex_sample_df %>%
   ) %>%
   dplyr::mutate(Activated_Percentage = Activated_Cells / Cluster_Cells * 100) %>%
   ungroup()
-
 
 # Perform Fisher's exact test on activated percentages between Sexs within each cluster
 cluster_ieg_Sex_comparison <- cluster_ieg_Sex_sample_percentages %>%
@@ -292,25 +289,23 @@ cluster_ieg_Sex_comparison <- cluster_ieg_Sex_comparison %>%
 # Print the updated results
 print(cluster_ieg_Sex_comparison)
 
-
 # # Write the results to a CSV file
-write.csv(cluster_ieg_Sex_comparison, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/250303_activationpercent_bysex.csv", row.names = FALSE)
+write.csv(cluster_ieg_Sex_comparison, file = "../results/IEGactivity_WTonly/250303_activationpercent_bysex.csv", row.names = FALSE)
 ```
-
 
 ## by Learner 
 
 ```{r fishers pct activated by learner}
-Idents(WT.only) <- WT.only@meta.data$cell_type
+Idents(wt_only) <- wt_only@meta.data$cell_type
 
 # Fetch expression data for all IEGs
-#ieg_expression <- FetchData(WT.only, vars = filtered_iegs)
+#ieg_expression <- FetchData(wt_only, vars = filtered_iegs)
 
 # Create a data frame with cluster assignments, Sex, sample, and IEG expression
 cluster_ieg_Learner_sample_df <- data.frame(
-  Cluster = Idents(WT.only),
-  Learner = WT.only$Sac_Learner,
-  Sample = WT.only$sample,
+  Cluster = Idents(wt_only),
+  Learner = wt_only$Sac_Learner,
+  Sample = wt_only$sample,
   ieg_expression
 )
 
@@ -323,7 +318,6 @@ cluster_ieg_Learner_sample_percentages <- cluster_ieg_Learner_sample_df %>%
   ) %>%
   dplyr::mutate(Activated_Percentage = Activated_Cells / Cluster_Cells * 100) %>%
   ungroup()
-
 
 # Perform Fisher's exact test on activated percentages between Sexs within each cluster
 cluster_ieg_Learner_comparison <- cluster_ieg_Learner_sample_percentages %>%
@@ -357,24 +351,22 @@ cluster_ieg_Learner_comparison <- cluster_ieg_Learner_comparison %>%
 # Print the updated results
 print(cluster_ieg_Learner_comparison)
 
-
-# # Write the results to a CSV file
-write.csv(cluster_ieg_Learner_comparison, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/250303_activationpercent_bylearner.csv", row.names = FALSE)
+# Write the results to a CSV file
+write.csv(cluster_ieg_Learner_comparison, file = "../results/IEGactivity_WTonly/250303_activationpercent_bylearner.csv", row.names = FALSE)
 ```
-
 
 # Percentage bar plots
 
 ## by Sex
 ```{r pct activated by sex df}
 # Fetch expression data for all IEGs
-#ieg_expression <- FetchData(WT.only, vars = filtered_iegs)
+#ieg_expression <- FetchData(wt_only, vars = filtered_iegs)
 
 # Create a data frame with cluster assignments, sex, and IEG expression
 cluster_ieg_sex_df <- data.frame(
-  Cluster = Idents(WT.only),
-  Sample = WT.only@meta.data$sample,
-  Sex = WT.only@meta.data$sex,
+  Cluster = Idents(wt_only),
+  Sample = wt_only@meta.data$sample,
+  Sex = wt_only@meta.data$sex,
   ieg_expression
 )
 
@@ -390,11 +382,10 @@ cluster_ieg_sex_percentages <- cluster_ieg_sex_df %>%
 
 # Convert Cluster to a factor with desired order of levels
 cluster_ieg_sex_percentages$Cluster <- factor(cluster_ieg_sex_percentages$Cluster,
-                                              levels = sort(as.character(levels(WT.only))))
+                                              levels = sort(as.character(levels(wt_only))))
 
 cluster_ieg_sex_percentages$Sex <- gsub('.*_(\\w)_.*', '\\1', cluster_ieg_sex_percentages$Sample)
 ```
-
 
 ```{r pct activated by sex calculations}
 #Determine mean average per cluster for sex
@@ -421,7 +412,6 @@ cluster_ieg_sex_percentages_norm <- cluster_ieg_sex_percentages_norm %>%
   dplyr::mutate(Mean_Activated_Percentage_normalizedtoM = mean(Activated_Percentage_normalizedtoM)) %>%
   dplyr::mutate(SE_Mean_Activated_Percentage_normalizedtoM = sd(Activated_Percentage_normalizedtoM)/sqrt(36))
 ```
-
 
 ```{r pct activated by geno plot}
 p1 <- ggplot(cluster_ieg_sex_percentages_norm, aes(x = Mean_Activated_Percentage.x, y = Cluster, fill = Sex)) +
@@ -451,25 +441,23 @@ p2 <- ggplot(cluster_ieg_sex_percentages_norm, aes(x = Mean_Activated_Percentage
   theme(axis.text.y = element_blank(),
         legend.position = "none")
 
-
 wrap_plots(p1, p2)
-ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/250303-activationbySex_neuronal_1-5_5pct_50_1.8.pdf',
+ggsave('../results/IEGactivity_WTonly/250303-activationbySex_neuronal_1-5_5pct_50_1.8.pdf',
        device = pdf,
        width = 12,
        height = 8)
 ```
 
-
 ## by Learner
 ```{r pct activated by learner df}
 # Fetch expression data for all IEGs
-#ieg_expression <- FetchData(WT.only, vars = filtered_iegs)
+#ieg_expression <- FetchData(wt_only, vars = filtered_iegs)
 
 # Create a data frame with cluster assignments, sex, and IEG expression
 cluster_ieg_Learner_df <- data.frame(
-  Cluster = Idents(WT.only),
-  Sample = WT.only@meta.data$sample,
-  Learner = WT.only@meta.data$Sac_Learner,
+  Cluster = Idents(wt_only),
+  Sample = wt_only@meta.data$sample,
+  Learner = wt_only@meta.data$Sac_Learner,
   ieg_expression
 )
 
@@ -484,7 +472,6 @@ cluster_ieg_Learner_percentages <- cluster_ieg_Learner_df %>%
   dplyr::mutate(Activated_Percentage = Activated_Cells / Cluster_Cells * 100)  %>%
   ungroup()
 ```
-
 
 ```{r pct activated by learner calculations}
 #Determine mean average per cluster for sex
@@ -511,7 +498,6 @@ cluster_ieg_Learner_percentages_norm <- cluster_ieg_Learner_percentages_norm %>%
   dplyr::mutate(Mean_Activated_Percentage_normalizedtoNL = mean(Activated_Percentage_normalizedtoNL)) %>%
   dplyr::mutate(SE_Mean_Activated_Percentage_normalizedtoNL = sd(Activated_Percentage_normalizedtoNL)/sqrt(36))
 ```
-
 
 ```{r pct activated by learner plot}
 p1 <- ggplot(cluster_ieg_Learner_percentages_norm, aes(x = Mean_Activated_Percentage.x, y = Cluster, fill = Learner)) +
@@ -541,21 +527,18 @@ p2 <- ggplot(cluster_ieg_Learner_percentages_norm, aes(x = Mean_Activated_Percen
   theme(axis.text.y = element_blank(),
         legend.position = "none")
 
-
 wrap_plots(p1, p2)
-ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/250303-activationbyLearner_neuronal_1-5_5pct_50_1.8.pdf',
+ggsave('../results/IEGactivity_WTonly/250303-activationbyLearner_neuronal_1-5_5pct_50_1.8.pdf',
        device = pdf,
        width = 12,
        height = 8)
 ```
-
 
 ```{r sig clusters only plotr}
 significant_clusters <- cluster_ieg_Learner_comparison %>%
   filter(p_value < 0.1) %>%
   pull(Cluster) %>%
   as.character()
-
 
 sig_cluster_ieg_Learner_percentages_norm <- cluster_ieg_Learner_percentages_norm %>%
   dplyr::filter(Cluster %in% significant_clusters) %>%
@@ -578,27 +561,26 @@ sig_p1 <- ggplot(sig_cluster_ieg_Learner_percentages_norm, aes(x = Mean_Activate
 
 sig_p1
 
-ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/250303-activationbyLearner_neuronal_1-5_5pct_50_1.8_sigonly.pdf',
+ggsave('../results/IEGactivity_WTonly/250303-activationbyLearner_neuronal_1-5_5pct_50_1.8_sigonly.pdf',
        device = pdf,
        width = 5,
        height = 8)
 ```
 
-
 # Regressions of Behavior by Pct activated
 ## Rewards
 ```{r regression rewards by pct activated}
-Idents(WT.only) <- WT.only$cell_type
+Idents(wt_only) <- wt_only$cell_type
 
 # Fetch expression data for all IEGs
-ieg_expression <- FetchData(WT.only, vars = filtered_iegs)
+ieg_expression <- FetchData(wt_only, vars = filtered_iegs)
 
 # Create a data frame with cluster assignments, Sex, sample, and IEG expression
 cluster_ieg_sample_df <- data.frame(
-  Cluster = Idents(WT.only),
-  Sex = WT.only$sex,
-  Sample = WT.only$sample,
-  TotalRewards = WT.only$Avg_Total_Rewards, 
+  Cluster = Idents(wt_only),
+  Sex = wt_only$sex,
+  Sample = wt_only$sample,
+  TotalRewards = wt_only$Avg_Total_Rewards, 
   ieg_expression
 )
 
@@ -612,7 +594,6 @@ cluster_ieg_sample_percentages <- cluster_ieg_sample_df %>%
   ) %>%
   dplyr::mutate(Activated_Percentage = Activated_Cells / Cluster_Cells * 100) %>%
   ungroup()
-
 
 cluster_regression_results <- cluster_ieg_sample_percentages %>%
   group_by(Cluster) %>%
@@ -642,9 +623,8 @@ cluster_regression_results <- cluster_regression_results %>%
 print(cluster_regression_results)
 
 # # Write the results to a CSV file
-write.csv(cluster_regression_results, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/250303_rewards_byactivationpercent.csv", row.names = FALSE)
+write.csv(cluster_regression_results, file = "../results/IEGactivity_WTonly/250303_rewards_byactivationpercent.csv", row.names = FALSE)
 ```
-
 
 ```{r scatters rewards by pct activated}
 plot_cluster <- function(cluster, cluster_regression_results, cluster_ieg_sample_percentages) {
@@ -664,7 +644,6 @@ plot_cluster <- function(cluster, cluster_regression_results, cluster_ieg_sample
        cex.main = 2,        
        xlim = c(0, max(cluster_df$Activated_Percentage)),         
        bty = "l")
-    
   
   # Fit line
   fit <- lm(TotalRewards ~ Activated_Percentage, data = cluster_df)
@@ -697,12 +676,12 @@ plot_cluster <- function(cluster, cluster_regression_results, cluster_ieg_sample
 clusters <- unique(cluster_regression_results$Cluster)
 
 # Create a directory to save the PDFs if it doesn't exist
-dir.create("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303", showWarnings = FALSE)
+dir.create("../results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303", showWarnings = FALSE)
 
 # Iterate through clusters
 for (cluster in clusters) {
   # Open a PDF device
-  pdf(file = paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303/cluster_", cluster, "_plot.pdf"), width = 6, height = 8)
+  pdf(file = paste0("../results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303/cluster_", cluster, "_plot.pdf"), width = 6, height = 8)
   
   # Create the plot
   plot_cluster(cluster, cluster_regression_results, cluster_ieg_sample_percentages)
@@ -717,15 +696,14 @@ for (cluster in clusters) {
 cat("All plots have been saved in the 'RewardsbyActivatedPercentage' directory.\n")
 ```
 
-
 ### with Sex
 ```{r regression rewards by pct activated and sex }
 # Create a data frame with cluster assignments, Sex, sample, and IEG expression
 cluster_ieg_Sex_sample_df <- data.frame(
-  Cluster = Idents(WT.only),
-  Sex = WT.only$sex,
-  Sample = WT.only$sample,
-  TotalRewards = WT.only$Avg_Total_Rewards, 
+  Cluster = Idents(wt_only),
+  Sex = wt_only$sex,
+  Sample = wt_only$sample,
+  TotalRewards = wt_only$Avg_Total_Rewards, 
   ieg_expression
 )
 # Calculate the percentage of cells expressing 2 or more IEGs within each cluster, Sex, and sample
@@ -790,7 +768,7 @@ regression_results <- regression_results %>%
 print(regression_results)
 
 # Write the results to a CSV file
-write.csv(regression_results, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/250303_rewards_byactivationpercent_bysex.csv", row.names = FALSE)
+write.csv(regression_results, file = "../results/IEGactivity_WTonly/250303_rewards_byactivationpercent_bysex.csv", row.names = FALSE)
 ```
 
 ```{r scatters rewards by pct activated with sex}
@@ -858,7 +836,7 @@ clusters <- unique(regression_results$Cluster)
 # Iterate through clusters
 for (cluster in clusters) {
   # Open a PDF device
-  pdf(file = paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303/cluster_", cluster, "_plot_bySex.pdf"), width = 6, height = 8)
+  pdf(file = paste0("../results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303/cluster_", cluster, "_plot_bySex.pdf"), width = 6, height = 8)
   
   # Create the plot
   plot_cluster_withsex(cluster, regression_results, cluster_ieg_Sex_sample_percentages)
@@ -877,10 +855,10 @@ cat("All plots have been saved in the 'RewardsbyActivatedPercentage' directory.\
 ```{r regression rewards by pct activated and learner}
 # Create a data frame with cluster assignments, Sex, sample, and IEG expression
 cluster_ieg_Learner_sample_df <- data.frame(
-  Cluster = Idents(WT.only),
-  Sample = WT.only$sample,
-  Sac_Learner = WT.only$Sac_Learner, 
-  TotalRewards = WT.only$Avg_Total_Rewards, 
+  Cluster = Idents(wt_only),
+  Sample = wt_only$sample,
+  Sac_Learner = wt_only$Sac_Learner, 
+  TotalRewards = wt_only$Avg_Total_Rewards, 
   ieg_expression
 )
 # Calculate the percentage of cells expressing 2 or more IEGs within each cluster, Sac_Learner, and sample
@@ -945,9 +923,8 @@ regression_results <- regression_results %>%
 print(regression_results)
 
 # Write the results to a CSV file
-write.csv(regression_results, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/250303_rewards_byactivationpercent_bysaclearner.csv", row.names = FALSE)
+write.csv(regression_results, file = "../results/IEGactivity_WTonly/250303_rewards_byactivationpercent_bysaclearner.csv", row.names = FALSE)
 ```
-
 
 ```{r scatters rewards by pct activated with learner}
 plot_cluster_withSac_Learner <- function(cluster, regression_results, cluster_ieg_Learner_sample_percentages) {
@@ -1017,7 +994,7 @@ clusters_to_plot <- clusters[!clusters %in% problem_clusters] # ablines wouldn't
 for (cluster in clusters_to_plot) {
   print(cluster)
   # Open a PDF device
-  pdf(file = paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303/cluster_", cluster, "_plot_bySac_Learner.pdf"), width = 6, height = 8)
+  pdf(file = paste0("../results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303/cluster_", cluster, "_plot_bySac_Learner.pdf"), width = 6, height = 8)
   
   # Create the plot
   plot_cluster_withSac_Learner(cluster, regression_results, cluster_ieg_Learner_sample_percentages)
@@ -1079,7 +1056,7 @@ plot_cluster_withSac_Learner_no_abline <- function(cluster, regression_results, 
 for (cluster in problem_clusters) {
   print(cluster)
   # Open a PDF device
-  pdf(file = paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303/cluster_", cluster, "_plot_bySac_Learner_noabline.pdf"), width = 6, height = 8)
+  pdf(file = paste0("../results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303/cluster_", cluster, "_plot_bySac_Learner_noabline.pdf"), width = 6, height = 8)
   
   # Create the plot
   plot_cluster_withSac_Learner_no_abline(cluster, regression_results, cluster_ieg_Learner_sample_percentages)
@@ -1143,13 +1120,11 @@ plot_control <- function(sample_data) {
 }
 
 # Save the  plot
-pdf(file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303/control_all_neurons_plot.pdf",
+pdf(file = "../results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303/control_all_neurons_plot.pdf",
    width = 6, height = 8)
 plot_control(overall_sample_percentages)
 dev.off()
 ```
-
-
 
 ```{r regression rewards by pct activity in all neurons}
 overall_stats <- overall_sample_percentages %>%
@@ -1168,7 +1143,7 @@ overall_stats <- overall_sample_percentages %>%
 
 # Write results to CSV
 write.csv(overall_stats,
-          file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/250303_Rewards_byactivationpercent_allneurons.csv",
+          file = "../results/IEGactivity_WTonly/250303_Rewards_byactivationpercent_allneurons.csv",
           row.names = FALSE)
 ```
 
@@ -1234,7 +1209,7 @@ plot_control_withsex <- function(sample_data) {
 }
 
 # Save the control plot with sex
-pdf(file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303/control_all_neurons_plot_bySex.pdf",
+pdf(file = "../results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303/control_all_neurons_plot_bySex.pdf",
     width = 6, height = 8)
 plot_control_withsex(overall_sample_sex_percentages)
 dev.off()
@@ -1266,7 +1241,7 @@ overall_sex_stats <- overall_sample_sex_percentages %>%
 
 # Write results to CSV
 write.csv(overall_sex_stats, 
-          file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/250303_Rewards_byactivationpercent_allneurons_bysex.csv", 
+          file = "../results/IEGactivity_WTonly/250303_Rewards_byactivationpercent_allneurons_bysex.csv", 
           row.names = FALSE)
 ```
 
@@ -1307,7 +1282,7 @@ p_beta <- ggplot(cluster_regression_results,
 
 p_beta
 
-ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/intermed-figs/250225_rewardsbyactivity_betacoeffs.pdf',
+ggsave('../results/IEGactivity_WTonly/intermed-figs/250225_rewardsbyactivity_betacoeffs.pdf',
        device = pdf,
        width = 6,
        height = 8)
@@ -1344,7 +1319,7 @@ p_beta <- ggplot(sig_clusters_rewards,
 
 p_beta
 
-ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/250225_rewardsbyactivity_betacoeffs_sigonly.pdf',
+ggsave('../results/IEGactivity_WTonly/250225_rewardsbyactivity_betacoeffs_sigonly.pdf',
   device = pdf,
   width = 5,
   height = 10.5)
@@ -1353,14 +1328,14 @@ ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/2502
 
 ```{r regression sac rewards by pct activated}
 # Fetch expression data for all IEGs
-#ieg_expression <- FetchData(WT.only, vars = filtered_iegs)
+#ieg_expression <- FetchData(wt_only, vars = filtered_iegs)
 
 # Create a data frame with cluster assignments, Sex, sample, and IEG expression
 cluster_ieg_sample_df <- data.frame(
-  Cluster = Idents(WT.only),
-  Sex = WT.only$sex,
-  Sample = WT.only$sample,
-  SacRewards = WT.only$Sac_Total_Rewards,  
+  Cluster = Idents(wt_only),
+  Sex = wt_only$sex,
+  Sample = wt_only$sample,
+  SacRewards = wt_only$Sac_Total_Rewards,  
   ieg_expression
 )
 
@@ -1374,7 +1349,6 @@ cluster_ieg_sample_percentages <- cluster_ieg_sample_df %>%
   ) %>%
   dplyr::mutate(Activated_Percentage = Activated_Cells / Cluster_Cells * 100) %>%
   ungroup()
-
 
 cluster_regression_results <- cluster_ieg_sample_percentages %>%
   group_by(Cluster) %>%
@@ -1404,7 +1378,7 @@ cluster_regression_results <- cluster_regression_results %>%
 print(cluster_regression_results)
 
 # # # Write the results to a CSV file
-write.csv(cluster_regression_results, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/250303_sac_rewards_byactivationpercent.csv", row.names = FALSE)
+write.csv(cluster_regression_results, file = "../results/IEGactivity_WTonly/250303_sac_rewards_byactivationpercent.csv", row.names = FALSE)
 ```
 
 ```{r scatters sac rewards by pct activated}
@@ -1461,12 +1435,12 @@ clusters <- unique(cluster_regression_results$Cluster)
 clusters <- unique(cluster_regression_results$Cluster)
 
 # Create a directory to save the PDFs if it doesn't exist
-dir.create("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/SacRewardsbyActivatedPercentage_250303", showWarnings = FALSE)
+dir.create("../results/IEGactivity_WTonly/SacRewardsbyActivatedPercentage_250303", showWarnings = FALSE)
 
 # Iterate through clusters
 for (cluster in clusters) {
   # Open a PDF device
-  pdf(file = paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/SacRewardsbyActivatedPercentage_250303/cluster_", cluster, "_plot.pdf"), width = 6, height = 8)
+  pdf(file = paste0("../results/IEGactivity_WTonly/SacRewardsbyActivatedPercentage_250303/cluster_", cluster, "_plot.pdf"), width = 6, height = 8)
   
   # Create the plot
   plot_cluster(cluster, cluster_regression_results, cluster_ieg_sample_percentages)
@@ -1485,10 +1459,10 @@ cat("All plots have been saved in the 'SacRewardsbyActivatedPercentage' director
 ```{r regression sac rewards by pct activated and sex }
 # Create a data frame with cluster assignments, Sex, sample, and IEG expression
 cluster_ieg_Sex_sample_df <- data.frame(
-  Cluster = Idents(WT.only),
-  Sex = WT.only$sex,
-  Sample = WT.only$sample,
-  SacRewards = WT.only$Sac_Total_Rewards, 
+  Cluster = Idents(wt_only),
+  Sex = wt_only$sex,
+  Sample = wt_only$sample,
+  SacRewards = wt_only$Sac_Total_Rewards, 
   ieg_expression
 )
 # Calculate the percentage of cells expressing 2 or more IEGs within each cluster, Sex, and sample
@@ -1504,6 +1478,13 @@ cluster_ieg_Sex_sample_percentages <- cluster_ieg_Sex_sample_df %>%
 
 # Perform linear regression for each cluster
 regression_results <- cluster_ieg_Sex_sample_percentages %>%
+  # First identify clusters with only one Sex level
+  group_by(Cluster) %>%
+  mutate(sex_levels_count = n_distinct(Sex)) %>%
+  ungroup() %>%
+  # Filter to keep only clusters with at least 2 Sex levels
+  filter(sex_levels_count >= 2) %>%
+  # Now proceed with your analysis on the filtered data
   group_by(Cluster) %>%
   nest() %>%
   dplyr::mutate(
@@ -1547,7 +1528,7 @@ regression_results <- regression_results %>%
 print(regression_results)
 
 # # Write the results to a CSV file
-write.csv(regression_results, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/250303_sacrewards_byactivationpercent_bysex.csv", row.names = FALSE)
+write.csv(regression_results, file = "../results/IEGactivity_WTonly/250303_sacrewards_byactivationpercent_bysex.csv", row.names = FALSE)
 ```
 
 ```{r scatters sac rewards by pct activated with sex}
@@ -1615,7 +1596,7 @@ clusters <- unique(regression_results$Cluster)
 # Iterate through clusters
 for (cluster in clusters) {
   # Open a PDF device
-  pdf(file = paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/SacRewardsbyActivatedPercentage_250303/cluster_", cluster, "_plot_bySex.pdf"), width = 6, height = 8)
+  pdf(file = paste0("../results/IEGactivity_WTonly/SacRewardsbyActivatedPercentage_250303/cluster_", cluster, "_plot_bySex.pdf"), width = 6, height = 8)
   
   # Create the plot
   plot_cluster_withsex(cluster, regression_results, cluster_ieg_Sex_sample_percentages)
@@ -1680,7 +1661,7 @@ plot_control <- function(sample_data) {
 }
 
 # Save the  plot
-pdf(file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/SacRewardsbyActivatedPercentage_250303/control_all_neurons_plot.pdf", 
+pdf(file = "../results/IEGactivity_WTonly/SacRewardsbyActivatedPercentage_250303/control_all_neurons_plot.pdf", 
     width = 6, height = 8)
 plot_control(overall_sample_percentages)
 dev.off()
@@ -1703,7 +1684,7 @@ overall_stats <- overall_sample_percentages %>%
 
 # Write results to CSV
 write.csv(overall_stats,
-          file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/250303_sacrewards_byactivationpercent_allneurons.csv",
+          file = "../results/IEGactivity_WTonly/250303_sacrewards_byactivationpercent_allneurons.csv",
           row.names = FALSE)
 ```
 
@@ -1769,13 +1750,13 @@ plot_control_withsex <- function(sample_data) {
 }
 
 # Save the control plot with sex
-pdf(file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/SacRewardsbyActivatedPercentage_250303/control_all_neurons_plot_bySex.pdf",
+pdf(file = "../results/IEGactivity_WTonly/SacRewardsbyActivatedPercentage_250303/control_all_neurons_plot_bySex.pdf",
     width = 6, height = 8)
 plot_control_withsex(overall_sample_sex_percentages)
 dev.off()
 ```
 
-```{r}
+```{r get overall sex stats}
 overall_sex_stats <- overall_sample_sex_percentages %>%
   {
     # Full model with sex
@@ -1801,21 +1782,21 @@ overall_sex_stats <- overall_sample_sex_percentages %>%
 
 # Write results to CSV
 write.csv(overall_sex_stats, 
-          file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/250303_sacrewards_byactivationpercent_allneurons_bysex.csv", 
+          file = "../results/IEGactivity_WTonly/250303_sacrewards_byactivationpercent_allneurons_bysex.csv", 
           row.names = FALSE)
 ```
 
 ## Distance
 ```{r regressions distance by pct activated}
 # Fetch expression data for all IEGs
-#ieg_expression <- FetchData(WT.only, vars = filtered_iegs)
+#ieg_expression <- FetchData(wt_only, vars = filtered_iegs)
 
 # Create a data frame with cluster assignments, Sex, sample, and IEG expression
 cluster_ieg_sample_df <- data.frame(
-  Cluster = Idents(WT.only),
-  Sex = WT.only$sex,
-  Sample = WT.only$sample,
-  Distance = WT.only$Avg_Test_Distance,  
+  Cluster = Idents(wt_only),
+  Sex = wt_only$sex,
+  Sample = wt_only$sample,
+  Distance = wt_only$Avg_Test_Distance,  
   ieg_expression
 )
 
@@ -1862,9 +1843,8 @@ cluster_regression_results <- cluster_regression_results %>%
 # Print the updated results
 print(cluster_regression_results)
 
-
 # # Write the results to a CSV file
-write.csv(cluster_regression_results, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/250303_Distance_byactivationpercent.csv", row.names = FALSE)
+write.csv(cluster_regression_results, file = "../results/IEGactivity_WTonly/250303_Distance_byactivationpercent.csv", row.names = FALSE)
 ```
 
 ```{r scatters distance by pct activated}
@@ -1918,12 +1898,12 @@ plot_cluster <- function(cluster, cluster_regression_results, cluster_ieg_sample
 clusters <- unique(cluster_regression_results$Cluster)
 
 # Create a directory to save the PDFs if it doesn't exist
-dir.create("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/DistancebyActivatedPercentage_250303", showWarnings = FALSE)
+dir.create("../results/IEGactivity_WTonly/DistancebyActivatedPercentage_250303", showWarnings = FALSE)
 
 # Iterate through clusters
 for (cluster in clusters) {
   # Open a PDF device
-  pdf(file = paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/DistancebyActivatedPercentage_250303/cluster_", cluster, "_plot.pdf"), width = 6, height = 8)
+  pdf(file = paste0("../results/IEGactivity_WTonly/DistancebyActivatedPercentage_250303/cluster_", cluster, "_plot.pdf"), width = 6, height = 8)
   
   # Create the plot
   plot_cluster(cluster, cluster_regression_results, cluster_ieg_sample_percentages)
@@ -1939,13 +1919,13 @@ cat("All plots have been saved in the 'DistancebyActivatedPercentage' directory.
 ```
 
 ### with Sex
-```{r regressions distance by pct activated and sex }
+```{r regressions distance by pct activated and sex}
 # Create a data frame with cluster assignments, Sex, sample, and IEG expression
 cluster_ieg_Sex_sample_df <- data.frame(
-  Cluster = Idents(WT.only),
-  Sex = WT.only$sex,
-  Sample = WT.only$sample,
-  Distance = WT.only$Avg_Test_Distance, 
+  Cluster = Idents(wt_only),
+  Sex = wt_only$sex,
+  Sample = wt_only$sample,
+  Distance = wt_only$Avg_Test_Distance, 
   ieg_expression
 )
 # Calculate the percentage of cells expressing 2 or more IEGs within each cluster, Sex, and sample
@@ -2014,7 +1994,7 @@ regression_results <- regression_results %>%
 print(regression_results)
 
 # Write the results to a CSV file
-write.csv(regression_results, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/250303_distance_byactivationpercent_bysex.csv", row.names = FALSE)
+write.csv(regression_results, file = "../results/IEGactivity_WTonly/250303_distance_byactivationpercent_bysex.csv", row.names = FALSE)
 ```
 
 ```{r scatters distance by pct activated with sex}
@@ -2082,7 +2062,7 @@ clusters <- unique(regression_results$Cluster)
 # Iterate through clusters
 for (cluster in clusters) {
   # Open a PDF device
-  pdf(file = paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/DistancebyActivatedPercentage_250303/cluster_", cluster, "_plot_bySex.pdf"), width = 6, height = 8)
+  pdf(file = paste0("../results/IEGactivity_WTonly/DistancebyActivatedPercentage_250303/cluster_", cluster, "_plot_bySex.pdf"), width = 6, height = 8)
   
   # Create the plot
   plot_cluster_withsex(cluster, regression_results, cluster_ieg_Sex_sample_percentages)
@@ -2101,14 +2081,14 @@ cat("All plots have been saved in the 'DistancebyActivatedPercentage' directory.
 
 ```{r regressions sac distance by pct activated}
 # Fetch expression data for all IEGs
-#ieg_expression <- FetchData(WT.only, vars = filtered_iegs)
+#ieg_expression <- FetchData(wt_only, vars = filtered_iegs)
 
 # Create a data frame with cluster assignments, Sex, sample, and IEG expression
 cluster_ieg_sample_df <- data.frame(
-  Cluster = Idents(WT.only),
-  Sex = WT.only$sex,
-  Sample = WT.only$sample,
-  SacDistance = WT.only$Sac_Test_Distance,
+  Cluster = Idents(wt_only),
+  Sex = wt_only$sex,
+  Sample = wt_only$sample,
+  SacDistance = wt_only$Sac_Test_Distance,
   ieg_expression
 )
 
@@ -2126,7 +2106,6 @@ cluster_ieg_sample_percentages <- cluster_ieg_sample_df %>%
 # Removing outlier for distance
 cluster_ieg_sample_percentages <- cluster_ieg_sample_percentages %>%
   filter(Sample != "Het_F_6")
-
 
 cluster_regression_results <- cluster_ieg_sample_percentages %>%
   group_by(Cluster) %>%
@@ -2156,9 +2135,8 @@ cluster_regression_results <- cluster_regression_results %>%
 print(cluster_regression_results)
 
 # # # Write the results to a CSV file
-write.csv(cluster_regression_results, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/250303_sac_distance_byactivationpercent.csv", row.names = FALSE)
+write.csv(cluster_regression_results, file = "../results/IEGactivity_WTonly/250303_sac_distance_byactivationpercent.csv", row.names = FALSE)
 ```
-
 
 ```{r scatters sac distance by pct activated}
 # First, let's create a function for our plotting code
@@ -2211,12 +2189,12 @@ plot_cluster <- function(cluster, cluster_regression_results, cluster_ieg_sample
 clusters <- unique(cluster_regression_results$Cluster)
 
 # Create a directory to save the PDFs if it doesn't exist
-dir.create("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/Sac_DistancebyActivatedPercentage_250303", showWarnings = FALSE)
+dir.create("../results/IEGactivity_WTonly/Sac_DistancebyActivatedPercentage_250303", showWarnings = FALSE)
 
 # Iterate through clusters
 for (cluster in clusters) {
   # Open a PDF device
-  pdf(file = paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/Sac_DistancebyActivatedPercentage_250303/cluster_", cluster, "_plot.pdf"), width = 6, height = 8)
+  pdf(file = paste0("../results/IEGactivity_WTonly/Sac_DistancebyActivatedPercentage_250303/cluster_", cluster, "_plot.pdf"), width = 6, height = 8)
   
   # Create the plot
   plot_cluster(cluster, cluster_regression_results, cluster_ieg_sample_percentages)
@@ -2232,13 +2210,13 @@ cat("All plots have been saved in the 'Sac_DistancebyActivatedPercentage' direct
 ```
 
 ### with Sex
-```{r regression sac distance by pct activated and sex }
+```{r regression sac distance by pct activated and sex}
 # Create a data frame with cluster assignments, Sex, sample, and IEG expression
 cluster_ieg_Sex_sample_df <- data.frame(
-  Cluster = Idents(WT.only),
-  Sex = WT.only$sex,
-  Sample = WT.only$sample,
-  SacDistance = WT.only$Sac_Test_Distance, 
+  Cluster = Idents(wt_only),
+  Sex = wt_only$sex,
+  Sample = wt_only$sample,
+  SacDistance = wt_only$Sac_Test_Distance, 
   ieg_expression
 )
 # Calculate the percentage of cells expressing 2 or more IEGs within each cluster, Sex, and sample
@@ -2308,7 +2286,7 @@ regression_results <- regression_results %>%
 print(regression_results)
 
 # # Write the results to a CSV file
-write.csv(regression_results, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/250303_SacDistance_byactivationpercent_bysex.csv", row.names = FALSE)
+write.csv(regression_results, file = "../results/IEGactivity_WTonly/250303_SacDistance_byactivationpercent_bysex.csv", row.names = FALSE)
 ```
 
 ```{r scatters sac distance by pct activated with sex}
@@ -2378,7 +2356,7 @@ clusters <- unique(regression_results$Cluster)
 # Iterate through clusters
 for (cluster in clusters) {
   # Open a PDF device
-  pdf(file = paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/Sac_DistancebyActivatedPercentage_250303/cluster_", cluster, "_plot_bySex.pdf"), width = 6, height = 8)
+  pdf(file = paste0("../results/IEGactivity_WTonly/Sac_DistancebyActivatedPercentage_250303/cluster_", cluster, "_plot_bySex.pdf"), width = 6, height = 8)
   # Create the plot
   plot_cluster_withsex(cluster, regression_results, cluster_ieg_Sex_sample_percentages)
   
@@ -2397,8 +2375,8 @@ cat("All plots have been saved in the 'SacDistancebyActivatedPercentage' directo
 ```{r add module scores}
 ieg_lst <- list(ieg_62 = filtered_iegs)
 
-WT.only <- AddModuleScore(
-  object = WT.only,
+wt_only <- AddModuleScore(
+  object = wt_only,
   features = ieg_lst,
   pool = NULL,
   nbin = 24,
@@ -2412,7 +2390,7 @@ WT.only <- AddModuleScore(
 ```
 
 ```{r set up dataframe}
-sample_info = WT.only@meta.data %>% 
+sample_info = wt_only@meta.data %>% 
   dplyr::select(
   sample, 
   rewards = Avg_Total_Rewards, 
@@ -2469,19 +2447,19 @@ for (cluster in unique(sample_info$cell_type)) {
 model_summary_df$adj_p_value <- p.adjust(model_summary_df$p_value, method = 'BH')
 
 model_summary_df %>% 
-  write_csv('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/250303_genemodulescore_results_rewards.csv')
+  write_csv('../results/IEGactivity_WTonly/250303_genemodulescore_results_rewards.csv')
 ```
 
 ```{r plots for rewards}
 # filter only significant results
-sig_df = model_summary_df %>% filter(p_value < 0.05)
+sig_df <- model_summary_df %>% filter(p_value < 0.05)
 
-cts = sig_df$Cluster %>% unique()
+cts <- sig_df$Cluster %>% unique()
 
-dir.create("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/RewardsbyModuleScore_Figs", showWarnings = FALSE)
+dir.create("../results/IEGactivity_WTonly/RewardsbyModuleScore_Figs", showWarnings = FALSE)
 
 for (ct in cts){
-  plot_df = sample_info %>% 
+  plot_df <- sample_info %>% 
     filter(cell_type == ct)
   
     pp <- ggplot(plot_df, aes(score_ieg62, rewards)) +
@@ -2497,8 +2475,8 @@ for (ct in cts){
         axis.title = element_text(size = 14))
     
     print(pp)
-    ct_name = gsub('/', '-', ct)
-    ggsave(paste0('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/RewardsbyModuleScore_Figs/250303_linearplot_', ct_name, '_genemodulescore.pdf'), pp, width = 5, height = 3.5)
+    ct_name <- gsub('/', '-', ct)
+    ggsave(paste0('../results/IEGactivity_WTonly/RewardsbyModuleScore_Figs/250303_linearplot_', ct_name, '_genemodulescore.pdf'), pp, width = 5, height = 3.5)
   }
 ```
 
@@ -2546,19 +2524,19 @@ for (cluster in unique(sample_info$cell_type)) {
 model_summary_df$adj_p_value <- p.adjust(model_summary_df$p_value, method = 'BH')
 
 model_summary_df %>% 
-  write_csv('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/250303_genemodulescore_results_sac_rewards.csv')
+  write_csv('../results/IEGactivity_WTonly/250303_genemodulescore_results_sac_rewards.csv')
 ```
 
 ```{r plots for sac_rewards}
 # filter only significant results
-sig_df = model_summary_df %>% filter(p_value < 0.05)
+sig_df <- model_summary_df %>% filter(p_value < 0.05)
 
-cts = sig_df$Cluster %>% unique()
+cts <- sig_df$Cluster %>% unique()
 
-dir.create("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/sac_rewardsbyModuleScore_Figs", showWarnings = FALSE)
+dir.create("../results/IEGactivity_WTonly/sac_rewardsbyModuleScore_Figs", showWarnings = FALSE)
 
 for (ct in cts){
-  plot_df = sample_info %>% 
+  plot_df <- sample_info %>% 
     filter(cell_type == ct)
   
     pp <- ggplot(plot_df, aes(score_ieg62, sac_rewards)) +
@@ -2574,10 +2552,11 @@ for (ct in cts){
         axis.title = element_text(size = 14))
     
     print(pp)
-    ct_name = gsub('/', '-', ct)
-    ggsave(paste0('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/sac_rewardsbyModuleScore_Figs/250303_linearplot_', ct_name, '_genemodulescore.pdf'), pp, width = 5, height = 3.5)
+    ct_name <- gsub('/', '-', ct)
+    ggsave(paste0('../results/IEGactivity_WTonly/sac_rewardsbyModuleScore_Figs/250303_linearplot_', ct_name, '_genemodulescore.pdf'), pp, width = 5, height = 3.5)
   }
 ```
+
 ## Distance
 
 ```{r linear regression for IEG module distance}
@@ -2622,19 +2601,19 @@ for (cluster in unique(sample_info$cell_type)) {
 model_summary_df$adj_p_value <- p.adjust(model_summary_df$p_value, method = 'BH')
 
 model_summary_df %>% 
-  write_csv('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/250303_genemodulescore_results_distance.csv')
+  write_csv('../results/IEGactivity_WTonly/250303_genemodulescore_results_distance.csv')
 ```
 
 ```{r plots for distance}
 # filter only significant results
-sig_df = model_summary_df %>% filter(p_value < 0.05)
+sig_df <- model_summary_df %>% filter(p_value < 0.05)
 
-cts = sig_df$Cluster %>% unique()
+cts <- sig_df$Cluster %>% unique()
 
-dir.create("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/distancebyModuleScore_Figs", showWarnings = FALSE)
+dir.create("../results/IEGactivity_WTonly/distancebyModuleScore_Figs", showWarnings = FALSE)
 
 for (ct in cts){
-  plot_df = sample_info %>% 
+  plot_df <- sample_info %>% 
     filter(cell_type == ct)
   
     pp <- ggplot(plot_df, aes(score_ieg62, distance)) +
@@ -2650,8 +2629,8 @@ for (ct in cts){
         axis.title = element_text(size = 14))
     
     print(pp)
-    ct_name = gsub('/', '-', ct)
-    ggsave(paste0('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/distancebyModuleScore_Figs/250303_linearplot_', ct_name, '_genemodulescore.pdf'), pp, width = 5, height = 3.5)
+    ct_name <- gsub('/', '-', ct)
+    ggsave(paste0('../results/IEGactivity_WTonly/distancebyModuleScore_Figs/250303_linearplot_', ct_name, '_genemodulescore.pdf'), pp, width = 5, height = 3.5)
   }
 ```
 
@@ -2699,7 +2678,7 @@ for (cluster in unique(sample_info$cell_type)) {
 model_summary_df$adj_p_value <- p.adjust(model_summary_df$p_value, method = 'BH')
 
 model_summary_df %>% 
-  write_csv('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/250303_genemodulescore_results_sac_distance.csv')
+  write_csv('../results/IEGactivity_WTonly/250303_genemodulescore_results_sac_distance.csv')
 ```
 
 ```{r plots for sac_distance}
@@ -2708,7 +2687,7 @@ sig_df = model_summary_df %>% filter(p_value < 0.05)
 
 cts = sig_df$Cluster %>% unique()
 
-dir.create("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/sac_distancebyModuleScore_Figs", showWarnings = FALSE)
+dir.create("../results/IEGactivity_WTonly/sac_distancebyModuleScore_Figs", showWarnings = FALSE)
 
 for (ct in cts){
   plot_df = sample_info %>% 
@@ -2728,7 +2707,7 @@ for (ct in cts){
     
     print(pp)
     ct_name = gsub('/', '-', ct)
-    ggsave(paste0('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/IEGactivity_WTonly/sac_distancebyModuleScore_Figs/250303_linearplot_', ct_name, '_genemodulescore.pdf'), pp, width = 5, height = 3.5)
+    ggsave(paste0('../results/IEGactivity_WTonly/sac_distancebyModuleScore_Figs/250303_linearplot_', ct_name, '_genemodulescore.pdf'), pp, width = 5, height = 3.5)
   }
 ```
 
