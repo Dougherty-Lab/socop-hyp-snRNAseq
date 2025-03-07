@@ -46,10 +46,12 @@ source("color_utils.R")
 
 # Load in preprocessed data
 
+
 ```{r load rds}
 combined_neuronal <- readRDS("../data/250228_combined.neuronal_1-5_5pct.rds")
 combined_neuronal
 ```
+
 
 ```{r metadata formatting}
 # Saving scatterplots won't work if you have "/" in cluster name
@@ -246,6 +248,7 @@ sig_p1
 
 ```{r cell and gene numbers df}
 cluster.set <- rev(levels(combined_neuronal$cell_type))
+
 
 cells.per.cluster <- c(table(combined_neuronal$cell_type)[as.character(cluster.set)])
 counts <- GetAssayData(combined_neuronal, assay = "RNA", slot = "counts")
