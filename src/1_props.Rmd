@@ -5,8 +5,9 @@ date: "2025-02-18"
 ---
 
 # Set up environment
-```{r dependencies, warning=FALSE, message=FALSE}
-# Change this to your directory
+
+```{r dependencies, warning = FALSE, message = FALSE}
+# Change this to your package directory
 .libPaths('/ref/jdlab/software/r-envs/simona/r-packages/4.2/')
 
 # Load dependencies
@@ -40,26 +41,27 @@ library(lisi)
 
 set.seed(420)
 
-source("/scratch/jdlab/simona/color_utils.R")
+source("color_utils.R")
 ```
-
 
 # Load in preprocessed data
 
-```{r load in data}
-#combined.neuronal <- readRDS("/scratch/jdlab/simona/socop-hyp-snRNAseq/data/250228_combined.neuronal_1-5_5pct.rds")
-combined.neuronal
-```
-```{r metadata formatting}
-# Saving scatterplots won't work if you have "/" in cluster name
-combined.neuronal@meta.data$cell_type <- as.factor(gsub("/", "-", combined.neuronal@meta.data$cell_type))
+
+```{r load rds}
+combined_neuronal <- readRDS("../data/250228_combined.neuronal_1-5_5pct.rds")
+combined_neuronal
 ```
 
+
+```{r metadata formatting}
+# Saving scatterplots won't work if you have "/" in cluster name
+combined_neuronal@meta.data$cell_type <- as.factor(gsub("/", "-", combined_neuronal@meta.data$cell_type))
+```
 
 # Props by ...
 
 ```{r make proportions df}
-celldistribution <- data.frame(table(combined.neuronal@meta.data$cell_type, combined.neuronal@meta.data$sample))
+celldistribution <- data.frame(table(combined_neuronal@meta.data$cell_type, combined_neuronal@meta.data$sample))
 colnames(celldistribution) <- c('Cluster', 'Sample', 'Number')
 celldistribution$Sex <- gsub('.*_(\\w)_.*', '\\1', celldistribution$Sample)
 celldistribution$Genotype <- gsub('^(.*?)_.*$', '\\1', celldistribution$Sample)
@@ -78,7 +80,7 @@ celldistribution
 ## by genotype. 
 First let's look at a UMAP and PCA plot. 
 ```{r umap by sex}
-DimPlot_scCustom(combined.neuronal,
+DimPlot_scCustom(combined_neuronal,
                  colors_use = palette_geno,
                  group.by = 'genotype',
                  reduction = 'umap',
@@ -88,14 +90,14 @@ DimPlot_scCustom(combined.neuronal,
                  pt.size = 0.01) +
   theme(legend.position = 'right')
 
- ggsave(filename = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/250301_umap_1-5_5pct_res1.8_50dims_neuronal_bygeno.png",
+ ggsave(filename = "../results/proportions/250301_umap_1-5_5pct_res1.8_50dims_neuronal_bygeno.png",
         width = 12,
         height = 12,
         dpi = 300)
 ```
 
 ```{r pca by geno}
-DimPlot_scCustom(combined.neuronal,
+DimPlot_scCustom(combined_neuronal,
                  colors_use = palette_geno,
                  group.by = 'genotype',
                  reduction = 'pca',
@@ -105,7 +107,7 @@ DimPlot_scCustom(combined.neuronal,
                  pt.size = 0.01) +
   theme(legend.position = 'right')
 
- ggsave(filename = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/intermed-figs/250301_pca_1-5_5pct_res1.8_50dims_neuronal_bygeno.png",
+ ggsave(filename = "../results/proportions/intermed-figs/250301_pca_1-5_5pct_res1.8_50dims_neuronal_bygeno.png",
         width = 12,
         height = 12,
         dpi = 300)
@@ -148,7 +150,7 @@ calcnums <- calcnums %>%
 
 calcnums$Genotype <- factor(calcnums$Genotype, levels = c('Het', 'WT'))
 
-cluster_order <- rev(sort(levels(combined.neuronal)))
+cluster_order <- rev(sort(levels(combined_neuronal)))
 
 calcnums$Cluster <- factor(calcnums$Cluster, levels = cluster_order)
 celldistribution$Cluster <- factor(calcnums$Cluster, levels = cluster_order)
@@ -170,8 +172,6 @@ p1 <- ggplot(calcnums, aes(x = mean_norm_count, y = Cluster, fill = Genotype)) +
   theme(legend.position = "none", 
         axis.text.y = element_text(color = rep(c("#000000", "#555555"), 
                                              length.out = length(unique(calcnums$Cluster)))))
-
-
 
 p2 <- ggplot(calcnums, aes(x = mean_norm_count_normalizedtoWT, y = Cluster, fill = Genotype)) +
   geom_bar(stat = "identity", position = "dodge",
@@ -203,16 +203,16 @@ p4 <- ggplot(calcnums, aes(x = mean_normtoWT_pct, y = Cluster, fill = Genotype))
   scale_fill_manual(values = palette_geno)
 
 wrap_plots(p1, p2, p4)
-ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/intermed-figs/250301_proportionsbyGeno_1-5_5pct_res1.8_50dims_neuronal.png',
+ggsave('../results/proportions/intermed-figs/250301_proportionsbyGeno_1-5_5pct_res1.8_50dims_neuronal.png',
        device = png,
        width = 12,
        height = 8)
 ```
 
 ```{r propeller genotype}
-props.geno <- propeller(clusters = combined.neuronal@meta.data$cell_type, sample = combined.neuronal$sample, group = combined.neuronal$genotype, transform = "logit")
+props.geno <- propeller(clusters = combined_neuronal@meta.data$cell_type, sample = combined_neuronal$sample, group = combined_neuronal$genotype, transform = "logit")
 
-write.csv(props.geno, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/250301_props_Geno_1-5_5pct_res1.8_50dims_neuronal.csv", row.names = TRUE)
+write.csv(props.geno, file = "../results/proportions/250301_props_Geno_1-5_5pct_res1.8_50dims_neuronal.csv", row.names = TRUE)
 props.geno
 ```
 
@@ -247,11 +247,12 @@ sig_p1
 ```
 
 ```{r cell and gene numbers df}
-cluster.set <- rev(levels(combined.neuronal$cell_type))
+cluster.set <- rev(levels(combined_neuronal$cell_type))
 
-cells.per.cluster <- c(table(combined.neuronal$cell_type)[as.character(cluster.set)])
-counts <- GetAssayData(combined.neuronal, assay = "RNA", slot = "counts")
-cell_idents <- combined.neuronal$cell_type
+
+cells.per.cluster <- c(table(combined_neuronal$cell_type)[as.character(cluster.set)])
+counts <- GetAssayData(combined_neuronal, assay = "RNA", slot = "counts")
+cell_idents <- combined_neuronal$cell_type
 
 # Function to count unique genes for a set of cells
 count_unique_genes <- function(cell_indices) {
@@ -318,7 +319,7 @@ wrap_plots(cells,genes)
 ```{r save wrapped plots geno}
 wrap_plots(cells, genes, sig_p1, nrow = 1)
 
-ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/intermed-figs/250301_propsbyGeno_sigonly.pdf',
+ggsave('../results/proportions/intermed-figs/250301_propsbyGeno_sigonly.pdf',
        device = pdf,
        width = 20,
        height = 4)
@@ -420,18 +421,16 @@ ggplot(props.geno, aes(x = -log10(P.Value),
     legend.position = "right"
   )
 
- ggsave(filename = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/intermed-figs/250301_genodiff_pvalues_hypovother.pdf",
+ ggsave(filename = "../results/proportions/intermed-figs/250301_genodiff_pvalues_hypovother.pdf",
         width = 12,
         height = 12,
         dpi = 300)
 ```
 
-
-
 ## by sex. 
 First let's look at the UMAP and PCA:
 ```{r umap by sex}
-DimPlot_scCustom(combined.neuronal,
+DimPlot_scCustom(combined_neuronal,
                  colors_use = palette_sex,
                  group.by = 'sex',
                  reduction = 'umap',
@@ -441,14 +440,14 @@ DimPlot_scCustom(combined.neuronal,
                  pt.size = 0.01) +
   theme(legend.position = 'right')
 
- ggsave(filename = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/250301_umap_1-5_5pct_res1.8_50dims_neuronal_bysex.png",
+ ggsave(filename = "../results/proportions/250301_umap_1-5_5pct_res1.8_50dims_neuronal_bysex.png",
         width = 12,
         height = 12,
         dpi = 300)
 ```
 
 ```{r pca by sex}
-DimPlot_scCustom(combined.neuronal,
+DimPlot_scCustom(combined_neuronal,
                  colors_use = palette_sex,
                  group.by = 'sex',
                  reduction = 'pca',
@@ -458,19 +457,18 @@ DimPlot_scCustom(combined.neuronal,
                  pt.size = 0.01) +
   theme(legend.position = 'right')
 
- ggsave(filename = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/intermed-figs/250301_pca_1-5_5pct_res1.8_50dims_neuronal_bysex.png",
+ ggsave(filename = "../results/proportions/intermed-figs/250301_pca_1-5_5pct_res1.8_50dims_neuronal_bysex.png",
         width = 12,
         height = 12,
         dpi = 300)
 ```
-
 
 Next let's consider Moxd1, an marker for sex-dimorphic neurons in hypothalamus, BNST, and amygdala ().
 
 ### Moxd1
 
 ```{r moxd1 violin plot}
-VlnPlot(combined.neuronal,
+VlnPlot(combined_neuronal,
         group.by = "sex",
         features = "Moxd1",
         pt.size = 0.1,
@@ -480,16 +478,16 @@ VlnPlot(combined.neuronal,
 ```
 
 ```{r moxd1 violin in non-zero nucs}
-gene_expr <- GetAssayData(combined.neuronal, slot = "data")["Moxd1",]
+gene_expr <- GetAssayData(combined_neuronal, slot = "data")["Moxd1",]
 
 # Create a binary vector for expression
 binary_expr <- ifelse(gene_expr > 0, 1, 0)
 
 # Calculate percentage of expressing cells per group
-expr_freq <- tapply(binary_expr, combined.neuronal$sex, mean) * 100
+expr_freq <- tapply(binary_expr, combined_neuronal$sex, mean) * 100
 
 # Plot non-zero values only
-VlnPlot_scCustom(combined.neuronal[,gene_expr > 0],
+VlnPlot_scCustom(combined_neuronal[,gene_expr > 0],
                  group.by = "sex",
                  features = "Moxd1",
                  pt.size = 1) +
@@ -498,7 +496,7 @@ VlnPlot_scCustom(combined.neuronal[,gene_expr > 0],
                  "%, M=", round(expr_freq["M"], 1), "%"))
 
 
-ggsave(filename = '/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/250301_Moxd1GEX_bysex.pdf',
+ggsave(filename = '../results/proportions/250301_Moxd1GEX_bysex.pdf',
        device = pdf,
        width = 6,
        height = 8)
@@ -507,7 +505,7 @@ ggsave(filename = '/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/
 ```{r wilcoxon test Moxd1 GEX}
 test_data <- data.frame(
   Moxd1 = gene_expr,
-  sex = combined.neuronal$sex
+  sex = combined_neuronal$sex
 )
 
 # Perform Wilcoxon test on non-zero values
@@ -527,9 +525,9 @@ print(wilcox_test)
 logit <- function(p) log(p/(1-p))
 
 moxd1_data <- data.frame(
-  sample = combined.neuronal$sample,
-  sex = combined.neuronal$sex,
-  Moxd1 = GetAssayData(combined.neuronal, slot = "data")["Moxd1",]
+  sample = combined_neuronal$sample,
+  sex = combined_neuronal$sex,
+  Moxd1 = GetAssayData(combined_neuronal, slot = "data")["Moxd1",]
 )
 
 # First calculate proportions by sample
@@ -587,7 +585,7 @@ ggplot() +
   xlab("Sex")
 
 
-ggsave(filename = '/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/250301_Moxd1props_bysex.pdf',
+ggsave(filename = '../results/proportions/250301_Moxd1props_bysex.pdf',
        device = pdf,
        width = 6,
        height = 8)
@@ -630,7 +628,7 @@ calcnums <- calcnums %>%
   mutate(se_mean_normtoM_pct = se_mean_norm_count_normalizedtoM * 100) %>%
   drop_na()
 
-cluster_order <- rev(sort(levels(combined.neuronal)))
+cluster_order <- rev(sort(levels(combined_neuronal)))
 calcnums$Sex <- factor(calcnums$Sex, levels = c('M', 'F'))
 ```
 
@@ -677,19 +675,18 @@ p4 <- ggplot(calcnums, aes(x = mean_normtoM_pct, y = Cluster, fill = Sex)) +
 
 
 wrap_plots(p1, p2, p4)
-ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/intermed-figs/250301_proportionsbySex_1-5_5pct_res1.8_50dims_neuronal.png',
+ggsave('../results/proportions/intermed-figs/250301_proportionsbySex_1-5_5pct_res1.8_50dims_neuronal.png',
        device = png,
        width = 12,
        height = 8)
 ```
 
 ```{r propeller by sex}
-props.sex <- propeller(clusters = combined.neuronal@meta.data$cell_type, sample = combined.neuronal$sample, group = combined.neuronal$sex, transform = "logit")
+props.sex <- propeller(clusters = combined_neuronal@meta.data$cell_type, sample = combined_neuronal$sample, group = combined_neuronal$sex, transform = "logit")
 
-write.csv(props.sex, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/250301_props_Sex_1-5_5pct_res1.8_50dims_neuronal.csv", row.names = TRUE)
+write.csv(props.sex, file = "../results/proportions/250301_props_Sex_1-5_5pct_res1.8_50dims_neuronal.csv", row.names = TRUE)
 props.sex
 ```
-
 
 #### adding cells and genes to plot
 ```{r selecting sig clusters from props analysis}
@@ -777,7 +774,7 @@ sig_p1
 ```{r save wrapped plots sex}
 wrap_plots(cells, genes, sig_p1, nrow = 1)
 
-ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/intermed-figs/250301_propsandDEGsbySex_sigonly.pdf',
+ggsave('../results/proportions/intermed-figs/250301_propsandDEGsbySex_sigonly.pdf',
        device = pdf,
        width = 20,
        height = 4)
@@ -812,10 +809,10 @@ ggplot(props.sex, aes(x = -log10(P.Value),
     legend.position = "right"
   )
 
-# ggsave(filename = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/intermed-figs/250301_sexdiff_pvalues_hypovother.pdf",
- #       width = 12,
-  #      height = 12,
-   #     dpi = 300)
+ ggsave(filename = "../results/proportions/intermed-figs/250301_sexdiff_pvalues_hypovother.pdf",
+        width = 12,
+        height = 12,
+        dpi = 300)
 ```
 
 ```{r p-values by region plot sex top 10}
@@ -850,7 +847,7 @@ ggplot(filtered_props, aes(x = -log10(P.Value),
     )
   
 
- ggsave(filename = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/250301_sexdiff_pvalues_hypovother.pdf",
+ ggsave(filename = "../results/proportions/250301_sexdiff_pvalues_hypovother.pdf",
         width = 8,
         height = 12,
         dpi = 300)
@@ -884,7 +881,7 @@ print(percentages[,"TRUE"])
 Since two people were dissecting the brains, we want to compare to see if 
 proportions differ by dissector. 
 ```{r load in dissector data}
-dissector_data <- read.csv("/scratch/jdlab/simona/socop-hyp-snRNAseq/data/073123_Dissector_forR.csv", stringsAsFactors = FALSE)
+dissector_data <- read.csv("../doc/073123_Dissector_forR.csv", stringsAsFactors = FALSE)
 dissector_data <- dissector_data[,apply(dissector_data, 2, function(x) { sum(!is.na(x)) > 0 })]
 dissector_data <- subset(dissector_data, select = -c(Sac_Learner, Ever_Learner, Coded_ID))
 head(dissector_data)
@@ -892,23 +889,23 @@ head(dissector_data)
 
 ```{r add dissector to metadata}
 # Merge the metadata with behavior_data
-metadata <- merge(combined.neuronal@meta.data, dissector_data, by = "sample", all.x = TRUE, sort = FALSE)
+metadata <- merge(combined_neuronal@meta.data, dissector_data, by = "sample", all.x = TRUE, sort = FALSE)
 
 # Set the rownames of the merged metadata to the preserved rownames
-rownames(metadata) <- rownames(combined.neuronal@meta.data) 
+rownames(metadata) <- rownames(combined_neuronal@meta.data) 
 
 dim(metadata)
-dim(combined.neuronal@meta.data)
+dim(combined_neuronal@meta.data)
 
-combined.neuronal@meta.data <- metadata
+combined_neuronal@meta.data <- metadata
 
-combined.neuronal$Dissector <- factor(combined.neuronal$Dissector)
-levels(combined.neuronal$Dissector) <- c("Din", "Simona")
+combined_neuronal$Dissector <- factor(combined_neuronal$Dissector)
+levels(combined_neuronal$Dissector) <- c("Din", "Simona")
 ```
 
 First let's plot UMAPs and PCAs. 
 ```{r umap by dissector}
-DimPlot_scCustom(combined.neuronal,
+DimPlot_scCustom(combined_neuronal,
                  colors_use = palette_dissector,
                  group.by = "Dissector",
                  reduction = 'umap',
@@ -918,7 +915,7 @@ DimPlot_scCustom(combined.neuronal,
                  pt.size = 0.01) +
   theme(legend.position = 'right')
 
- ggsave(filename = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/250301_umap_neuronal_bydissector.png",
+ ggsave(filename = "../results/proportions/250301_umap_neuronal_bydissector.png",
         width = 12,
         height = 12,
         dpi = 300)
@@ -926,7 +923,7 @@ DimPlot_scCustom(combined.neuronal,
 ```
 
 ```{r pca by dissector}
-DimPlot_scCustom(combined.neuronal,
+DimPlot_scCustom(combined_neuronal,
                  colors_use = palette_dissector,
                  group.by = 'Dissector',
                  reduction = 'pca',
@@ -937,7 +934,7 @@ DimPlot_scCustom(combined.neuronal,
   theme(legend.position = 'right')
 
 
- ggsave(filename = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/intermed-figs/250301_pca_neuronal_bydissector.png",
+ ggsave(filename = "../results/proportions/intermed-figs/250301_pca_neuronal_bydissector.png",
         width = 12,
         height = 12,
         dpi = 300)
@@ -945,7 +942,7 @@ DimPlot_scCustom(combined.neuronal,
 
 
 ```{r proprotions df with dissector}
-celldistribution <- data.frame(table(combined.neuronal@meta.data$cell_type, combined.neuronal@meta.data$sample))
+celldistribution <- data.frame(table(combined_neuronal@meta.data$cell_type, combined_neuronal@meta.data$sample))
 colnames(celldistribution) <- c('Cluster', 'Sample', 'Number')
 celldistribution$Sex <- gsub('.*_(\\w)_.*', '\\1', celldistribution$Sample)
 celldistribution$Genotype <- gsub('^(.*?)_.*$', '\\1', celldistribution$Sample)
@@ -1035,7 +1032,6 @@ p2 <- ggplot(calcnums, aes(x = mean_norm_count_normalizedtoNL,
   theme(axis.text.y = element_blank(),
         legend.position = "none")
 
-
 p4 <- ggplot(calcnums, aes(x = mean_normtoNL_pct, 
                            y = factor(Cluster, levels = rev(cluster_order)), fill = Dissector)) +
   geom_bar(stat = "identity", position = "dodge",
@@ -1049,33 +1045,30 @@ p4 <- ggplot(calcnums, aes(x = mean_normtoNL_pct,
   theme(axis.text.y = element_blank(),
         legend.position = "right")
 
-
 wrap_plots(p1, p2, p4)
-ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/intermed-figs/250301_proportionsbyDissector_1-5_5pct_res1.8_50dims_neuronal.pdf',
+ggsave('../results/proportions/intermed-figs/250301_proportionsbyDissector_1-5_5pct_res1.8_50dims_neuronal.pdf',
        device = pdf,
        width = 12,
        height = 8)
 
 p1
-ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/250301_proportionsbyDissector_1-5_5pct_res1.8_50dims_neuronal_final.pdf',
+ggsave('../results/proportions/250301_proportionsbyDissector_1-5_5pct_res1.8_50dims_neuronal_final.pdf',
        device = pdf,
        width = 12,
        height = 8)
 ```
 
 ```{r propeller by dissector}
-props.dissector <- propeller(clusters = combined.neuronal@meta.data$cell_type, sample = combined.neuronal$sample, group = combined.neuronal$Dissector, transform = "logit")
+props.dissector <- propeller(clusters = combined_neuronal@meta.data$cell_type, sample = combined_neuronal$sample, group = combined_neuronal$Dissector, transform = "logit")
 
-write.csv(props.dissector, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/250301_props_Dissector_neuronal_1-5_5pct_50_1.8.csv", row.names = TRUE)
+write.csv(props.dissector, file = "../results/proportions/250301_props_Dissector_neuronal_1-5_5pct_50_1.8.csv", row.names = TRUE)
 props.dissector
 ```
 
-
-
 ## by learner
 First let's look at the UMAP and PCA:
-```{r umap by sex}
-DimPlot_scCustom(combined.neuronal,
+```{r umap by learner}
+DimPlot_scCustom(combined_neuronal,
                  colors_use = palette_learner,
                  group.by = 'Sac_Learner',
                  reduction = 'umap',
@@ -1085,14 +1078,14 @@ DimPlot_scCustom(combined.neuronal,
                  pt.size = 0.01) +
   theme(legend.position = 'right')
 
- ggsave(filename = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/250301_umap_1-5_5pct_res1.8_50dims_neuronal_bylearner.png",
+ ggsave(filename = "../results/proportions/250301_umap_1-5_5pct_res1.8_50dims_neuronal_bylearner.png",
         width = 12,
         height = 12,
         dpi = 300)
 ```
 
-```{r pca by sex}
-DimPlot_scCustom(combined.neuronal,
+```{r pca by learner}
+DimPlot_scCustom(combined_neuronal,
                  colors_use = palette_learner,
                  group.by = 'Sac_Learner',
                  reduction = 'pca',
@@ -1102,7 +1095,7 @@ DimPlot_scCustom(combined.neuronal,
                  pt.size = 0.01) +
   theme(legend.position = 'right')
 
- ggsave(filename = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/intermed-figs/250301_pca_1-5_5pct_res1.8_50dims_neuronal_bylearner.png",
+ ggsave(filename = "../results/proportions/intermed-figs/250301_pca_1-5_5pct_res1.8_50dims_neuronal_bylearner.png",
         width = 12,
         height = 12,
         dpi = 300)
@@ -1111,7 +1104,7 @@ DimPlot_scCustom(combined.neuronal,
 
 ```{r add learner info to df}
 # map Sample to Sac_Learner
-sample_to_learner <- combined.neuronal@meta.data %>%
+sample_to_learner <- combined_neuronal@meta.data %>%
   dplyr::select(Sample = sample, Sac_Learner) %>%
   distinct()
 
@@ -1209,16 +1202,16 @@ p4 <- ggplot(calcnums, aes(x = mean_normtoNL_pct, y = Cluster, fill = Sac_Learne
   scale_fill_manual(values = palette_learner)
 
 wrap_plots(p1, p2, p4)
-ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/intermed-figs/250301_proportionsbyLearner_1-5_5pct_res1.8_50dims_neuronal.png',
+ggsave('../results/proportions/intermed-figs/250301_proportionsbyLearner_1-5_5pct_res1.8_50dims_neuronal.png',
        device = png,
        width = 12,
        height = 8)
 ```
 
 ```{r propeller by learner}
-props.learner <- propeller(clusters = combined.neuronal@meta.data$cell_type, sample = combined.neuronal$sample, group = combined.neuronal$Sac_Learner, transform = "logit")
+props.learner <- propeller(clusters = combined_neuronal@meta.data$cell_type, sample = combined_neuronal$sample, group = combined_neuronal$Sac_Learner, transform = "logit")
 
-write.csv(props.learner, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/250301_props_Learner_1-5_5pct_res1.8_50dims_neuronal.csv", row.names = TRUE)
+write.csv(props.learner, file = "../results/proportions/250301_props_Learner_1-5_5pct_res1.8_50dims_neuronal.csv", row.names = TRUE)
 ```
 
 ### adding cells and genes to props plot
@@ -1282,7 +1275,6 @@ cells <- ggplot(sig_cellsgenes_df, aes(x = 1, y = Cluster, fill = CellsPerCluste
                                              length.out = 
                                                length(unique(calcnums$Cluster)))))
 
-
 genes <- ggplot(sig_cellsgenes_df, aes(x = 1, y = Cluster, fill = GenesPerCluster)) +
   geom_tile(color = "black", lwd = 0.1) +
   geom_text(aes(label = GenesPerCluster)) +
@@ -1303,7 +1295,7 @@ wrap_plots(cells,genes)
 
 ```{r save wrapped plot for learner}
 wrap_plots(cells, genes, sig_p1)
-ggsave("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/intermed-figs/250301_propsbyLearner_sigonly.pdf",
+ggsave("../results/proportions/intermed-figs/250301_propsbyLearner_sigonly.pdf",
        device = pdf,
        width = 12,
        height = 6)
@@ -1313,17 +1305,17 @@ ggsave("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/intermed-fi
 First, let's deconstrucut propeller, according to their vignette, and make sure 
 the results are the same as when running the function.
 ```{r propeller logit transform props}
-props <- getTransformedProps(clusters = combined.neuronal$cell_type, 
-                                  sample = combined.neuronal$sample, 
+props <- getTransformedProps(clusters = combined_neuronal$cell_type, 
+                                  sample = combined_neuronal$sample, 
                                   transform = "logit")
 ```
 
 ```{r propeller by learner step-by-step}
 # Extract var1 (Sac_Learner) from the metadata
-var1 <- combined.neuronal@meta.data$Sac_Learner
+var1 <- combined_neuronal@meta.data$Sac_Learner
 
 # Create a data frame with sample information
-sample_info <- data.frame(sample = combined.neuronal$sample, 
+sample_info <- data.frame(sample = combined_neuronal$sample, 
                           var1 = var1)
 
 # Order the sample information based on the order of samples in prop.logit
@@ -1368,14 +1360,13 @@ print(head(res.combined))
 The results above should correspond entirely with the results from calling the
 propeller funciton.
 
-
 ```{r props by learner and sex regression}
 # Extract Sac_Learner and Sex from the metadata
-Sac_Learner <- combined.neuronal@meta.data$Sac_Learner
-Sex <- as.factor(combined.neuronal@meta.data$sex)
+Sac_Learner <- combined_neuronal@meta.data$Sac_Learner
+Sex <- as.factor(combined_neuronal@meta.data$sex)
 
 # Create a data frame with sample information
-sample_info <- data.frame(sample = combined.neuronal$sample, 
+sample_info <- data.frame(sample = combined_neuronal$sample, 
                           Sac_Learner = Sac_Learner,
                           Sex = Sex)
 
@@ -1456,7 +1447,7 @@ head(res.combined)
 
 # Write to CSV
 write.csv(res.combined,
-          file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/250301_props_Learner_Sex_neuronal_1-5_5pct_50dims.csv",
+          file = "../results/proportions/250301_props_Learner_Sex_neuronal_1-5_5pct_50dims.csv",
           row.names = FALSE)
 ```
 
@@ -1490,7 +1481,7 @@ ggplot(props.learner, aes(x = -log10(FDR ),
     legend.position = "right"
   )
 
- ggsave(filename = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/intermed-figs/250301_learnerprops_pvalues_hypovother.pdf",
+ ggsave(filename = "../results/proportions/intermed-figs/250301_learnerprops_pvalues_hypovother.pdf",
         width = 12,
         height = 12,
         dpi = 300)
@@ -1531,7 +1522,7 @@ ggplot(filtered_props, aes(x = -log10(FDR),
     )
   
 
- ggsave(filename = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/intermed-figs/250301_learnerprops_pvalues_hypovother.pdf",
+ ggsave(filename = "../results/proportions/intermed-figs/250301_learnerprops_pvalues_hypovother.pdf",
         width = 6,
         height = 8,
         dpi = 300)
@@ -1564,10 +1555,10 @@ print(percentages[,"TRUE"])
 ## by geno and sex 
 ```{r propeller by geno and sex regression}
 # Extract Geno and Sex from the metadata
-Geno <- combined.neuronal@meta.data$genotype
-Sex <- as.factor(combined.neuronal@meta.data$sex)
+Geno <- combined_neuronal@meta.data$genotype
+Sex <- as.factor(combined_neuronal@meta.data$sex)
 # Create a data frame with sample information
-sample_info <- data.frame(sample = combined.neuronal$sample, 
+sample_info <- data.frame(sample = combined_neuronal$sample, 
                           Geno = Geno,
                           Sex = Sex)
 # Order the sample information based on the order of samples in prop.logit
@@ -1647,19 +1638,18 @@ res.combined$Direct_Ratio_Male_Female <- res.combined$PropMean_Male / res.combin
 # Check the result
 head(res.combined)
 
-# Write to CSV
+# Write to CSV - you may need to create a subdirectory
 write.csv(res.combined,
-          file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/250301_props_Geno_Sex_Interaction_neuronal.csv",
+          file = "../results/proportions/250301_props_Geno_Sex_Interaction_neuronal.csv",
           row.names = FALSE)
 ```
-
 
 # Rewards by props
 
 ```{r propeller logit transform props}
 # Extract the cell type proportions and transform them
-props <- getTransformedProps(cluster = combined.neuronal$cell_type, 
-                                  sample = combined.neuronal$sample, 
+props <- getTransformedProps(cluster = combined_neuronal$cell_type, 
+                                  sample = combined_neuronal$sample, 
                                   transform = "logit")
 
 head(props$TransformedProps)
@@ -1675,20 +1665,19 @@ str(props_df)
 
 ```{r merge with sample metadata}
 # Create a data frame with sample information
-sample_info <- data.frame(sample = combined.neuronal$sample, 
-                          distance = combined.neuronal$Avg_Test_Distance,
-                          rewards = combined.neuronal$Avg_Total_Rewards,
-                          time = combined.neuronal$Avg_Exp_Zone_Time,
-                          entries = combined.neuronal$Avg_Exp_Zone_Entries,
-                          clusters = combined.neuronal$cell_type,
-                          geno = combined.neuronal$genotype,
-                          sex = combined.neuronal$sex,
-                          learner = combined.neuronal$Sac_Learner)
+sample_info <- data.frame(sample = combined_neuronal$sample, 
+                          distance = combined_neuronal$Avg_Test_Distance,
+                          rewards = combined_neuronal$Avg_Total_Rewards,
+                          time = combined_neuronal$Avg_Exp_Zone_Time,
+                          entries = combined_neuronal$Avg_Exp_Zone_Entries,
+                          clusters = combined_neuronal$cell_type,
+                          geno = combined_neuronal$genotype,
+                          sex = combined_neuronal$sex,
+                          learner = combined_neuronal$Sac_Learner)
 
 head(sample_info)
 str(sample_info)
 ```
-
 
 ```{r make a merged df for analysis}
 merged_df <- merge(props_df, sample_info, by = c("sample", "clusters"))
@@ -1756,7 +1745,7 @@ model_summary_df %>%
 # Print the resulting data frame
 model_summary_df
 
-write.csv(model_summary_df, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/250301_rewardsbyprops.csv")
+write.csv(model_summary_df, file = "../results/proportions/250301_rewardsbyprops.csv")
 ```
 
 ## . with Sex
@@ -1825,7 +1814,7 @@ model_summary_sex_df %>%
 model_summary_sex_df
 
 # Write the data frame to a CSV file
-write.csv(model_summary_sex_df, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/250301_rewardsbyprops_sex.csv")
+write.csv(model_summary_sex_df, file = "../results/proportions/250301_rewardsbyprops_sex.csv")
 ```
 
 ## . with Learner
@@ -1894,10 +1883,8 @@ model_summary_learner_df %>%
 model_summary_learner_df
 
 # Write the data frame to a CSV file
-write.csv(model_summary_learner_df, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions//intermed-tables/250301_rewardsbyprops_learner.csv")
+write.csv(model_summary_learner_df, file = "../results/proportions//intermed-tables/250301_rewardsbyprops_learner.csv")
 ```
-
-
 
 ## Untransformed props
 Checking to see that transforming the proportions (per propeller) isn't changing 
@@ -1973,7 +1960,7 @@ arrange(new_model_summary_df, new_model_summary_df$bh_adjusted_pvalues)
 # Print the resulting data frame
 new_model_summary_df
 
-write.csv(new_model_summary_df, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/intermed-tables/250301_rewardsbyprops_untransformed.csv")
+write.csv(new_model_summary_df, file = "../results/proportions/intermed-tables/250301_rewardsbyprops_untransformed.csv")
 ```
 
 ```{r linear regression rewards by untransformed props and sex}
@@ -2040,9 +2027,8 @@ arrange(new_model_summary_df_sex, new_model_summary_df_sex$bh_adjusted_pvalues_p
 new_model_summary_df_sex
 
 # Write the data frame to a CSV file
-write.csv(new_model_summary_df_sex, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/intermed-tables/250301_rewardsbypropsandsex_untransformed.csv")
+write.csv(new_model_summary_df_sex, file = "../results/proportions/intermed-tables/250301_rewardsbypropsandsex_untransformed.csv")
 ```
-
 
 ```{r linear regression rewards by untransformed props and learner}
 # Create an empty data frame to store the results
@@ -2108,9 +2094,8 @@ arrange(new_model_summary_df_learner, new_model_summary_df_learner$bh_adjusted_p
 new_model_summary_df_learner
 
 # Write the data frame to a CSV file
-write.csv(new_model_summary_df_learner, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/intermed-tables/250301_rewardsbypropsandlearner_untransformed.csv")
+write.csv(new_model_summary_df_learner, file = "../results/proportions/intermed-tables/250301_rewardsbypropsandlearner_untransformed.csv")
 ```
-
 
 ## Scatterplots 
 ```{r fxn for scatterplots rewards by untrans props}
@@ -2164,12 +2149,12 @@ plot_cluster <- function(i, model_summary_df, new_merged_df) {
 clusters <- unique(model_summary_sex_df$cluster)
 
 # Create a directory to save the PDFs if it doesn't exist
-dir.create("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/RewardsbyProp_Figs", showWarnings = FALSE)
+dir.create("../results/proportions/RewardsbyProp_Figs", showWarnings = FALSE)
 
 # Iterate through clusters
 for (cluster in clusters) {
   # Open a PDF device
-  pdf(file = paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/RewardsbyProp_Figs/cluster_", cluster, "_plot.pdf"), width = 6, height = 8)
+  pdf(file = paste0("../results/proportions/RewardsbyProp_Figs/cluster_", cluster, "_plot.pdf"), width = 6, height = 8)
   
   # Create the plot
   plot_cluster(cluster, model_summary_df, new_merged_df)
@@ -2195,7 +2180,6 @@ plot_cluster_bysex <- function(i, model_summary_sex_df, new_merged_df) {
   cluster_df <- new_merged_df %>% 
     filter(clusters == i) %>% 
     distinct()
-  
    
   # Create the plot with untransformed data
   plot(cluster_df$props_untrans, cluster_df$rewards, 
@@ -2247,12 +2231,12 @@ plot_cluster_bysex <- function(i, model_summary_sex_df, new_merged_df) {
 clusters <- unique(model_summary_sex_df$cluster)
 
 # Create a directory to save the PDFs if it doesn't exist
-dir.create("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/RewardsbyProp_Figs", showWarnings = FALSE)
+dir.create("../results/proportions/RewardsbyProp_Figs", showWarnings = FALSE)
 
 # Iterate through clusters
 for (cluster in clusters) {
   # Open a PDF device
-  pdf(file = paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/RewardsbyProp_Figs/cluster_", cluster, "_plotwithSex.pdf"), width = 6, height = 8)
+  pdf(file = paste0("../results/proportions/RewardsbyProp_Figs/cluster_", cluster, "_plotwithSex.pdf"), width = 6, height = 8)
   
   # Create the plot
   plot_cluster_bysex(cluster, model_summary_sex_df, new_merged_df)
@@ -2330,12 +2314,12 @@ plot_cluster_bylearner <- function(i, model_summary_learner_df, new_merged_df) {
 clusters <- unique(model_summary_learner_df$cluster)
 
 # Create a directory to save the PDFs if it doesn't exist
-dir.create("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/RewardsbyProp_Figs/p", showWarnings = FALSE)
+dir.create("../results/proportions/RewardsbyProp_Figs/p", showWarnings = FALSE)
 
 # Iterate through clusters
 for (cluster in clusters) {
   # Open a PDF device
-  pdf(file = paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/RewardsbyProp_Figs/cluster_", cluster, "_plotwithLearner.pdf"), width = 6, height = 8)
+  pdf(file = paste0("../results/proportions/RewardsbyProp_Figs/cluster_", cluster, "_plotwithLearner.pdf"), width = 6, height = 8)
   
   # Create the plot
   plot_cluster_bylearner(cluster, model_summary_learner_df, new_merged_df)
@@ -2371,7 +2355,7 @@ p_beta <- ggplot(model_summary_df,
                                  length.out = length(unique(model_summary_df$cluster)))))
 
 p_beta
-ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/intermed-figs/250301_rewardsbyprops_betacoeffs.pdf',
+ggsave('../results/proportions/intermed-figs/250301_rewardsbyprops_betacoeffs.pdf',
        device = pdf,
        width = 6,
        height = 8)
@@ -2487,7 +2471,7 @@ merged_sig_p1
 ```{r save plot with beta coeffs and props by learner}
 wrap_plots(cells, genes, merged_sig_p1, p_beta_sig, nrow = 1)
 
-ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/250301_propsbyLearnerandbetacoeffsforRewards_sigonly.pdf',
+ggsave('../results/proportions/250301_propsbyLearnerandbetacoeffsforRewards_sigonly.pdf',
        device = pdf,
        width = 20,
        height = 4)
@@ -2523,7 +2507,7 @@ ggplot(model_summary_df, aes(x = -log10(bh_adjusted_pvalues),
     legend.position = "right"
   )
 
- ggsave(filename = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/intermed-figs/250301_rewardsprops_pvalues_hypovother.pdf",
+ ggsave(filename = "../results/proportions/intermed-figs/250301_rewardsprops_pvalues_hypovother.pdf",
         width = 12,
         height = 12,
         dpi = 300)
@@ -2559,9 +2543,8 @@ ggplot(filtered_model_summary_df, aes(x = -log10(bh_adjusted_pvalues),
     axis.ticks.x = element_line(color = "black"),  
     axis.ticks.y = element_line(color = "black")
     )
-  
 
- ggsave(filename = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/250301_rewardsprops_pvalues_hypovother.pdf",
+ ggsave(filename = "../results/proportions/250301_rewardsprops_pvalues_hypovother.pdf",
         width = 6,
         height = 8,
         dpi = 300)
@@ -2651,7 +2634,7 @@ model_summary_df %>%
 # Print the resulting data frame
 model_summary_df
 
-write.csv(model_summary_df, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/250301_distancebyprops.csv")
+write.csv(model_summary_df, file = "../results/proportions/250301_distancebyprops.csv")
 ```
 
 ## . with Sex
@@ -2720,7 +2703,7 @@ model_summary_sex_df %>%
 model_summary_sex_df
 
 # Write the data frame to a CSV file
-write.csv(model_summary_sex_df, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/250301_distancebyprops_sex.csv")
+write.csv(model_summary_sex_df, file = "../results/proportions/250301_distancebyprops_sex.csv")
 
 ```
 
@@ -2783,7 +2766,7 @@ arrange(new_model_summary_df, new_model_summary_df$bh_adjusted_pvalues)
 # Print the resulting data frame
 new_model_summary_df
 
-write.csv(new_model_summary_df, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/intermed-tables/250301_distancebyprops_untransformed.csv")
+write.csv(new_model_summary_df, file = "../results/proportions/intermed-tables/250301_distancebyprops_untransformed.csv")
 ```
 
 ```{r linear regression distance by untransformed props and sex}
@@ -2850,7 +2833,7 @@ arrange(new_model_summary_df_sex, new_model_summary_df_sex$bh_adjusted_pvalues_p
 new_model_summary_df_sex
 
 # Write the data frame to a CSV file
-write.csv(new_model_summary_df_sex, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/intermed-tables/250301_distancebypropsandsex_untransformed.csv")
+write.csv(new_model_summary_df_sex, file = "../results/proportions/intermed-tables/250301_distancebypropsandsex_untransformed.csv")
 ```
 
 ## Scatterplots 
@@ -2905,12 +2888,12 @@ plot_cluster <- function(i, model_summary_df, new_merged_df) {
 clusters <- unique(model_summary_sex_df$cluster)
 
 # Create a directory to save the PDFs if it doesn't exist
-dir.create("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/DistancebyProp_Figs", showWarnings = FALSE)
+dir.create("../results/proportions/DistancebyProp_Figs", showWarnings = FALSE)
 
 # Iterate through clusters
 for (cluster in clusters) {
   # Open a PDF device
-  pdf(file = paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/DistancebyProp_Figs/cluster_", cluster, "_plot.pdf"), width = 6, height = 8)
+  pdf(file = paste0("../results/proportions/DistancebyProp_Figs/cluster_", cluster, "_plot.pdf"), width = 6, height = 8)
   
   # Create the plot
   plot_cluster(cluster, model_summary_df, new_merged_df)
@@ -2924,7 +2907,6 @@ for (cluster in clusters) {
 
 cat("All plots have been saved in the 'DistancebyProp_Figs' directory.\n")
 ```
-
 
 ### by Sex
 
@@ -2988,12 +2970,12 @@ plot_cluster_bysex <- function(i, model_summary_sex_df, new_merged_df) {
 clusters <- unique(model_summary_sex_df$cluster)
 
 # Create a directory to save the PDFs if it doesn't exist
-dir.create("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/DistancebyProp_Figs", showWarnings = FALSE)
+dir.create("../results/proportions/DistancebyProp_Figs", showWarnings = FALSE)
 
 # Iterate through clusters
 for (cluster in clusters) {
   # Open a PDF device
-  pdf(file = paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/DistancebyProp_Figs/cluster_", cluster, "_plotwithSex.pdf"), width = 6, height = 8)
+  pdf(file = paste0("../results/proportions/DistancebyProp_Figs/cluster_", cluster, "_plotwithSex.pdf"), width = 6, height = 8)
   
   # Create the plot
   plot_cluster_bysex(cluster, model_summary_sex_df, new_merged_df)
@@ -3007,7 +2989,6 @@ for (cluster in clusters) {
 
 cat("All plots have been saved in the 'DistancebyProp' directory.\n")
 ```
-
 
 ## Plotting B values
 ```{r plotting beta coefficients distance}
@@ -3034,7 +3015,7 @@ p_beta <- ggplot(model_summary_df,
                                  length.out = length(unique(model_summary_df$cluster)))))
 
 p_beta
-ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/250301_distancebyprops_betacoeffs.pdf',
+ggsave('../results/proportions/250301_distancebyprops_betacoeffs.pdf',
        device = pdf,
        width = 6,
        height = 8)
@@ -3044,10 +3025,10 @@ ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/250301_dist
 
 ```{r lisi score tables}
 md <- data.frame(
-  sample <- combined.neuronal$sample,
-  genotype <- combined.neuronal$genotype,
-  sex <- combined.neuronal$sex,
-  celltype <- combined.neuronal$cell_type
+  sample <- combined_neuronal$sample,
+  genotype <- combined_neuronal$genotype,
+  sex <- combined_neuronal$sex,
+  celltype <- combined_neuronal$cell_type
 )
 colnames(md) <- c("sample", "genotype", "sex", "celltype")
 
@@ -3057,9 +3038,9 @@ table(md$sex)
 
 table(md$sample)
 ```
-
+Note: lisi score may take a few minutes to complete
 ```{r compute lisi scores}
-res <- compute_lisi(Embeddings(combined.neuronal, reduction = "umap"), md,
+res <- compute_lisi(Embeddings(combined_neuronal, reduction = "umap"), md,
                     perplexity = 200,
                     c('sample', 'genotype', 'sex'))
 ```
@@ -3081,12 +3062,11 @@ ggplot(res, aes(x = genotype)) +
   xlim(1, 2) +
   theme_classic()
 
-ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/250301_lisi_genotype.png',
+ggsave('../results/proportions/250301_lisi_genotype.png',
        device = png,
        width = 5,
        height = 3)
 ```
-
 
 ```{r lisi figure sex, fig.height = 2}
 ggplot(res, aes(x = sex)) +
@@ -3097,7 +3077,7 @@ ggplot(res, aes(x = sex)) +
   xlim(1, 2) +
   theme_classic()
 
-ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/proportions/250301_lisi_sex.png',
+ggsave('../results/proportions/250301_lisi_sex.png',
        device = png,
        width = 5,
        height = 3)
@@ -3259,7 +3239,4 @@ loaded via a namespace (and not attached):
 [193] ggprism_1.0.4          rstatix_0.7.2         
 [195] knitr_1.42 
 
-
 # End
-
-

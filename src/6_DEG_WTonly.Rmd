@@ -35,56 +35,52 @@ library(data.table)
 library(viridis)
 library(ggrepel)
 
-source("/scratch/jdlab/simona/color_utils.R")
+source("color_utils.R")
 ```
 
 # Load in pre-processed data
 
 ```{r load rds}
-df <-  readRDS("/scratch/jdlab/simona/socop-hyp-snRNAseq/data/250228_combined.neuronal_1-5_5pct.rds")
+df <-  readRDS("../data/250228_combined.neuronal_1-5_5pct.rds")
 ```
-
 
 ```{r subset for wt only}
 # Subset the Seurat object to keep only WT cells
-WT.only <- subset(df, subset = genotype == "WT")
+wt_only <- subset(df, subset = genotype == "WT")
 
 # Verify the subsetting worked correctly
-table(WT.only$genotype)
+table(wt_only$genotype)
 ```
 
 ```{r drop unused sample levels}
 # Drop unused factor levels from the sample column
-WT.only$sample <- droplevels(WT.only$sample)
+wt_only$sample <- droplevels(wt_only$sample)
 
 # Verify that only WT samples remain
-levels(WT.only$sample)
+levels(wt_only$sample)
 ```
-
-
 
 ```{r name_cleaning}
-WT.only@meta.data$sample <- as.factor(gsub("_", "-", WT.only@meta.data$sample))
-WT.only@meta.data$cell_type <- Idents(WT.only)
-WT.only@meta.data$cell_type <- as.factor(gsub("/", "-", WT.only@meta.data$cell_type))
-WT.only@meta.data$cell_type <- as.factor(gsub(" ", "-", WT.only@meta.data$cell_type))
-WT.only@meta.data$cell_type <- as.factor(gsub("_", "-", WT.only@meta.data$cell_type))
+wt_only@meta.data$sample <- as.factor(gsub("_", "-", wt_only@meta.data$sample))
+wt_only@meta.data$cell_type <- Idents(wt_only)
+wt_only@meta.data$cell_type <- as.factor(gsub("/", "-", wt_only@meta.data$cell_type))
+wt_only@meta.data$cell_type <- as.factor(gsub(" ", "-", wt_only@meta.data$cell_type))
+wt_only@meta.data$cell_type <- as.factor(gsub("_", "-", wt_only@meta.data$cell_type))
 ```
 
-
 ```{r geno table}
-genotypesTable <- table(WT.only@meta.data$genotype)
+genotypesTable <- table(wt_only@meta.data$genotype)
 genotypesTable
 ```
 
 ```{r sex table}
-sexesTable <- table(WT.only@meta.data$sex)
+sexesTable <- table(wt_only@meta.data$sex)
 sexesTable
 ```
 
-```{r make sce WT.only}
-counts <- WT.only@assays$RNA@counts
-metadata <- WT.only@meta.data
+```{r make sce wt_only}
+counts <- wt_only@assays$RNA@counts
+metadata <- wt_only@meta.data
 sce <- SingleCellExperiment(assay = list(counts = counts),
                             colData = metadata)
 ```
@@ -102,7 +98,7 @@ sample_names <- levels(factor(colData(sce)$sample))
 sample_names
 ```
 
-```{r groups WT.only}
+```{r groups wt_only}
 groups <- colData(sce)[, c("cell_type", "sample")]
 head(groups)
 ```
@@ -127,7 +123,7 @@ for (i in 1:length(cluster_names)) {
 str(counts_ls)
 ```
 
-```{r metadata WT.only}
+```{r metadata wt_only}
 metadata <- colData(sce) %>%
   as.data.frame() %>%
   dplyr::select(genotype, sex, sample, Ever_Learner, Sac_Learner)
@@ -145,7 +141,7 @@ t[1:9, 1:6]
 ```
 
 ```{r save table cells per geno}
-write.csv(t, "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX_WTonly/250301_tableofcellspergenotype.csv",
+write.csv(t, "../results/GEX_WTonly/250301_tableofcellspergenotype.csv",
           quote = FALSE,
           row.names = TRUE)
 ```
@@ -237,7 +233,7 @@ for (name in cluster_names) {
     
     # Write results to file
     name.cleaned <- gsub('/', '_', name)
-    write.csv(sig_res, paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX_WTonly/Sex/", name.cleaned, " signif genes.csv"),
+    write.csv(sig_res, paste0("../results/GEX_WTonly/Sex/", name.cleaned, " signif genes.csv"),
               quote = FALSE,
               row.names = TRUE)
     
@@ -285,7 +281,7 @@ for (name in cluster_names){
     
     # Write results to file
     name.cleaned <- gsub('/', '_', name)
-    write.csv(sig_res, paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX_WTonly/Learner/", name.cleaned, " signif genes.csv"),
+    write.csv(sig_res, paste0("../results/GEX_WTonly/Learner/", name.cleaned, " signif genes.csv"),
               quote = FALSE,
               row.names = TRUE)
     
@@ -301,41 +297,41 @@ for (name in cluster_names){
 ## By Sex
 
 ### Bar plot
-```{r DEG results WT.only for sex}
-file_list <- list.files("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX_WTonly/Sex/", pattern = "signif genes.csv", full.names = TRUE)
+```{r DEG results wt_only for sex}
+file_list <- list.files("../results/GEX_WTonly/Sex/", pattern = "signif genes.csv", full.names = TRUE)
 
-results_WT.only <- data.frame(file = character(), 
+results_wt_only <- data.frame(file = character(), 
                          F_enrich = integer(), 
                          M_enrich = integer(), 
                          stringsAsFactors = FALSE)
 
 for (file in file_list) {
-  file_WT.only <- read.csv(file)
-  F_enrich <- sum(file_WT.only$log2FoldChange < 0)
-  M_enrich <- sum(file_WT.only$log2FoldChange > 0)
+  file_wt_only <- read.csv(file)
+  F_enrich <- sum(file_wt_only$log2FoldChange < 0)
+  M_enrich <- sum(file_wt_only$log2FoldChange > 0)
   
-  results_WT.only <- rbind(results_WT.only, 
+  results_wt_only <- rbind(results_wt_only, 
                       data.frame(file = file, 
                                  F_enrich = F_enrich, 
                                  M_enrich = M_enrich, 
                                  stringsAsFactors = FALSE))
 }
 
-results_WT.only$file <- sub("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX_WTonly/Sex//", "", results_WT.only$file)
-results_WT.only$file <- sub(" signif genes.csv", "", results_WT.only$file)
+results_wt_only$file <- sub("../results/GEX_WTonly/Sex//", "", results_wt_only$file)
+results_wt_only$file <- sub(" signif genes.csv", "", results_wt_only$file)
 
-write.csv(results_WT.only, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX_WTonly/DEG table.csv", sep = ",")
+write.csv(results_wt_only, file = "../results/GEX_WTonly/DEG table.csv", sep = ",")
 ```
 
 ```{r plot DEG results sex}
-results_WT.only$cluster <- results_WT.only$file
-results_WT.only$cluster <- factor(results_WT.only$cluster, levels = rev(unique(results_WT.only$cluster)))
+results_wt_only$cluster <- results_wt_only$file
+results_wt_only$cluster <- factor(results_wt_only$cluster, levels = rev(unique(results_wt_only$cluster)))
 
 # First, make F_enrich negative to flip it to the left side
-results_WT.only$F_enrich_neg <- -results_WT.only$F_enrich
+results_wt_only$F_enrich_neg <- -results_wt_only$F_enrich
 
 # Create the combined plot
-comb.plot <- ggplot(results_WT.only) +
+comb.plot <- ggplot(results_wt_only) +
   # Male enrichment (right side)
   geom_bar(aes(x = M_enrich, y = cluster, fill = "M"),
            stat = "identity",
@@ -356,11 +352,11 @@ comb.plot <- ggplot(results_WT.only) +
        fill = "Sex") +  # Add title for the legend
   theme_classic() +
   theme(        axis.text.y = element_text(color = rep(c("#000000", "#555555"), 
-                                             length.out = length(unique(results_WT.only$cluster))))) +
+                                             length.out = length(unique(results_wt_only$cluster))))) +
   geom_vline(xintercept = 0, linewidth = 0.2)
 
 comb.plot
-ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX_WTonly/intermed-figs/250301_DEGsbySexall.png',
+ggsave('../results/GEX_WTonly/intermed-figs/250301_DEGsbySexall.png',
        device = png,
        width = 6,
        height = 6)
@@ -386,17 +382,17 @@ sig_cluster_names <- c(
   "VMH-Nr5a1-Glut-2"
 )
 
-sig_results_WT.only <- results_WT.only %>%
+sig_results_wt_only <- results_wt_only %>%
   dplyr::filter(cluster %in% sig_cluster_names) %>%
   arrange(match(cluster, sig_cluster_names))
 
 
-sig_results_WT.only$cluster <- factor(sig_results_WT.only$cluster, levels = rev(sig_cluster_names))
+sig_results_wt_only$cluster <- factor(sig_results_wt_only$cluster, levels = rev(sig_cluster_names))
 
 
 sig_plot <- 
 # Create the combined plot
-ggplot(sig_results_WT.only) +
+ggplot(sig_results_wt_only) +
   # Male enrichment (right side)
   geom_bar(aes(x = M_enrich, y = cluster, fill = "M"),
            stat = "identity",
@@ -421,7 +417,7 @@ ggplot(sig_results_WT.only) +
   
 sig_plot
 
- ggsave(filename = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX_WTonly/intermed-figs/250301_DEGsbysex_sig.png",
+ ggsave(filename = "../results/GEX_WTonly/intermed-figs/250301_DEGsbysex_sig.png",
         width = 8,
         height = 12,
         dpi = 300)
@@ -431,28 +427,28 @@ sig_plot
 ### Summary tables
 
 ```{r DEG table with all output sex}
-file_list <- list.files("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX_WTonly/Sex", pattern = "signif genes.csv", full.names = TRUE)
-file_list <- sub("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX_WTonly/Sex/", "", results_WT.only$file)
+file_list <- list.files("../results/GEX_WTonly/Sex", pattern = "signif genes.csv", full.names = TRUE)
+file_list <- sub("../results/GEX_WTonly/Sex/", "", results_wt_only$file)
 
 
 concatenated_data <- data.frame()
 
 for (file in file_list){
-  current_data <- read.csv(paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX_WTonly/Sex/", file, " signif genes.csv"), sep = ',', header = TRUE)
+  current_data <- read.csv(paste0("../results/GEX_WTonly/Sex/", file, " signif genes.csv"), sep = ',', header = TRUE)
   if(dim(current_data)[1] > 0) {
   current_data$cellType <- sub("signif genes.csv", "", file)
   concatenated_data <- rbind(concatenated_data, current_data)
   }
 }
 
-write.csv(concatenated_data, file = '/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX_WTonly/Sex/250301_DEGs_table.csv')
+write.csv(concatenated_data, file = '../results/GEX_WTonly/Sex/250301_DEGs_table.csv')
 ```
 
 ```{r unique DEGs list sex}
 uniqueDEGs <- as.data.frame(unique(concatenated_data$gene))
 print(uniqueDEGs, sep = ",")
 
-write_csv(uniqueDEGs, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX_WTonly/Sex/250301_uniqueDEGs.csv")
+write_csv(uniqueDEGs, file = "../results/GEX_WTonly/Sex/250301_uniqueDEGs.csv")
 ```
 
 ### Volcano plots
@@ -526,7 +522,7 @@ p <- ggplot(res_table, aes(x = avg_log2FC, y = -log10(p_val_adj))) +
 
 p
 
-ggsave(filename = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX_WTonly/250301_PO-MEA-BST-Mixed-Gaba_volcano.pdf", 
+ggsave(filename = "../results/GEX_WTonly/250301_PO-MEA-BST-Mixed-Gaba_volcano.pdf", 
        width = 6,
        height = 4,
        device = pdf)
@@ -598,53 +594,51 @@ p <- ggplot(res_table_filtered, aes(x = avg_log2FC, y = -log10(p_val_adj))) +
 
 p
 
-ggsave(filename = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX_WTonly/250301_PO-MEA-BST-Mixed-Gaba_volcano_noXYgenes.pdf", 
+ggsave(filename = "../results/GEX_WTonly/250301_PO-MEA-BST-Mixed-Gaba_volcano_noXYgenes.pdf", 
        width = 6,
        height = 4,
        device = pdf)
 ```
 
-
-
 ## By Learner
 
 ### Bar plot
-```{r DEG results WT.only for sac learner}
-file_list <- list.files("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX_WTonly/Learner", pattern = "signif genes.csv", full.names = TRUE)
+```{r DEG results wt_only for sac learner}
+file_list <- list.files("../results/GEX_WTonly/Learner", pattern = "signif genes.csv", full.names = TRUE)
 
-results_WT.only <- data.frame(file = character(), 
+results_wt_only <- data.frame(file = character(), 
                          L_enrich = integer(), 
                          NL_enrich = integer(), 
                          stringsAsFactors = FALSE)
 
 for (file in file_list) {
-  file_WT.only <- read.csv(file)
-  L_enrich <- sum(file_WT.only$log2FoldChange < 0)
-  NL_enrich <- sum(file_WT.only$log2FoldChange > 0)
+  file_wt_only <- read.csv(file)
+  L_enrich <- sum(file_wt_only$log2FoldChange < 0)
+  NL_enrich <- sum(file_wt_only$log2FoldChange > 0)
   
-  results_WT.only <- rbind(results_WT.only, 
+  results_wt_only <- rbind(results_wt_only, 
                       data.frame(file = file, 
                                  L_enrich = L_enrich, 
                                  NL_enrich = NL_enrich, 
                                  stringsAsFactors = FALSE))
 }
 
-results_WT.only$file <- sub("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX_WTonly/Learner/", "", results_WT.only$file)
-results_WT.only$file <- sub(" signif genes.csv", "", results_WT.only$file)
+results_wt_only$file <- sub("../results/GEX_WTonly/Learner/", "", results_wt_only$file)
+results_wt_only$file <- sub(" signif genes.csv", "", results_wt_only$file)
 
-write.csv(results_WT.only, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX_WTonly/Learner/DEG table.csv", sep = ",")
+write.csv(results_wt_only, file = "../results/GEX_WTonly/Learner/DEG table.csv", sep = ",")
 ```
 
 ```{r plot DEG results sac learner}
-rownames(results_WT.only) <- results_WT.only$file
-results_WT.only$cluster <- factor(results_WT.only$file)
-results_WT.only <- drop_na(results_WT.only)
+rownames(results_wt_only) <- results_wt_only$file
+results_wt_only$cluster <- factor(results_wt_only$file)
+results_wt_only <- drop_na(results_wt_only)
 
 # First, make NL_enrich negative to flip it to the left side
-results_WT.only$NL_enrich_neg <- -results_WT.only$NL_enrich
+results_wt_only$NL_enrich_neg <- -results_wt_only$NL_enrich
 
 # Create the combined plot
-comb.plot <- ggplot(results_WT.only) +
+comb.plot <- ggplot(results_wt_only) +
   # Male enrichment (right side)
   geom_bar(aes(x = L_enrich, y = cluster, fill = "Learner"),
            stat = "identity",
@@ -665,11 +659,11 @@ comb.plot <- ggplot(results_WT.only) +
        fill = "Sac_Learner") +  # Add title for the legend
   theme_classic() +
   theme(axis.text.y = element_text(color = rep(c("#000000", "#555555"), 
-                      length.out = length(unique(results_WT.only$cluster))))) +
+                      length.out = length(unique(results_wt_only$cluster))))) +
   geom_vline(xintercept = 0, linewidth = 0.2)
 
 comb.plot
-ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX_WTonly/intermed-figs/250301_DEGsbyLearnerall.png',
+ggsave('../results/GEX_WTonly/intermed-figs/250301_DEGsbyLearnerall.png',
        device = png,
        width = 6,
        height = 6)
@@ -678,22 +672,22 @@ ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX_WTonly/intermed-fig
 
 ```{r filter results for sig clusters}
 # Filter the data frame for P.Value < 0.051
-sig_results_WT.only <- results_WT.only[((results_WT.only$NL_enrich != 0) + (results_WT.only$L_enrich != 0)) >1, ]
+sig_results_wt_only <- results_wt_only[((results_wt_only$NL_enrich != 0) + (results_wt_only$L_enrich != 0)) >1, ]
 
 # Extract the BaselineProp.clusters for the significant results
-significant_cluster_names <-sort(rev(as.character(sig_results_WT.only$file)))
+significant_cluster_names <-sort(rev(as.character(sig_results_wt_only$file)))
 
 # Print the list of significant clusters
 print(significant_cluster_names)
 
 
-sig_results_WT.only$cluster <- factor(sig_results_WT.only$cluster, 
+sig_results_wt_only$cluster <- factor(sig_results_wt_only$cluster, 
                                 levels = rev(significant_cluster_names))
 ```
 
 ```{r plot sig DEG results for sac learner}
 # Create the combined plot
-sig.comb.plot <- ggplot(sig_results_WT.only) +
+sig.comb.plot <- ggplot(sig_results_wt_only) +
   # Male enrichment (right side)
   geom_bar(aes(x = L_enrich, y = cluster, fill = "Learner"),
            stat = "identity",
@@ -714,13 +708,13 @@ sig.comb.plot <- ggplot(sig_results_WT.only) +
        fill = "Sac_Learner") +  # Add title for the legend
   theme_classic() +
   theme(axis.text.y = element_text(color = rep(c("#000000", "#555555"), 
-                      length.out = length(unique(results_WT.only$cluster))))) +
+                      length.out = length(unique(results_wt_only$cluster))))) +
   geom_vline(xintercept = 0, linewidth = 0.2)
 
 sig.comb.plot
 
 
- ggsave(filename = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX_WTonly/250301_DEGsbylearner.png",
+ ggsave(filename = "../results/GEX_WTonly/250301_DEGsbylearner.png",
         width = 8,
         height = 12,
         dpi = 300)
@@ -728,26 +722,26 @@ sig.comb.plot
 
 ### Summary tables
 ```{r DEG table with all output sac learner}
-file_list <- sub("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX_WTonly/Learner/", "", results_WT.only$file)
+file_list <- sub("../results/GEX_WTonly/Learner/", "", results_wt_only$file)
 
 concatenated_data <- data.frame()
 
 for (file in file_list){
-  current_data <- read.csv(paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX_WTonly/Learner/", file, " signif genes.csv"), sep = ',', header = TRUE)
+  current_data <- read.csv(paste0("../results/GEX_WTonly/Learner/", file, " signif genes.csv"), sep = ',', header = TRUE)
   if(dim(current_data)[1] > 0) {
   current_data$cellType <- sub("signif genes.csv", "", file)
   concatenated_data <- rbind(concatenated_data, current_data)
   }
 }
 
-write.csv(concatenated_data, file = '/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX_WTonly/Learner/250301-DEGs_table.csv')
+write.csv(concatenated_data, file = '../results/GEX_WTonly/Learner/250301-DEGs_table.csv')
 ```
 
 ```{r unique DEGs list sac learner}
 uniqueDEGs <- as.data.frame(unique(concatenated_data$gene))
 print(uniqueDEGs, sep = ",")
 
-write_csv(uniqueDEGs, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX_WTonly/Learner/250301_uniqueDEGs.csv")
+write_csv(uniqueDEGs, file = "../results/GEX_WTonly/Learner/250301_uniqueDEGs.csv")
 ```
 
 ### Volcano plot
@@ -768,7 +762,6 @@ res_all <- concatenated_data %>%
   )
 ```
 
-
 ```{r filter res for cluster of interest geno}
 # Filter for specific cluster
 res_table = res_all %>% filter(cell_type == "PH-LHA-PVH-SO-PVa-Nxph4-Glut")
@@ -782,7 +775,6 @@ top_genes = res_table %>%
 x_range = max(abs(res_table$avg_log2FC), na.rm = T) * 1.05
 y_range = max(-log10(res_table$p_val_adj), na.rm = T) * 1.1
 ```
-
 
 ```{r volcano plot for cluster of interest geno}
 p <- ggplot(res_table, aes(x = avg_log2FC, y = -log10(p_val_adj))) +
@@ -822,7 +814,7 @@ p <- ggplot(res_table, aes(x = avg_log2FC, y = -log10(p_val_adj))) +
 
 p
 
-ggsave(filename = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX_WTonly/250301_PH-LHA-PVH-SO-PVa-Nxph4-Glut_learner_volcano.png",
+ggsave(filename = "../results/GEX_WTonly/250301_PH-LHA-PVH-SO-PVa-Nxph4-Glut_learner_volcano.png",
        width = 6,
        height = 4,
        device = png)
@@ -834,7 +826,7 @@ ggsave(filename = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX_WTonly/2
 name <- "PH-LHA-PVH-SO-PVa-Nxph4-Glut"
 
 # GO Analysis
-go_table <- read.csv(paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX_WTonly/Learner/", name, " signif genes.csv"), sep = ',',
+go_table <- read.csv(paste0("../results/GEX_WTonly/Learner/", name, " signif genes.csv"), sep = ',',
                      header = TRUE)
 
 # Separate genes by direction of change - explicitly get gene names as character vector
@@ -874,7 +866,7 @@ dotplot(compGO, showCategory = 10, title = 'GO Enrichment Analysis') +
   theme(text = element_text(size = 10),
         axis.text.y = element_text(size=10))
 
-ggsave(paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX_WTonly/Learner/", name, " GO enrichment dotplot.png"),
+ggsave(paste0("../results/GEX_WTonly/Learner/", name, " GO enrichment dotplot.png"),
        device = png,
        width = 5,
        height = 7)
@@ -883,7 +875,7 @@ ggsave(paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX_WTonly/Learn
 ```{r GO combined plot for all sig clusters}
 # GO Analysis - Combined plot
 # First get a background list of all genes
-all.genes <- as.character(rownames(WT.only@assays$RNA))
+all.genes <- as.character(rownames(wt_only@assays$RNA))
 geneid.ls <- AnnotationDbi::select(org.Mm.eg.db, 
                     keys = all.genes, 
                     columns=c("ENTREZID", "SYMBOL"), 
@@ -900,7 +892,7 @@ for (name in significant_cluster_names) {
   print(paste("Processing cluster:", name))
   
   # Read DEG results
-  go_table <- read.csv(paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX_WTonly/Learner/", name, " signif genes.csv"), sep = ',',
+  go_table <- read.csv(paste0("../results/GEX_WTonly/Learner/", name, " signif genes.csv"), sep = ',',
                        header = TRUE)
   
   # Get significant genes
@@ -939,7 +931,7 @@ p <- dotplot(compGO, showCategory = 10,
 
 p
 # Save plot
-ggsave("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX_WTonly/Learner/cluster_GO_enrichment_dotplot.png",
+ggsave("../results/GEX_WTonly/Learner/cluster_GO_enrichment_dotplot.png",
        plot = p,
        width = 12,
        height = 10)

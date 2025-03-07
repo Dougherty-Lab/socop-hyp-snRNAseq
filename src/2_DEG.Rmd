@@ -6,9 +6,8 @@ date: "2025-2-18"
 
 # Load dependencies
 
-```{r dependencies, warning=FALSE, message=FALSE}
-
-# Change this to your directory
+```{r dependencies, warning = FALSE, message = FALSE}
+# Change this to your package directory
 .libPaths('/ref/jdlab/software/r-envs/simona/r-packages/4.2/')
 
 library(Seurat)
@@ -35,14 +34,18 @@ library(data.table)
 library(viridis)
 library(ggrepel)
 
-source("/scratch/jdlab/simona/color_utils.R")
+set.seed(420)
+
+source("color_utils.R")
 ```
 
 # Load in pre-processed data
 
 ```{r load rds}
-df <-  readRDS("/scratch/jdlab/simona/socop-hyp-snRNAseq/data/250228_combined.neuronal_1-5_5pct.rds")
+df <- readRDS("../data/250228_combined.neuronal_1-5_5pct.rds")
 ```
+
+# Check data formats
 
 ```{r name_cleaning}
 df@meta.data$sample <- as.factor(gsub("_", "-", df@meta.data$sample))
@@ -52,16 +55,23 @@ df@meta.data$cell_type <- as.factor(gsub(" ", "-", df@meta.data$cell_type))
 df@meta.data$cell_type <- as.factor(gsub("_", "-", df@meta.data$cell_type))
 ```
 
-
 ```{r geno table}
 genotypesTable <- table(df@meta.data$genotype)
 genotypesTable
 ```
 
+Expected output:
+  WT   Het 
+64619 59982 
+
 ```{r sex table}
 sexesTable <- table(df@meta.data$sex)
 sexesTable
 ```
+
+Expected output:
+    F     M 
+55646 68955 
 
 ```{r make sce df}
 counts <- df@assays$RNA@counts
@@ -70,7 +80,7 @@ sce <- SingleCellExperiment(assay = list(counts = counts),
                             colData = metadata)
 ```
 
-# Preparing the dataset for pseudobulk analysis
+# Prepare the dataset for pseudobulk analysis
 
 Make sure ALL / and _ are replaced with - .
 ```{r confirm cluster names cleaned}
@@ -126,7 +136,7 @@ t[1:9, 1:6]
 ```
 
 ```{r save table cells per geno}
-write.csv(t, "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/250301_tableofcellspergenotype.csv",
+write.csv(t, "../results/GEX/250301_tableofcellspergenotype.csv",
           quote = FALSE,
           row.names = TRUE)
 ```
@@ -176,6 +186,10 @@ str(metadata_ls)
 
 # Analyze with DESeq2
 
+Now, we can analyze genotype by cell type with DESeq2.
+
+You may need to create results directories for this loop to work.
+
 ```{r check names}
 names(counts_ls)
 
@@ -197,14 +211,12 @@ for (name in cluster_names){
 dds <- DESeqDataSetFromMatrix(round(cluster_counts),
                             colData = cluster_metadata,
                            design = ~ genotype)
-
  
   dds <- DESeq(dds)
   
   res <- results(dds,
                name = 'genotype_Het_vs_WT',
               alpha = 0.05)
-
   
   res_tbl <- res %>%
     data.frame() %>%
@@ -220,18 +232,21 @@ dds <- DESeqDataSetFromMatrix(round(cluster_counts),
   sig_res
   
   name.cleaned <- gsub('/', '_', name)
-  write.csv(sig_res, paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/Geno/", name.cleaned, " signif genes.csv"),
+  write.csv(sig_res, paste0("../results/GEX/Geno/", name.cleaned, " signif genes.csv"),
             quote = FALSE,
             row.names = TRUE)
 }
 ```
+
+Now, do the same analysis, but including sex in the design.
+
+You may need to create results directories for this loop to work.
 
 ```{r loop thru DESeq2 for sex}
 for (name in cluster_names){
   idx <- which(names(counts_ls) == name)
   cluster_counts <- counts_ls[[idx]]
   cluster_metadata <- metadata_ls[[idx]]
-  
 
   all(colnames(cluster_counts) == rownames(cluster_metadata))
   
@@ -263,11 +278,15 @@ for (name in cluster_names){
   sig_res
   
   name.cleaned <- gsub('/', '_', name)
-  write.csv(sig_res, paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/Sex/", name.cleaned, " signif genes.csv"),
+  write.csv(sig_res, paste0("../results/GEX/Sex/", name.cleaned, " signif genes.csv"),
             quote = FALSE,
             row.names = TRUE)
 }
 ```
+
+Now, do the same analysis, but including learners vs non-learners in the design.
+
+You may need to create results directories for this loop to work.
 
 ```{r loop thru DESeq2 for learner}
 for (name in cluster_names){
@@ -305,985 +324,10 @@ for (name in cluster_names){
   sig_res
   
   name.cleaned <- gsub('/', '_', name)
-  write.csv(sig_res, paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/Learner/", name.cleaned, " signif genes.csv"),
+  write.csv(sig_res, paste0("../results/GEX/Learner/", name.cleaned, " signif genes.csv"),
             quote = FALSE,
             row.names = TRUE)
 }
-```
-
-# Summary tables and figures
-
-## By Geno
-
-### Bar plot
-```{r DEG results df for geno}
-file_list <- list.files("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/Geno", pattern = "signif genes.csv", full.names = TRUE)
-
-results_df <- data.frame(file = character(), 
-                         wt_enrich = integer(), 
-                         mut_enrich = integer(), 
-                         stringsAsFactors = FALSE)
-
-for (file in file_list) {
-  file_df <- read.csv(file)
-  wt_enrich <- sum(file_df$log2FoldChange < 0)
-  mut_enrich <- sum(file_df$log2FoldChange > 0)
-  
-  results_df <- rbind(results_df, 
-                      data.frame(file = file, 
-                                 wt_enrich = wt_enrich, 
-                                 mut_enrich = mut_enrich, 
-                                 stringsAsFactors = FALSE))
-}
-
-results_df$file <- sub("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/Geno/", "", results_df$file)
-results_df$file <- sub(" signif genes.csv", "", results_df$file)
-
-write.csv(results_df, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/Geno/DEG table.csv", sep = ",")
-```
-
-```{r plot DEG results geno}
-results_df$cluster <- results_df$file
-results_df$cluster <- factor(results_df$cluster, levels = rev(unique(results_df$cluster)))
-
-# First, make F_enrich negative to flip it to the left side
-results_df$wt_enrich_neg <- -results_df$wt_enrich
-
-# Create the combined plot
-comb.plot <- ggplot(results_df) +
-  # Male enrichment (right side)
-  geom_bar(aes(x = wt_enrich_neg, y = cluster, fill = "WT"),
-           stat = "identity",
-           linewidth = 0.2) +
-  # Female enrichment (left side)
-  geom_bar(aes(x = mut_enrich, y = cluster, fill = "Het"),
-           stat = "identity",
-           linewidth = 0.2) +
-  # Set the axis limits symmetrically
-  scale_x_continuous(
-    limits = c(-60, 30),
-    breaks = seq(-60, 30, 10),
-    labels = abs(seq(-60, 30, 10))  # Use absolute values for axis labels
-  ) +
-  scale_fill_manual(values = palette_geno) +
-  labs(x = "Number of DEGs", 
-       y = "Cluster",
-       fill = "Genotype") +  # Add title for the legend
-  theme_classic() +
-  theme(        axis.text.y = element_text(color = rep(c("#000000", "#555555"), 
-                                             length.out = length(unique(results_df$cluster))))) +
-  geom_vline(xintercept = 0, linewidth = 0.2)
-
-comb.plot
-ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/intermed-figs/250301_DEGsbyGenoall.pdf',
-       device = pdf,
-       width = 6,
-       height = 6)
-```
-
-```{r filter results for sig clusters}
-# Filter the data frame for P.Value < 0.051
-sig_results_df <- results_df[((results_df$wt_enrich != 0) + (results_df$mut_enrich != 0)) >1, ]
-
-# Extract the BaselineProp.clusters for the significant results
-significant_cluster_names <-sort( as.character(sig_results_df$file))
-
-# Print the list of significant clusters
-print(significant_cluster_names)
-```
-
-```{r plot sig DEG results for geno}
-# Create the combined plot
-sig.comb.plot <- ggplot(sig_results_df) +
-  # Male enrichment (right side)
-  geom_bar(aes(x = wt_enrich_neg, y = cluster, fill = "WT"),
-           stat = "identity",
-           linewidth = 0.2) +
-  # Female enrichment (left side)
-  geom_bar(aes(x = mut_enrich, y = cluster, fill = "Het"),
-           stat = "identity",
-           linewidth = 0.2) +
-  # Set the axis limits symmetrically
-  scale_x_continuous(
-    limits = c(-60, 30),
-    breaks = seq(-60, 30, 10),
-    labels = abs(seq(-60, 30, 10))  # Use absolute values for axis labels
-  ) +
-  scale_fill_manual(values = palette_geno) +
-  labs(x = "Number of DEGs", 
-       y = "",
-       fill = "Genotype") +  # Add title for the legend
-  theme_classic() +
-  theme(axis.text.y = element_blank(),
-        legend.position = "none") +
-  geom_vline(xintercept = 0, linewidth = 0.2)
-
-sig.comb.plot
-
- ggsave(filename = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/intermed-figs/250301_DEGsbygeno_sig.pdf",
-        width = 8,
-        height = 12,
-        dpi = 300)
-```
-
-### Summary tables
-
-```{r DEG table with all output geno}
-file_list <- list.files("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/Geno", pattern = "signif genes.csv", full.names = TRUE)
-file_list <- sub("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/Geno/", "", results_df$file)
-
-concatenated_data <- data.frame()
-
-for (file in file_list){
-  current_data <- read.csv(paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/Geno/", file, " signif genes.csv"), sep = ',', header = TRUE)
-  if(dim(current_data)[1] > 0) {
-  current_data$cellType <- sub("signif genes.csv", "", file)
-  concatenated_data <- rbind(concatenated_data, current_data)
-  }
-}
-
-write.csv(concatenated_data, file = '/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/Geno/DEGs_table.csv')
-```
-
-List of unique genes
-```{r unique DEG list geno}
-uniqueDEGs <- as.data.frame(unique(concatenated_data$gene))
-print(uniqueDEGs, sep = ",")
-
-write_csv(uniqueDEGs, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/Geno/uniqueDEGs.csv")
-```
-
-### Volcano plot
-
-```{r results table for plotting geno}
-res_all <- concatenated_data %>%
-  mutate(
-    avg_log2FC = log2FoldChange,
-    p_val_adj = padj,
-    cell_type = cellType,
-    change = case_when(
-      p_val_adj >= 0.05 ~ "None",  
-      avg_log2FC > 0 ~ "Up",       
-      avg_log2FC < 0 ~ "Down",    
-      TRUE ~ "None"                 
-    ),
-    # Force the factor levels order
-    change = factor(change, levels = c("Up", "Down", "None"))
-  )
-```
-
-```{r filter res for cluster of interest geno}
-# Filter for specific cluster
-res_table = res_all %>% filter(cell_type == "TH-Sema5b-Ntrk-Glut")
-
-# Get top 10 most significant genes
-top_genes = res_table %>% 
-  filter(change != 'None') %>%
-  slice_min(p_val_adj, n = 10) %>%
-  pull(gene)
-
-x_range = max(abs(res_table$avg_log2FC), na.rm = T) * 1.05
-y_range = max(-log10(res_table$p_val_adj), na.rm = T) * 1.1
-```
-
-```{r volcano plot for cluster of interest geno}
-p <- ggplot(res_table, aes(x = avg_log2FC, y = -log10(p_val_adj))) +
-  geom_point(aes(color = change), size = 2) +
-  geom_text_repel(
-    data = res_table %>% filter(gene %in% top_genes),
-    aes(label = gene),
-    size = 3,
-    max.overlaps = Inf,
-    box.padding = 0.5,
-    segment.size = 0.5,
-    segment.color = "grey50"
-  ) +
-  ggtitle('DEGs (TH-Sema5b-Ntrk-Glut)') +
-  xlab(expression(log[2]("Fold Change"))) +
-  ylab(expression(-log[10]("adjusted p-value"))) +
-  geom_hline(yintercept = -log10(0.05), colour = "grey40", size = 0.7) +
-  geom_vline(xintercept = 0, colour = "black") +
-  ggplot2::xlim(-x_range, x_range) +
-  ggplot2::ylim(0, y_range) +
-  scale_y_continuous(expand = c(0, 0.1)) +  # Back to regular scaling
-  theme_classic() +
-  scale_color_manual(
-    values = c(Up = '#b80f0a', Down = '#0a6fb8', None = 'grey'),
-    breaks = c("Up", "Down", "None"),
-    labels = c('Up-regulated', 'Down-regulated', 'Not significant')
-  ) +
-  theme(
-    axis.text.x = element_text(size = 12),
-    axis.text.y = element_text(size = 12),
-    axis.title = element_text(size = 14),
-    legend.title = element_blank(),
-    legend.text = element_text(size = 12),
-    axis.line = element_line(size = 0.8),
-    plot.title = element_text(size = 16)
-  )
-
-p
-
-ggsave(filename = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/250301_TH-Sema5b-Ntrk-Glut_geno_volcano.pdf",
-       width = 6,
-       height = 4,
-       device = pdf)
-```
-
-
-### GO
-```{r GO dot plot for cluster of interest}
-# Specify cluster name
-name <- "TH-Sema5b-Ntrk-Glut"
-
-# GO Analysis
-go_table <- read.csv(paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/Geno/", name, " signif genes.csv"), sep = ',',
-                     header = TRUE)
-
-# Separate genes by direction of change - explicitly get gene names as character vector
-wt_enrich <- as.character(go_table$gene[go_table$log2FoldChange > 0])
-mut_enrich <- as.character(go_table$gene[go_table$log2FoldChange < 0])
-
-
-# Convert gene symbols to ENTREZ IDs
-geneid.ls <- AnnotationDbi::select(org.Mm.eg.db, 
-                    keys = wt_enrich, 
-                    columns=c("ENTREZID", "SYMBOL"), 
-                    keytype = "SYMBOL")
-wt.gene.s <- geneid.ls$ENTREZID
-wt.gene.s <- wt.gene.s[which(!is.na(wt.gene.s))]
-wt.gene.s <- unique(wt.gene.s)
-
-geneid.ls <- AnnotationDbi::select(org.Mm.eg.db, 
-                    keys = mut_enrich, 
-                    columns=c("ENTREZID", "SYMBOL"), 
-                    keytype = "SYMBOL")
-mut.gene.s <- geneid.ls$ENTREZID
-mut.gene.s <- mut.gene.s[which(!is.na(mut.gene.s))]
-mut.gene.s <- unique(mut.gene.s)
-
-gene_list <- list(Mutant=mut.gene.s, Wildtype=wt.gene.s)
-
-# Run GO enrichment comparison
-compGO <- compareCluster(geneCluster = gene_list,
-                        fun = 'enrichGO',
-                        pvalueCutoff = 0.05,
-                        pAdjustMethod = 'BH',
-                        OrgDb = org.Mm.eg.db,
-                        ont = 'BP')
-
-# Create dotplot visualization
-dotplot(compGO, showCategory = 4, title = 'GO Enrichment Analysis') +
-  theme(text = element_text(size = 10),
-        axis.text.y = element_text(size=10))
-
-ggsave(paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/Geno/", name, " GO enrichment dotplot.pdf"),
-       device = pdf,
-       width = 5,
-       height = 5)
-```
-
-```{r GO combined plot for all sig clusters geno}
-# GO Analysis - Combined plot
-# First get a background list of all genes
-all.genes <- as.character(rownames(WT.only@assays$RNA))
-geneid.ls <- AnnotationDbi::select(org.Mm.eg.db, 
-                    keys = all.genes, 
-                    columns=c("ENTREZID", "SYMBOL"), 
-                    keytype = "SYMBOL")
-alwt.gene.s <- geneid.ls$ENTREZID
-alwt.gene.s <- alwt.gene.s[which(!is.na(alwt.gene.s))]
-alwt.gene.s <- unique(alwt.gene.s)
-
-# Initialize lists to store genes by cluster
-cluster_genes_list <- list()
-
-# Process each cluster
-for (name in significant_cluster_names) {
-  print(paste("Processing cluster:", name))
-  
-  # Read DEG results
-  go_table <- read.csv(paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/Geno/", name, " signif genes.csv"), sep = ',',
-                       header = TRUE)
-  
-  # Get significant genes
-  sig_genes <- as.character(go_table$gene)
-  
-  # Convert to ENTREZ IDs
-  geneid.ls <- AnnotationDbi::select(org.Mm.eg.db, 
-                      keys = sig_genes, 
-                      columns = c("ENTREZID", "SYMBOL"), 
-                      keytype = "SYMBOL")
-  gene.ls <- geneid.ls$ENTREZID
-  gene.ls <- gene.ls[which(!is.na(gene.ls))]
-  gene.ls <- unique(gene.ls)
-  
-  # Store in list
-  cluster_genes_list[[name]] <- gene.ls
-}
-
-# Run GO enrichment comparison
-compGO <- compareCluster(geneCluster = cluster_genes_list,
-                        fun = 'enrichGO',
-                        pvalueCutoff = 0.05,
-                        pAdjustMethod = 'BH',
-                        OrgDb = org.Mm.eg.db,
-                        ont = 'BP',
-                        universe = alwt.gene.s)
-
-# Create dotplot visualization
-p <- dotplot(compGO, showCategory = 10, 
-            title = 'GO Enrichment Analysis by Cluster') +
-  theme(text = element_text(size = 10),
-        axis.text.y = element_text(size = 10),
-        axis.text.x = element_text(angle = 45, hjust = 1),
-        plot.margin = unit(c(1,1,1,1), "cm")) +
-  scale_color_viridis_c(direction = -1)
-
-p
-# Save plot
-ggsave("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/Geno/cluster_GO_enrichment_dotplot.pdf",
-       plot = p,
-       width = 12,
-       height = 10)
-```
-
-
-## By Sex
-
-### Bar plot
-```{r DEG results df for sex}
-file_list <- list.files("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/Sex/", pattern = "signif genes.csv", full.names = TRUE)
-
-results_df <- data.frame(file = character(), 
-                         F_enrich = integer(), 
-                         M_enrich = integer(), 
-                         stringsAsFactors = FALSE)
-
-for (file in file_list) {
-  file_df <- read.csv(file)
-  F_enrich <- sum(file_df$log2FoldChange < 0)
-  M_enrich <- sum(file_df$log2FoldChange > 0)
-  
-  results_df <- rbind(results_df, 
-                      data.frame(file = file, 
-                                 F_enrich = F_enrich, 
-                                 M_enrich = M_enrich, 
-                                 stringsAsFactors = FALSE))
-}
-
-results_df$file <- sub("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/Sex//", "", results_df$file)
-results_df$file <- sub(" signif genes.csv", "", results_df$file)
-
-write.csv(results_df, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/DEG table.csv", sep = ",")
-```
-
-```{r plot DEG results sex}
-results_df$cluster <- results_df$file
-results_df$cluster <- factor(results_df$cluster, levels = rev(unique(results_df$cluster)))
-
-# First, make F_enrich negative to flip it to the left side
-results_df$F_enrich_neg <- -results_df$F_enrich
-
-# Create the combined plot
-comb.plot <- ggplot(results_df) +
-  # Male enrichment (right side)
-  geom_bar(aes(x = M_enrich, y = cluster, fill = "M"),
-           stat = "identity",
-           linewidth = 0.2) +
-  # Female enrichment (left side)
-  geom_bar(aes(x = F_enrich_neg, y = cluster, fill = "F"),
-           stat = "identity",
-           linewidth = 0.2) +
-  # Set the axis limits symmetrically
-  scale_x_continuous(
-    limits = c(-30, 30),
-    breaks = seq(-30, 30, 5),
-    labels = abs(seq(-30, 30, 5))  # Use absolute values for axis labels
-  ) +
-  scale_fill_manual(values = palette_sex) +
-  labs(x = "Number of DEGs", 
-       y = "Cluster",
-       fill = "Sex") +  # Add title for the legend
-  theme_classic() +
-  theme(        axis.text.y = element_text(color = rep(c("#000000", "#555555"), 
-                                             length.out = length(unique(results_df$cluster))))) +
-  geom_vline(xintercept = 0, linewidth = 0.2)
-
-comb.plot
-ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/intermed-figs/250301_DEGsbySexall.pdf',
-       device = pdf,
-       width = 6,
-       height = 6)
-```
-
-```{r plot sig DEG results for sex}
-# Get sig clusters from proportions script
-sig_cluster_names <- c("ARC-Mixed-Glut",
-  "COAa-PAA-MEA-Barhl2-Glut",
-  "HY-NSCs-1",
-  "MEA-Glut",
-  "MEA-BST-Mixed-Gaba",
-  "PH-LHA-PVH-SO-PVa-Nxph4-Glut",
-  "PVN-Mixed-Glut")
-
-sig_results_df <- results_df %>%
-  dplyr::filter(cluster %in% sig_cluster_names) %>%
-  arrange(match(cluster, sig_cluster_names))
-
-
-sig_results_df$cluster <- factor(sig_results_df$cluster, levels = rev(sig_cluster_names))
-
-
-sig_plot <- 
-# Create the combined plot
-ggplot(sig_results_df) +
-  # Male enrichment (right side)
-  geom_bar(aes(x = M_enrich, y = cluster, fill = "M"),
-           stat = "identity",
-           linewidth = 0.2) +
-  # Female enrichment (left side)
-  geom_bar(aes(x = F_enrich_neg, y = cluster, fill = "F"),
-           stat = "identity",
-           linewidth = 0.2) +
-  # Set the axis limits symmetrically
-  scale_x_continuous(
-    limits = c(-30, 30),
-    breaks = seq(-30, 30, 5),
-    labels = abs(seq(-30, 30, 5))  # Use absolute values for axis labels
-  ) +
-  scale_fill_manual(values = palette_sex) +
-  labs(x = "Number of DEGs", 
-       y = "",
-       fill = "Sex") +  # Add title for the legend
-  theme_classic() +
-  theme(axis.text.y = element_blank()) +
-  geom_vline(xintercept = 0, linewidth = 0.2)
-  
-sig_plot
-
- ggsave(filename = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/intermed-figs/250219_DEGsbysex_sig.pdf",
-        width = 8,
-        height = 12,
-        dpi = 300)
-```
-
-
-### Summary tables
-
-```{r DEG table with all output sex}
-file_list <- list.files("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/Sex", pattern = "signif genes.csv", full.names = TRUE)
-file_list <- sub("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/Sex/", "", results_df$file)
-
-
-concatenated_data <- data.frame()
-
-for (file in file_list){
-  current_data <- read.csv(paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/Sex/", file, " signif genes.csv"), sep = ',', header = TRUE)
-  if(dim(current_data)[1] > 0) {
-  current_data$cellType <- sub("signif genes.csv", "", file)
-  concatenated_data <- rbind(concatenated_data, current_data)
-  }
-}
-
-write.csv(concatenated_data, file = '/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/Sex/250301_DEGs_table.csv')
-```
-
-```{r unique DEGs list sex}
-uniqueDEGs <- as.data.frame(unique(concatenated_data$gene))
-print(uniqueDEGs, sep = ",")
-
-write_csv(uniqueDEGs, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/Sex/250301_uniqueDEGs.csv")
-```
-
-### Volcano plots
-
-```{r results table for plotting sex}
-res_all <- concatenated_data %>%
-  mutate(
-    avg_log2FC = log2FoldChange,
-    p_val_adj = padj,
-    cell_type = cellType,
-    change = case_when(
-      p_val_adj >= 0.05 ~ "None",  
-      avg_log2FC > 0 ~ "Up",       
-      avg_log2FC < 0 ~ "Down",    
-      TRUE ~ "None"                 
-    ),
-    # Force the factor levels order
-    change = factor(change, levels = c("Up", "Down", "None"))
-  )
-```
-
-```{r filter res for cluster of interest sex}
-# Filter for specific cluster
-res_table = res_all %>% filter(cell_type == "PO-MEA-BST-Mixed-Gaba")
-
-# Get top 10 most significant genes
-top_genes = res_table %>% 
-  filter(change != 'None') %>%
-  slice_min(p_val_adj, n = 10) %>%
-  pull(gene)
-
-x_range = max(abs(res_table$avg_log2FC), na.rm = T) * 1.05
-y_range = max(-log10(res_table$p_val_adj), na.rm = T) * 1.1
-```
-
-```{r volcano plot for cluster of interest sex}
-p <- ggplot(res_table, aes(x = avg_log2FC, y = -log10(p_val_adj))) +
-  geom_point(aes(color = change), size = 2) +
-  geom_text_repel(
-    data = res_table %>% filter(gene %in% top_genes),
-    aes(label = gene),
-    size = 3,
-    max.overlaps = Inf,
-    box.padding = 0.5,
-    segment.size = 0.5,
-    segment.color = "grey50"
-  ) +
-  ggtitle('DEGs (MEA-BST-Mixed-Gaba)') +
-  xlab(expression(log[2]("Fold Change"))) +
-  ylab(expression(-log[10]("adjusted p-value"))) +
-  geom_hline(yintercept = -log10(0.05), colour = "grey40", size = 0.7) +
-  geom_vline(xintercept = 0, colour = "black") +
-  ggplot2::xlim(-x_range, x_range) +
-  ggplot2::ylim(0, y_range) +
-  scale_y_continuous(expand = c(0, 0.1)) +  # Back to regular scaling
-  theme_classic() +
-  scale_color_manual(
-    values = c(Up = '#b80f0a', Down = '#0a6fb8', None = 'grey'),
-    breaks = c("Up", "Down", "None"),
-    labels = c('Up-regulated', 'Down-regulated', 'Not significant')
-  ) +
-  theme(
-    axis.text.x = element_text(size = 12),
-    axis.text.y = element_text(size = 12),
-    axis.title = element_text(size = 14),
-    legend.title = element_blank(),
-    legend.text = element_text(size = 12),
-    axis.line = element_line(size = 0.8),
-    plot.title = element_text(size = 16)
-  )
-
-p
-
-ggsave(filename = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/250301_PO-MEA-BST-Mixed-Gaba_volcano.pdf", 
-       width = 6,
-       height = 4,
-       device = pdf)
-```
-
-Now let's remove X and Y chromosome genes.
-```{r filter out X and Y chr genes}
-xy_genes <- c(
-  # X chromosome genes
-  "Xist", "Tsx", "Jpx", "Ftx", "Kdm6a", "Kdm5c", "Ddx3x", "Usp9x", "Uba1", "Zfx",
-  # Y chromosome genes
-  "Uty", "Kdm5d", "Eif2s3y", "Ddx3y", "Usp9y", "Zfy1", "Zfy2", "Sry", "Rbmy"
-)
-
-# Filter the data frame to remove X and Y genes
-res_filtered <- res_all %>%
-  filter(!gene %in% xy_genes)
-```
-
-```{r re-filter for cluster of interest sex}
-# Filter for specific cluster
-res_table_filtered = res_filtered %>% filter(cell_type == "PO-MEA-BST-Mixed-Gaba")
-
-# Get top 10 most significant genes
-top_genes = res_table_filtered %>% 
-  filter(change != 'None') %>%
-  slice_min(p_val_adj, n = 10) %>%
-  pull(gene)
-
-x_range = max(abs(res_table_filtered$avg_log2FC), na.rm = T) * 1.05
-y_range = max(-log10(res_table_filtered$p_val_adj), na.rm = T) * 1.1
-```
-
-```{r volcano plot for cluster of interest sex without X/Y chr DEGs}
-p <- ggplot(res_table_filtered, aes(x = avg_log2FC, y = -log10(p_val_adj))) +
-  geom_point(aes(color = change), size = 2) +
-  geom_text_repel(
-    data = res_table_filtered %>% filter(gene %in% top_genes),
-    aes(label = gene),
-    size = 3,
-    max.overlaps = Inf,
-    box.padding = 0.5,
-    segment.size = 0.5,
-    segment.color = "grey50"
-  ) +
-  ggtitle('DEGs (MEA-BST-Mixed-Gaba)') +
-  xlab(expression(log[2]("Fold Change"))) +
-  ylab(expression(-log[10]("adjusted p-value"))) +
-  geom_hline(yintercept = -log10(0.05), colour = "grey40", size = 0.7) +
-  geom_vline(xintercept = 0, colour = "black") +
-  ggplot2::xlim(-x_range, x_range) +
-  ggplot2::ylim(0, y_range) +
-  scale_y_continuous(expand = c(0, 0.1)) +  # Back to regular scaling
-  theme_classic() +
-  scale_color_manual(
-    values = c(Up = '#b80f0a', Down = '#0a6fb8', None = 'grey'),
-    breaks = c("Up", "Down", "None"),
-    labels = c('Up-regulated', 'Down-regulated', 'Not significant')
-  ) +
-  theme(
-    axis.text.x = element_text(size = 12),
-    axis.text.y = element_text(size = 12),
-    axis.title = element_text(size = 14),
-    legend.title = element_blank(),
-    legend.text = element_text(size = 12),
-    axis.line = element_line(size = 0.8),
-    plot.title = element_text(size = 16)
-  )
-
-p
-
-ggsave(filename = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/250301_PO-MEA-BST-Mixed-Gaba_volcano_noXYgenes.pdf", 
-       width = 6,
-       height = 4,
-       device = pdf)
-```
-
-
-
-## By Learner
-
-### Bar plot
-```{r DEG results df for sac learner}
-file_list <- list.files("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/Learner", pattern = "signif genes.csv", full.names = TRUE)
-
-results_df <- data.frame(file = character(), 
-                         L_enrich = integer(), 
-                         NL_enrich = integer(), 
-                         stringsAsFactors = FALSE)
-
-for (file in file_list) {
-  file_df <- read.csv(file)
-  L_enrich <- sum(file_df$log2FoldChange < 0)
-  NL_enrich <- sum(file_df$log2FoldChange > 0)
-  
-  results_df <- rbind(results_df, 
-                      data.frame(file = file, 
-                                 L_enrich = L_enrich, 
-                                 NL_enrich = NL_enrich, 
-                                 stringsAsFactors = FALSE))
-}
-
-results_df$file <- sub("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/Learner/", "", results_df$file)
-results_df$file <- sub(" signif genes.csv", "", results_df$file)
-
-write.csv(results_df, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/Learner/DEG table.csv", sep = ",")
-```
-
-```{r plot DEG results sac learner}
-rownames(results_df) <- results_df$file
-results_df$cluster <- factor(results_df$file)
-results_df <- drop_na(results_df)
-
-# First, make NL_enrich negative to flip it to the left side
-results_df$NL_enrich_neg <- -results_df$NL_enrich
-
-# Create the combined plot
-comb.plot <- ggplot(results_df) +
-  # Male enrichment (right side)
-  geom_bar(aes(x = L_enrich, y = cluster, fill = "Learner"),
-           stat = "identity",
-           linewidth = 0.2) +
-  # Female enrichment (left side)
-  geom_bar(aes(x = NL_enrich_neg, y = cluster, fill = "Non_Learner"),
-           stat = "identity",
-           linewidth = 0.2) +
-  # Set the axis limits symmetrically
-  scale_x_continuous(
-    limits = c(-30, 30),
-    breaks = seq(-30, 30, 5),
-    labels = abs(seq(-30, 30, 5))  # Use absolute values for axis labels
-  ) +
-  scale_fill_manual(values = palette_learner) +
-  labs(x = "Number of DEGs", 
-       y = "Cluster",
-       fill = "Sac_Learner") +  # Add title for the legend
-  theme_classic() +
-  theme(axis.text.y = element_text(color = rep(c("#000000", "#555555"), 
-                      length.out = length(unique(results_df$cluster))))) +
-  geom_vline(xintercept = 0, linewidth = 0.2)
-
-comb.plot
-ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/intermed-figs/250301_DEGsbyLearnerall.pdf',
-       device = pdf,
-       width = 6,
-       height = 6)
-```
-
-
-```{r filter results for sig clusters}
-# Filter the data frame for P.Value < 0.051
-sig_results_df <- results_df[((results_df$NL_enrich != 0) + (results_df$L_enrich != 0)) >1, ]
-
-# Extract the BaselineProp.clusters for the significant results
-significant_cluster_names <-sort(rev(as.character(sig_results_df$file)))
-
-# Print the list of significant clusters
-print(significant_cluster_names)
-
-
-sig_results_df$cluster <- factor(sig_results_df$cluster, 
-                                levels = rev(significant_cluster_names))
-```
-
-```{r plot sig DEG results for sac learner}
-# Create the combined plot
-sig.comb.plot <- ggplot(sig_results_df) +
-  # Male enrichment (right side)
-  geom_bar(aes(x = L_enrich, y = cluster, fill = "Learner"),
-           stat = "identity",
-           linewidth = 0.2) +
-  # Female enrichment (left side)
-  geom_bar(aes(x = NL_enrich_neg, y = cluster, fill = "Non_Learner"),
-           stat = "identity",
-           linewidth = 0.2) +
-  # Set the axis limits symmetrically
-  scale_x_continuous(
-    limits = c(-30, 30),
-    breaks = seq(-30, 30, 5),
-    labels = abs(seq(-30, 30, 5))  # Use absolute values for axis labels
-  ) +
-  scale_fill_manual(values = palette_learner) +
-  labs(x = "Number of DEGs", 
-       y = "Cluster",
-       fill = "Sac_Learner") +  # Add title for the legend
-  theme_classic() +
-  theme(axis.text.y = element_text(color = rep(c("#000000", "#555555"), 
-                      length.out = length(unique(results_df$cluster))))) +
-  geom_vline(xintercept = 0, linewidth = 0.2)
-
-sig.comb.plot
-
-
- ggsave(filename = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/250301_DEGsbylearner.pdf",
-        width = 8,
-        height = 12,
-        dpi = 300)
-```
-
-### Summary tables
-```{r DEG table with all output sac learner}
-file_list <- sub("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/Learner/", "", results_df$file)
-
-concatenated_data <- data.frame()
-
-for (file in file_list){
-  current_data <- read.csv(paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/Learner/", file, " signif genes.csv"), sep = ',', header = TRUE)
-  if(dim(current_data)[1] > 0) {
-  current_data$cellType <- sub("signif genes.csv", "", file)
-  concatenated_data <- rbind(concatenated_data, current_data)
-  }
-}
-
-write.csv(concatenated_data, file = '/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/Learner/250301-DEGs_table.csv')
-```
-
-```{r unique DEGs list sac learner}
-uniqueDEGs <- as.data.frame(unique(concatenated_data$gene))
-print(uniqueDEGs, sep = ",")
-
-write_csv(uniqueDEGs, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/Learner/250301_uniqueDEGs.csv")
-```
-
-### Volcano plot
-```{r results table for plotting geno}
-res_all <- concatenated_data %>%
-  mutate(
-    avg_log2FC = log2FoldChange,
-    p_val_adj = padj,
-    cell_type = cellType,
-    change = case_when(
-      p_val_adj >= 0.05 ~ "None",  
-      avg_log2FC > 0 ~ "Up",       
-      avg_log2FC < 0 ~ "Down",    
-      TRUE ~ "None"                 
-    ),
-    # Force the factor levels order
-    change = factor(change, levels = c("Up", "Down", "None"))
-  )
-```
-
-
-```{r filter res for cluster of interest geno}
-# Filter for specific cluster
-res_table = res_all %>% filter(cell_type == "PH-LHA-PVH-SO-PVa-Nxph4-Glut")
-
-# Get top 10 most significant genes
-top_genes = res_table %>% 
-  filter(change != 'None') %>%
-  slice_min(p_val_adj, n = 10) %>%
-  pull(gene)
-
-x_range = max(abs(res_table$avg_log2FC), na.rm = T) * 1.05
-y_range = max(-log10(res_table$p_val_adj), na.rm = T) * 1.1
-```
-
-
-```{r volcano plot for cluster of interest geno}
-p <- ggplot(res_table, aes(x = avg_log2FC, y = -log10(p_val_adj))) +
-  geom_point(aes(color = change), size = 2) +
-  ggrepel::geom_text_repel(
-    data = res_table %>% filter(gene %in% top_genes),
-    aes(label = gene),
-    size = 3,
-    max.overlaps = Inf,
-    box.padding = 0.5,
-    segment.size = 0.5,
-    segment.color = "grey50"
-  ) +
-  ggtitle('DEGs (PH-LHA-PVH-SO-PVa-Nxph4-Glut)') +
-  xlab(expression(log[2]("Fold Change"))) +
-  ylab(expression(-log[10]("adjusted p-value"))) +
-  geom_hline(yintercept = -log10(0.05), colour = "grey40", size = 0.7) +
-  geom_vline(xintercept = 0, colour = "black") +
-  ggplot2::xlim(-x_range, x_range) +
-  ggplot2::ylim(0, y_range) +
-  scale_y_continuous(expand = c(0, 0.1)) +  # Back to regular scaling
-  theme_classic() +
-  scale_color_manual(
-    values = c(Up = '#b80f0a', Down = '#0a6fb8', None = 'grey'),
-    breaks = c("Up", "Down", "None"),
-    labels = c('Up-regulated', 'Down-regulated', 'Not significant')
-  ) +
-  theme(
-    axis.text.x = element_text(size = 12),
-    axis.text.y = element_text(size = 12),
-    axis.title = element_text(size = 14),
-    legend.title = element_blank(),
-    legend.text = element_text(size = 12),
-    axis.line = element_line(size = 0.8),
-    plot.title = element_text(size = 16)
-  )
-
-p
-
-ggsave(filename = "/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/250301_PH-LHA-PVH-SO-PVa-Nxph4-Glut_learner_volcano.pdf",
-       width = 6,
-       height = 4,
-       device = pdf)
-```
-
-### GO
-```{r GO dot plot for cluster of interest}
-# Specify cluster name
-name <- "PH-LHA-PVH-SO-PVa-Nxph4-Glut"
-
-# GO Analysis
-go_table <- read.csv(paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/Learner/", name, " signif genes.csv"), sep = ',',
-                     header = TRUE)
-
-# Separate genes by direction of change - explicitly get gene names as character vector
-L_enrich <- as.character(go_table$gene[go_table$log2FoldChange > 0])
-NL_enrich <- as.character(go_table$gene[go_table$log2FoldChange < 0])
-
-
-# Convert gene symbols to ENTREZ IDs
-geneid.ls <- AnnotationDbi::select(org.Mm.eg.db, 
-                    keys = L_enrich, 
-                    columns=c("ENTREZID", "SYMBOL"), 
-                    keytype = "SYMBOL")
-L.gene.ls <- geneid.ls$ENTREZID
-L.gene.ls <- L.gene.ls[which(!is.na(L.gene.ls))]
-L.gene.ls <- unique(L.gene.ls)
-
-geneid.ls <- AnnotationDbi::select(org.Mm.eg.db, 
-                    keys = NL_enrich, 
-                    columns=c("ENTREZID", "SYMBOL"), 
-                    keytype = "SYMBOL")
-NL.gene.ls <- geneid.ls$ENTREZID
-NL.gene.ls <- NL.gene.ls[which(!is.na(NL.gene.ls))]
-NL.gene.ls <- unique(NL.gene.ls)
-
-gene_list <- list(Non_Learner=NL.gene.ls, Learner=L.gene.ls)
-
-# Run GO enrichment comparison
-compGO <- compareCluster(geneCluster = gene_list,
-                        fun = 'enrichGO',
-                        pvalueCutoff = 0.05,
-                        pAdjustMethod = 'BH',
-                        OrgDb = org.Mm.eg.db,
-                        ont = 'BP')
-
-# Create dotplot visualization
-dotplot(compGO, showCategory = 10, title = 'GO Enrichment Analysis') +
-  theme(text = element_text(size = 10),
-        axis.text.y = element_text(size=10))
-
-ggsave(paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/Learner/", name, " GO enrichment dotplot.pdf"),
-       device = pdf,
-       width = 5,
-       height = 7)
-```
-
-```{r GO combined plot for all sig clusters}
-# GO Analysis - Combined plot
-# First get a background list of all genes
-all.genes <- as.character(rownames(WT.only@assays$RNA))
-geneid.ls <- AnnotationDbi::select(org.Mm.eg.db, 
-                    keys = all.genes, 
-                    columns=c("ENTREZID", "SYMBOL"), 
-                    keytype = "SYMBOL")
-all.gene.ls <- geneid.ls$ENTREZID
-all.gene.ls <- all.gene.ls[which(!is.na(all.gene.ls))]
-all.gene.ls <- unique(all.gene.ls)
-
-# Initialize lists to store genes by cluster
-cluster_genes_list <- list()
-
-# Process each cluster
-for (name in significant_cluster_names) {
-  print(paste("Processing cluster:", name))
-  
-  # Read DEG results
-  go_table <- read.csv(paste0("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/Learner/", name, " signif genes.csv"), sep = ',',
-                       header = TRUE)
-  
-  # Get significant genes
-  sig_genes <- as.character(go_table$gene)
-  
-  # Convert to ENTREZ IDs
-  geneid.ls <- AnnotationDbi::select(org.Mm.eg.db, 
-                      keys = sig_genes, 
-                      columns = c("ENTREZID", "SYMBOL"), 
-                      keytype = "SYMBOL")
-  gene.ls <- geneid.ls$ENTREZID
-  gene.ls <- gene.ls[which(!is.na(gene.ls))]
-  gene.ls <- unique(gene.ls)
-  
-  # Store in list
-  cluster_genes_list[[name]] <- gene.ls
-}
-
-# Run GO enrichment comparison
-compGO <- compareCluster(geneCluster = cluster_genes_list,
-                        fun = 'enrichGO',
-                        pvalueCutoff = 0.05,
-                        pAdjustMethod = 'BH',
-                        OrgDb = org.Mm.eg.db,
-                        ont = 'BP',
-                        universe = all.gene.ls)
-
-# Create dotplot visualization
-p <- dotplot(compGO, showCategory = 10, 
-            title = 'GO Enrichment Analysis by Cluster') +
-  theme(text = element_text(size = 10),
-        axis.text.y = element_text(size = 10),
-        axis.text.x = element_text(angle = 45, hjust = 1),
-        plot.margin = unit(c(1,1,1,1), "cm")) +
-  scale_color_viridis_c(direction = -1)
-
-p
-# Save plot
-ggsave("/scratch/jdlab/simona/socop-hyp-snRNAseq/results/GEX/Learner/cluster_GO_enrichment_dotplot.pdf",
-       plot = p,
-       width = 12,
-       height = 10)
 ```
 
 ```{r session info}
