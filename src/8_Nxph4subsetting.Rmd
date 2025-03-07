@@ -7,7 +7,7 @@ date: "2024-06-01"
 # Set up environment
 ```{r dependencies, warning=FALSE, message=FALSE}
 # Change this to your directory
-.libPaths('/ref/jdlab/software/r-envs/simona/r-packages/4.2/')
+.libPaths("/ref/jdlab/software/r-envs/simona/r-packages/4.2/")
 
 # Load dependencies
 library(dplyr)
@@ -37,37 +37,42 @@ combined_neuronal
 Idents(combined_neuronal) <- combined_neuronal$cell_type
 
 nxph4_subset <- subset(combined_neuronal,
-                             idents = "PH-LHA-PVH-SO-PVa Nxph4 Glut",
-                             invert = FALSE)
+  idents = "PH-LHA-PVH-SO-PVa Nxph4 Glut",
+  invert = FALSE
+)
 nxph4_subset
 ```
 You should have an object with 3698 nuclei and 37462 features.
 
 ```{r re-process subset}
 nxph4_subset <- NormalizeData(nxph4_subset,
-                                    normalization.method = "LogNormalize",
-                                    scale.factor = 10000)
+  normalization.method = "LogNormalize",
+  scale.factor = 10000
+)
 
 nxph4_subset <- FindVariableFeatures(nxph4_subset,
-                                           selection.method = "vst",
-                                           nfeatures = 3000)
+  selection.method = "vst",
+  nfeatures = 3000
+)
 
 all.genes <- rownames(nxph4_subset)
 
 nxph4_subset <- ScaleData(nxph4_subset, features = all.genes)
 
 nxph4_subset <- RunPCA(nxph4_subset,
-                             npcs = 50,
-                             features = VariableFeatures(object = nxph4_subset))
+  npcs = 50,
+  features = VariableFeatures(object = nxph4_subset)
+)
 
 nxph4_subset <- FindNeighbors(nxph4_subset, dims = 1:50)
 
-nxph4_subset <- FindClusters(nxph4_subset, 
-                             resolution =  c(0.01, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 1, 1.2, 1.4, 1.6, 1.8, 2))
+nxph4_subset <- FindClusters(nxph4_subset,
+  resolution = c(0.01, 0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 1, 1.2, 1.4, 1.6, 1.8, 2)
+)
 ```
 
 ```{r clustree for subset, fig.height=8}
-clustree(nxph4_subset, prefix = 'RNA_snn_res.', layout = "sugiyama")
+clustree(nxph4_subset, prefix = "RNA_snn_res.", layout = "sugiyama")
 ```
 Resolution 0.1 appears to be appropriate and not over-cluster.
 
@@ -79,45 +84,50 @@ nxph4_subset <- RunUMAP(nxph4_subset, dims = 1:50, n.components = 2L)
 
 ```{r plot umap, fig.height=3, fig.width=3}
 DimPlot_scCustom(nxph4_subset,
-                 colors_use = nxph4_palette,
-                 reduction = 'umap',
-                 label = FALSE,
-                 raster = FALSE,
-                 split_seurat = TRUE,
-                 pt.size = 0.01) +
-  theme(legend.position = 'none')
+  colors_use = nxph4_palette,
+  reduction = "umap",
+  label = FALSE,
+  raster = FALSE,
+  split_seurat = TRUE,
+  pt.size = 0.01
+) +
+  theme(legend.position = "none")
 
 ggsave("../results/Nxph4subset/250304_Nxph4subset_umap.png",
-      device = png,
-      width = 3,
-      height = 3,
-      dpi = 300)
+  device = png,
+  width = 3,
+  height = 3,
+  dpi = 300
+)
 ```
 
 
 ```{r plot umap, fig.height=6, fig.width=12}
 DimPlot_scCustom(nxph4_subset,
-                 colors_use = nxph4_palette,
-                 reduction = 'umap',
-                 label = FALSE,
-                 raster = FALSE,
-                 split_seurat = TRUE,
-                 pt.size = 0.01) +
-  theme(legend.position = 'right')
+  colors_use = nxph4_palette,
+  reduction = "umap",
+  label = FALSE,
+  raster = FALSE,
+  split_seurat = TRUE,
+  pt.size = 0.01
+) +
+  theme(legend.position = "right")
 
 ggsave("../results/Nxph4subset/250304_Nxph4subset_umap_withlabel.pdf",
-      device = pdf,
-      width =5,
-      height = 10,
-      dpi = 300)
+  device = pdf,
+  width = 5,
+  height = 10,
+  dpi = 300
+)
 ```
 
 ```{r find markers}
 nxph4_subset.markers.all <- FindAllMarkers(nxph4_subset,
-                                             only.pos = FALSE,
-                                             min.pct = 0.25,
-                                             logfc.threshold = 0.5,
-                                             return.thresh = 0.01)
+  only.pos = FALSE,
+  min.pct = 0.25,
+  logfc.threshold = 0.5,
+  return.thresh = 0.01
+)
 
 nxph4_subset.markers.all$`pct.1-pct.2` <- nxph4_subset.markers.all$pct.1 - nxph4_subset.markers.all$pct.2
 
@@ -125,19 +135,19 @@ dupes_counts <- table(nxph4_subset.markers.all$gene)
 
 nxph4_subset.markers.all$dups <- dupes_counts[match(nxph4_subset.markers.all$gene, names(dupes_counts))]
 
-saveRDS(nxph4_subset.markers.all,file = "../results/Nxph4subset/250304_markers_nxph4subcluster_res0.1.rds")
+saveRDS(nxph4_subset.markers.all, file = "../results/Nxph4subset/250304_markers_nxph4subcluster_res0.1.rds")
 
-write.csv(nxph4_subset.markers.all,file = "../results/Nxph4subset/250304_markers_nxph4subcluster_res0.1.csv")
+write.csv(nxph4_subset.markers.all, file = "../results/Nxph4subset/250304_markers_nxph4subcluster_res0.1.csv")
 ```
 
 ```{r use existing ABC lbels to make table}
 clusters <- nxph4_subset@meta.data$RNA_snn_res.0.1
 ABC_class_names <- nxph4_subset@meta.data$ABC_class_name
 ABC_subclass_names <- nxph4_subset@meta.data$ABC_subclass_name
-ABC_supertype_name <-nxph4_subset@meta.data$ABC_supertype_name
+ABC_supertype_name <- nxph4_subset@meta.data$ABC_supertype_name
 ABC_cluster_name <- nxph4_subset@meta.data$ABC_cluster_name
 
-df <- data.frame(clusters, ABC_class_names, ABC_subclass_names,ABC_supertype_name, ABC_cluster_name)
+df <- data.frame(clusters, ABC_class_names, ABC_subclass_names, ABC_supertype_name, ABC_cluster_name)
 
 table1 <- table(df$ABC_class_names, df$clusters)
 
@@ -160,8 +170,8 @@ table4_df$Cluster_Name <- rownames(table4_df)
 table4_df <- table4_df[order(table4_df$Total, decreasing = TRUE), ]
 
 # For each cluster (0-7), calculate percentage distribution
-for(i in 0:7) {
-    table4_df[paste0("Percent_", i)] <- (table4_df[,as.character(i)] / sum(table4_df[,as.character(i)])) * 100
+for (i in 0:7) {
+  table4_df[paste0("Percent_", i)] <- (table4_df[, as.character(i)] / sum(table4_df[, as.character(i)])) * 100
 }
 
 # View the result
@@ -180,8 +190,8 @@ table3_df$Cluster_Name <- rownames(table3_df)
 table3_df <- table3_df[order(table3_df$Total, decreasing = TRUE), ]
 
 # For each cluster (0-7), calculate percentage distribution
-for(i in 0:7) {
-    table3_df[paste0("Percent_", i)] <- (table3_df[,as.character(i)] / sum(table3_df[,as.character(i)])) * 100
+for (i in 0:7) {
+  table3_df[paste0("Percent_", i)] <- (table3_df[, as.character(i)] / sum(table3_df[, as.character(i)])) * 100
 }
 
 # View the result
@@ -215,13 +225,13 @@ Based on all of the above, we're going to now assign identities:
 Idents(nxph4_subset) <- nxph4_subset$RNA_snn_res.0.1
 
 cell_types <- list(
-  "0" = "PRC-PAG Tcf7l2-SPA-SPFm-SPF Glut_subset", #thalamic
+  "0" = "PRC-PAG Tcf7l2-SPA-SPFm-SPF Glut_subset", # thalamic
   "1" = "PH-ant-LHA Otp Bsx Glut_subset",
   "2" = "PH-SUM Foxa1 Glut_subset",
   "3" = "PVH-SO-PVa Otp Glut_subset",
   "4" = "AHN-RCH-LHA Otp Fezf1 Glut_subset",
   "5" = "PH-ant-LHA Otp Bsx Glut_subset",
-  "6" = "ND-INC Foxd2 Glut_subset", #PAG/brainstem
+  "6" = "ND-INC Foxd2 Glut_subset", # PAG/brainstem
   "7" = "PH-LHA Foxb1 Glut_subset"
 )
 
@@ -248,9 +258,11 @@ levels(Idents(combined_neuronal))
 
 ```{r get props df}
 # Extract the cell type proportions and transform them
-props <- getTransformedProps(cluster = combined_neuronal$subsetted_cell_type, 
-                                  sample = combined_neuronal$sample, 
-                                  transform = "logit")
+props <- getTransformedProps(
+  cluster = combined_neuronal$subsetted_cell_type,
+  sample = combined_neuronal$sample,
+  transform = "logit"
+)
 
 props_df <- as.data.frame(props$TransformedProps)
 
@@ -261,14 +273,16 @@ head(props_df)
 
 ```{r sample info df}
 # Create a data frame with sample information
-sample_info <- data.frame(sample = combined_neuronal$sample, 
-                          distance = combined_neuronal$Avg_Test_Distance,
-                          rewards = combined_neuronal$Avg_Total_Rewards,
-                          time = combined_neuronal$Avg_Exp_Zone_Time,
-                          entries = combined_neuronal$Avg_Exp_Zone_Entries,
-                          clusters = combined_neuronal$subsetted_cell_type,
-                          geno = combined_neuronal$genotype,
-                          sex = combined_neuronal$sex)
+sample_info <- data.frame(
+  sample = combined_neuronal$sample,
+  distance = combined_neuronal$Avg_Test_Distance,
+  rewards = combined_neuronal$Avg_Total_Rewards,
+  time = combined_neuronal$Avg_Exp_Zone_Time,
+  entries = combined_neuronal$Avg_Exp_Zone_Entries,
+  clusters = combined_neuronal$subsetted_cell_type,
+  geno = combined_neuronal$genotype,
+  sex = combined_neuronal$sex
+)
 
 head(sample_info)
 ```
@@ -285,16 +299,16 @@ model_summary_df <- data.frame()
 # Loop over each cluster
 for (cluster in unique(merged_df$clusters)) {
   # Filter the data frame for the current cluster
-  cluster_df <- merged_df %>% 
-    filter(clusters == cluster) %>% 
-    distinct
-  
+  cluster_df <- merged_df %>%
+    filter(clusters == cluster) %>%
+    distinct()
+
   # Fit the linear regression model
   lm_model <- lm(rewards ~ props_trans, data = cluster_df)
-  
+
   # Extract the model summary
   model_summary <- summary(lm_model)
-  
+
   # Create a named vector with model summary statistics
   model_summary_vec <- c(
     `(Intercept)` = coef(lm_model)[1],
@@ -308,28 +322,28 @@ for (cluster in unique(merged_df$clusters)) {
     f_statistic = model_summary$fstatistic[1],
     f_pvalue = pf(model_summary$fstatistic[1], model_summary$fstatistic[2], model_summary$fstatistic[3], lower.tail = FALSE)
   )
-  
+
   # Convert the named vector to a data frame
   model_summary_vec_df <- data.frame(t(model_summary_vec))
-  
+
   # Add a column for the cluster
   model_summary_vec_df$cluster <- cluster
-  
+
   # Append the data frame to the overall result
   model_summary_df <- rbind(model_summary_df, model_summary_vec_df)
 }
 ```
 
 ```{r select Nxph4 only}
-#Select for only subsetted Nxph4 clusters
+# Select for only subsetted Nxph4 clusters
 cell_types <- list(
-  "0" = "PRC-PAG Tcf7l2-SPA-SPFm-SPF Glut_subset", #thalamic
+  "0" = "PRC-PAG Tcf7l2-SPA-SPFm-SPF Glut_subset", # thalamic
   "1" = "PH-ant-LHA Otp Bsx Glut_subset",
   "2" = "PH-SUM Foxa1 Glut_subset",
   "3" = "PVH-SO-PVa Otp Glut_subset",
   "4" = "AHN-RCH-LHA Otp Fezf1 Glut_subset",
   "5" = "PH-ant-LHA Otp Bsx Glut_subset",
-  "6" = "ND-INC Foxd2 Glut_subset", #PAG/brainstem
+  "6" = "ND-INC Foxd2 Glut_subset", # PAG/brainstem
   "7" = "PH-LHA Foxb1 Glut_subset"
 )
 
@@ -365,16 +379,16 @@ model_summary_df_bysex <- data.frame()
 # Loop over each cluster
 for (cluster in unique(merged_df$clusters)) {
   # Filter the data frame for the current cluster
-  cluster_df <- merged_df %>% 
-    filter(clusters == cluster) %>% 
-    distinct
-  
+  cluster_df <- merged_df %>%
+    filter(clusters == cluster) %>%
+    distinct()
+
   # Fit the linear regression model with sex added
   lm_model <- lm(rewards ~ props_trans + sex, data = cluster_df)
-  
+
   # Extract the model summary
   model_summary <- summary(lm_model)
-  
+
   # Create a named vector with model summary statistics
   model_summary_vec <- c(
     `(Intercept)` = coef(lm_model)[1],
@@ -392,13 +406,13 @@ for (cluster in unique(merged_df$clusters)) {
     f_statistic = model_summary$fstatistic[1],
     f_pvalue = pf(model_summary$fstatistic[1], model_summary$fstatistic[2], model_summary$fstatistic[3], lower.tail = FALSE)
   )
-  
+
   # Convert the named vector to a data frame
   model_summary_vec_df <- data.frame(t(model_summary_vec))
-  
+
   # Add a column for the cluster
   model_summary_vec_df$cluster <- cluster
-  
+
   # Append the data frame to the overall result
   model_summary_df_bysex <- rbind(model_summary_df_bysex, model_summary_vec_df)
 }
@@ -439,7 +453,7 @@ head(unprops_df)
 str(unprops_df)
 
 new_merged_df <- merge(unprops_df, sample_info, by = c("sample", "clusters"))
-#rownames(merged_df) <- rownames(sample_info)
+# rownames(merged_df) <- rownames(sample_info)
 
 # Print the first few rows of the merged data
 head(new_merged_df)
@@ -450,24 +464,25 @@ head(new_merged_df)
 pdf("../results/Nxph4subset/250304_PVNwithinNxph4_propsbyrewards.pdf", width = 6, height = 8)
 
 # Choose the cluster you want to plot
-i <- "PVH-SO-PVa Otp Glut_subset"  # Make sure i is a character to match the cluster column in model_summary_df
+i <- "PVH-SO-PVa Otp Glut_subset" # Make sure i is a character to match the cluster column in model_summary_df
 
 # Extract the results for the specific cluster we're plotting
 cluster_results <- subset_df[subset_df$cluster == i, ]
 
 # Filter the data for the specific cluster
-cluster_df <- new_merged_df %>% 
-  filter(clusters == i) %>% 
+cluster_df <- new_merged_df %>%
+  filter(clusters == i) %>%
   distinct()
 
 # Create the plot with untransformed data
-plot(cluster_df$props_untrans, cluster_df$rewards, 
-     main = paste("Cluster", i),
-     pch = 16, cex = 2, 
-     xlab = "Props_untrans", ylab = "Rewards", 
-     cex.lab = 1.5, cex.axis = 1.5,
-     cex.main = 2, 
-     col = ifelse(cluster_df$sex == "M", "#4478AB", "#ED6677"))
+plot(cluster_df$props_untrans, cluster_df$rewards,
+  main = paste("Cluster", i),
+  pch = 16, cex = 2,
+  xlab = "Props_untrans", ylab = "Rewards",
+  cex.lab = 1.5, cex.axis = 1.5,
+  cex.main = 2,
+  col = ifelse(cluster_df$sex == "M", "#4478AB", "#ED6677")
+)
 
 # Fit lines for all data, male, and female
 fit_all <- lm(rewards ~ props_untrans, data = cluster_df)
@@ -491,21 +506,24 @@ legend_labels <- c(
   paste("Female (R² =", round(r2_female, 3), ")"),
   paste("Model Adj. R² =", round(cluster_results$adj_r_squared, 3)),
   paste("Props p-value =", format.pval(cluster_results$Props.p.value, digits = 3)),
-  paste("BH Adj. p-value =", format.pval(cluster_results$bh_adjusted_pvalues , digits = 3))
+  paste("BH Adj. p-value =", format.pval(cluster_results$bh_adjusted_pvalues, digits = 3))
 )
 
 # Add legend
-legend("topleft", 
-       legend = legend_labels,
-       col = c("black", "#4478AB", "#ED6677", "black", "black", "black", "black"),
-       lty = c(1, 1, 1, NA, NA, NA, NA),
-       cex = 1.2,
-       bty = "n")
+legend("topleft",
+  legend = legend_labels,
+  col = c("black", "#4478AB", "#ED6677", "black", "black", "black", "black"),
+  lty = c(1, 1, 1, NA, NA, NA, NA),
+  cex = 1.2,
+  bty = "n"
+)
 
 # Add title with cluster name and coefficients from the transformed model
-title_text <- paste("Cluster", i, "\n",
-                    "Intercept =", round(cluster_results$X.Intercept...Intercept., 3), "\n",
-                    "Props coef (log-scale) =", round(cluster_results$Props.props_trans, 3))
+title_text <- paste(
+  "Cluster", i, "\n",
+  "Intercept =", round(cluster_results$X.Intercept...Intercept., 3), "\n",
+  "Props coef (log-scale) =", round(cluster_results$Props.props_trans, 3)
+)
 title(main = title_text, cex.main = 1.5)
 
 dev.off()
@@ -516,24 +534,25 @@ dev.off()
 pdf("../results/Nxph4subset/250304_LHAwithinNxph4_propsbyrewards.pdf", width = 6, height = 8)
 
 # Choose the cluster you want to plot
-i <- "PH-ant-LHA Otp Bsx Glut_subset"  # Make sure i is a character to match the cluster column in model_summary_df
+i <- "PH-ant-LHA Otp Bsx Glut_subset" # Make sure i is a character to match the cluster column in model_summary_df
 
 # Extract the /ej_results for the specific cluster we're plotting
 cluster_results <- subset_df[subset_df$cluster == i, ]
 
 # Filter the data for the specific cluster
-cluster_df <- new_merged_df %>% 
-  filter(clusters == i) %>% 
+cluster_df <- new_merged_df %>%
+  filter(clusters == i) %>%
   distinct()
 
 # Create the plot with untransformed data
-plot(cluster_df$props_untrans, cluster_df$rewards, 
-     main = paste("Cluster", i),
-     pch = 16, cex = 2, 
-     xlab = "Props_untrans", ylab = "Rewards", 
-     cex.lab = 1.5, cex.axis = 1.5,
-     cex.main = 2, 
-     col = ifelse(cluster_df$sex == "M", "#4478AB", "#ED6677"))
+plot(cluster_df$props_untrans, cluster_df$rewards,
+  main = paste("Cluster", i),
+  pch = 16, cex = 2,
+  xlab = "Props_untrans", ylab = "Rewards",
+  cex.lab = 1.5, cex.axis = 1.5,
+  cex.main = 2,
+  col = ifelse(cluster_df$sex == "M", "#4478AB", "#ED6677")
+)
 # Fit lines for all data, male, and female
 fit_all <- lm(rewards ~ props_untrans, data = cluster_df)
 fit_male <- lm(rewards ~ props_untrans, data = cluster_df[cluster_df$sex == "M", ])
@@ -556,21 +575,24 @@ legend_labels <- c(
   paste("Female (R² =", round(r2_female, 3), ")"),
   paste("Model Adj. R² =", round(cluster_results$adj_r_squared, 3)),
   paste("Props p-value =", format.pval(cluster_results$Props.p.value, digits = 3)),
-  paste("BH Adj. p-value =", format.pval(cluster_results$bh_adjusted_pvalues , digits = 3))
+  paste("BH Adj. p-value =", format.pval(cluster_results$bh_adjusted_pvalues, digits = 3))
 )
 
 # Add legend
-legend("topleft", 
-       legend = legend_labels,
-       col = c("black", "#4478AB", "#ED6677", "black", "black", "black", "black"),
-       lty = c(1, 1, 1, NA, NA, NA, NA),
-       cex = 1.2,
-       bty = "n")
+legend("topleft",
+  legend = legend_labels,
+  col = c("black", "#4478AB", "#ED6677", "black", "black", "black", "black"),
+  lty = c(1, 1, 1, NA, NA, NA, NA),
+  cex = 1.2,
+  bty = "n"
+)
 
 # Add title with cluster name and coefficients from the transformed model
-title_text <- paste("Cluster", i, "\n",
-                    "Intercept =", round(cluster_results$X.Intercept...Intercept., 3), "\n",
-                    "Props coef (log-scale) =", round(cluster_results$Props.props_trans, 3))
+title_text <- paste(
+  "Cluster", i, "\n",
+  "Intercept =", round(cluster_results$X.Intercept...Intercept., 3), "\n",
+  "Props coef (log-scale) =", round(cluster_results$Props.props_trans, 3)
+)
 title(main = title_text, cex.main = 1.5)
 
 dev.off()
