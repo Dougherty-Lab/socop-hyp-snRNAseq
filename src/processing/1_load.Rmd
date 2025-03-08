@@ -1,0 +1,156 @@
+---
+title: "250205_snRNAseq_QC_clean"
+author: "Simona Sarafinovska"
+date: "2025-02-05"
+---
+
+# Set up environment
+We first need to tell RStudio where to find our packages. 
+```{r dependencies, warning=FALSE, message=FALSE}
+# Change this to your directory
+.libPaths('/ref/jdlab/software/r-envs/simona/r-packages/4.2/')
+
+library(Seurat)
+library(scCustomize)
+library(DoubletFinder)
+library(ggplot2)
+library(patchwork)
+library(tidyverse)
+
+source("color_utils.R")
+
+set.seed(420)
+```
+
+# Load in data
+Each sample should be in its own folder within the `/data` directory that contains a `barcodes.tsv.gz`, `features.tsv.gz`, and `matrix.mtx.gz` files.
+
+```{r create file path}
+files <- list.dirs(path = "/scratch/jdlab/simona/SocOp_MYT1L_snRNAseq_SS19_240328/samples/Scale-1.5/", full.names = FALSE, recursive = FALSE)
+```
+
+Then create SeuratObjects for each sample. Here we only include features that are represented in more than 3 cells and cell barcodes that have more than 200 features. Sample and Group metadata are also written to each object.
+```{r loop through SeuratObjects}
+# This loop steps through the files created above
+for (i in files) {
+  input <- paste0("Read10X(data.dir='/scratch/jdlab/simona/SocOp_MYT1L_snRNAseq_SS19_240328/samples/Scale-1.5/", i, "')") #creates base string for the 'Read10X' command 
+  filename <- i
+  assign(filename, eval(parse(text=input))) #saves the 'Read10X' command as the 'filename' variable
+
+  object_string <- paste0(filename,"_object") #appends '_object' string
+  CreateSeuratObject.input <- paste0("CreateSeuratObject(counts=", filename,", min.cells=3, min.features=200)") #creates 'CreateSeuratObject' command
+  assign(object_string, eval(parse(text=CreateSeuratObject.input))) #saves the 'CreateSeuratObject' command as the 'object_string' variable
+  
+  AddMetaData.input.sample <- paste0("AddMetaData(object=", object_string,", metadata='", filename, "', col.name='sample')") #command to add sample metadata
+  
+  genotype <- regmatches(filename, regexpr("^[^_]+", filename)) #get genotype from filename
+  AddMetaData.input.genotype <- paste0("AddMetaData(object=", object_string,", metadata='", genotype, "', col.name='genotype')") #command to add sample metadata
+  
+  assign(object_string, eval(parse(text=AddMetaData.input.sample))) #add sample metadata
+  assign(object_string, eval(parse(text=AddMetaData.input.genotype))) #add genotype metadata
+}
+```
+
+```{r create list of objects}
+mouse.sample <- c(WT_F_1 = WT_F_1_object, 
+                  WT_F_2 = WT_F_2_object, 
+                  WT_F_3 = WT_F_3_object,
+                  WT_F_4 = WT_F_4_object, 
+                  WT_F_5 = WT_F_5_object, 
+                  WT_F_6 = WT_F_6_object,
+                  WT_F_7 = WT_F_7_object,
+                  WT_F_8 = WT_F_8_object, 
+                  WT_F_9 = WT_F_9_object, 
+                  WT_F_10 = WT_F_10_object,
+                  Het_F_1 = Het_F_1_object, 
+                  Het_F_2 = Het_F_2_object, 
+                  Het_F_3 = Het_F_3_object,
+                  Het_F_4 = Het_F_4_object, 
+                  Het_F_5 = Het_F_5_object, 
+                  Het_F_6 = Het_F_6_object,
+                  WT_M_1 = WT_M_1_object, 
+                  WT_M_2 = WT_M_2_object, 
+                  WT_M_3 = WT_M_3_object,
+                  WT_M_4 = WT_M_4_object, 
+                  WT_M_5 = WT_M_5_object, 
+                  WT_M_6 = WT_M_6_object,
+                  WT_M_7 = WT_M_7_object,
+                  WT_M_8 = WT_M_8_object, 
+                  WT_M_9 = WT_M_9_object, 
+                  WT_M_10 = WT_M_10_object,
+                  Het_M_1 = Het_M_1_object, 
+                  Het_M_2 = Het_M_2_object, 
+                  Het_M_3 = Het_M_3_object,
+                  Het_M_4 = Het_M_4_object, 
+                  Het_M_5 = Het_M_5_object, 
+                  Het_M_6 = Het_M_6_object,
+                  Het_M_7 = Het_M_7_object,
+                  Het_M_8 = Het_M_8_object, 
+                  Het_M_9 = Het_M_9_object, 
+                  Het_M_10 = Het_M_10_object)
+```
+
+```{r process all SeuratObjects with DoubletFinder and merge}
+processed <- list()
+
+for (i in 1:length(mouse.sample)) {
+  # print the sample we are on
+  print(names(mouse.sample)[i])
+  
+  processed.object <- mouse.sample[[i]]
+  processed.object <- Add_Cell_Complexity_Seurat(processed.object)
+  processed.object <- Add_Mito_Ribo_Seurat(processed.object, species = 'Mouse')
+  processed.object <- subset(processed.object, subset = nCount_RNA > 400 & nFeature_RNA > 300 & nFeature_RNA < 7000 & percent_mito < 1)
+  # Note from authors: subsetting above is quite stringent, consider including more cells/nuclei for future use. QC plots were run for individual samples, which are re-run below after filtering.
+  
+  processed.object <- NormalizeData(processed.object, normalization.method = "LogNormalize", scale.factor = 10000)
+  processed.object <- FindVariableFeatures(processed.object, selection.method = "vst", nfeatures = 3000)
+  
+  all.genes <- rownames(processed.object)
+  
+  processed.object <- ScaleData(processed.object, features = all.genes)
+  processed.object <- RunPCA(processed.object, npcs = 50, features = VariableFeatures(object = processed.object))
+  processed.object <- FindNeighbors(processed.object, dims = 1:50)
+  processed.object <- FindClusters(processed.object, resolution = 0.8)
+  
+  processed.object <- RunUMAP(processed.object, dims = 1:50)
+  
+  sweep.res.list <- paramSweep_v3(processed.object, PCs = 1:50)
+  
+  sweep.stats <- summarizeSweep(sweep.res.list, GT = FALSE)
+  bcmvn <- find.pK(sweep.stats)
+  
+  bcmvn.max <- bcmvn[which.max(bcmvn$BCmetric),]
+  optimal.pk <- bcmvn.max$pK
+  optimal.pk <- as.numeric(levels(optimal.pk))[optimal.pk]
+  print(i + optimal.pk)
+  annotations <- processed.object@meta.data$seurat_clusters
+  homotypic.prop <- modelHomotypic(annotations) 
+  nExp.poi <- round(0.05 * nrow(processed.object@meta.data)) 
+  nExp.poi.adj <- round(nExp.poi * (1 - homotypic.prop))
+  
+  processed.object <- doubletFinder_v3(processed.object, 
+                                       PCs = 1:50, 
+                                       pK = 0.05,
+                                       nExp = nExp.poi.adj)
+  metadata <- processed.object@meta.data
+  colnames(metadata)[12] <- "pANN"
+  colnames(metadata)[13] <- "doublet"
+  processed.object@meta.data <- metadata 
+  
+  processed[[i]] <- processed.object
+  remove(processed.object)
+
+}
+```
+
+```{r save processed}
+saveRDS(processed, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/data/250219_processed_1-5_5pct.rds")
+```
+
+```{r merge and save}
+combined <- Merge_Seurat_List(processed,
+                                     merge.data = TRUE)
+
+saveRDS(combined, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/data/250219_combined_1-5_5pct.rds")
+```
