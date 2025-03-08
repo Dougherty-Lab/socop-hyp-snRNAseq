@@ -1,0 +1,2853 @@
+---
+title: "Analysis of IEG Activation in tuberal hypothalamus of MYT1L mice after social operant conditioning"
+author: "Simona Sarafinovska"
+date: "2025-02-13"
+output:
+---
+
+# Set up environment
+```{r message=FALSE, warning=TRUE}
+# Change this to your directory
+.libPaths("/ref/jdlab/software/r-envs/simona/r-packages/4.2/")
+
+library(dplyr)
+library(Seurat)
+library(ggplot2)
+library(tidyr)
+library(patchwork)
+library(corrplot)
+library(tidyverse)
+library(scCustomize)
+
+set.seed(420)
+
+source("color_utils.R")
+```
+
+
+# Load in data
+```{r load in data}
+combined_neuronal <- readRDS("../data/250228_combined.neuronal_1-5_5pct.rds")
+combined_neuronal
+```
+
+```{r renaming cell_types for saving}
+# Saving scatterplots won't work if you have "/" in cluster name
+combined_neuronal@meta.data$cell_type <- as.factor(gsub("/", "-", combined_neuronal@meta.data$cell_type))
+```
+
+```{r subset for wt only}
+# Subset the Seurat object to keep only WT cells
+wt_only <- subset(combined_neuronal, subset = genotype == "WT")
+
+# Verify the subsetting worked correctly
+table(wt_only$genotype)
+```
+
+```{r drop unused sample levels}
+# Drop unused factor levels from the sample column
+wt_only$sample <- droplevels(wt_only$sample)
+
+# Verify that only WT samples remain
+levels(wt_only$sample)
+```
+
+
+# Fos/Jun/Arc expression plots
+```{r fos expression violin plot}
+gene_expr <- GetAssayData(wt_only, slot = "data")["Fos", ]
+
+# Create a binary vector for expression
+binary_expr <- ifelse(gene_expr > 0, 1, 0)
+
+# Calculate percentage of expressing cells per group
+expr_freq <- tapply(binary_expr, wt_only$Sac_Learner, mean) * 100
+
+VlnPlot_scCustom(wt_only[, gene_expr > 0],
+  group.by = "Sac_Learner",
+  features = "Fos",
+  colors_use = palette_learner,
+  pt.size = 1
+) +
+  geom_boxplot(width = 0.2, fill = NA, color = "white", alpha = 1, outlier.shape = NA) +
+  ggtitle(paste0(
+    "Fos expression\n",
+    "% expressing cells: Learner=", round(expr_freq["Learner"], 1),
+    "%, Non_Learner=", round(expr_freq["Non_Learner"], 1), "%"
+  ))
+
+ggsave(
+  filename = "../results/IEGactivity_WTonly/250214_FosGEX_bylearner.pdf",
+  device = pdf,
+  width = 6,
+  height = 8
+)
+```
+
+```{r wilcoxon test Fos GEX}
+test_data <- data.frame(
+  Fos = gene_expr,
+  learner = wt_only$Sac_Learner
+)
+
+# Perform Wilcoxon test on non-zero values
+wilcox_test <- wilcox.test(
+  Fos ~ learner,
+  data = test_data[test_data$Fos > 0, ],
+  exact = FALSE
+)
+
+print(wilcox_test)
+
+# Calculate medians for direction
+group_medians <- tapply(
+  test_data[test_data$Fos > 0, ]$Fos,
+  test_data[test_data$Fos > 0, ]$learner,
+  median
+)
+
+# Calculate effect size (r = Z/sqrt(N))
+# First get Z score from wilcox test
+z_score <- qnorm(wilcox_test$p.value / 2) # divided by 2 for two-tailed test
+n <- nrow(test_data[test_data$Fos > 0, ])
+effect_size_r <- abs(z_score / sqrt(n))
+
+# Print results
+print("Medians:")
+print(group_medians)
+print(paste("Effect size (r):", round(effect_size_r, 3)))
+```
+
+```{r jun expression violin plot}
+gene_expr <- GetAssayData(wt_only, slot = "data")["Jun", ]
+
+# Create a binary vector for expression
+binary_expr <- ifelse(gene_expr > 0, 1, 0)
+
+# Calculate percentage of expressing cells per group
+expr_freq <- tapply(binary_expr, wt_only$Sac_Learner, mean) * 100
+
+VlnPlot_scCustom(wt_only[, gene_expr > 0],
+  group.by = "Sac_Learner",
+  features = "Jun",
+  colors_use = palette_learner,
+  pt.size = 1
+) +
+  geom_boxplot(width = 0.2, fill = NA, color = "white", alpha = 1, outlier.shape = NA) +
+  ggtitle(paste0(
+    "Jun expression\n",
+    "% expressing cells: Learner=", round(expr_freq["Learner"], 1),
+    "%, Non_Learner=", round(expr_freq["Non_Learner"], 1), "%"
+  ))
+
+ggsave(
+  filename = "../results/IEGactivity_WTonly/250214_JunGEX_bylearner.pdf",
+  device = pdf,
+  width = 6,
+  height = 8
+)
+```
+
+```{r wilcoxon test Jun GEX}
+test_data <- data.frame(
+  Jun = gene_expr,
+  learner = wt_only$Sac_Learner
+)
+
+# Perform Wilcoxon test on non-zero values
+wilcox_test <- wilcox.test(
+  Jun ~ learner,
+  data = test_data[test_data$Jun > 0, ],
+  exact = FALSE
+)
+
+print(wilcox_test)
+
+# Calculate medians for direction
+group_medians <- tapply(
+  test_data[test_data$Jun > 0, ]$Jun,
+  test_data[test_data$Jun > 0, ]$learner,
+  median
+)
+
+# Calculate effect size (r = Z/sqrt(N))
+# First get Z score from wilcox test
+z_score <- qnorm(wilcox_test$p.value / 2) # divided by 2 for two-tailed test
+n <- nrow(test_data[test_data$Jun > 0, ])
+effect_size_r <- abs(z_score / sqrt(n))
+
+# Print results
+print("Medians:")
+print(group_medians)
+print(paste("Effect size (r):", round(effect_size_r, 3)))
+```
+
+```{r arc expression violin plot}
+gene_expr <- GetAssayData(wt_only, slot = "data")["Arc", ]
+
+# Create a binary vector for expression
+binary_expr <- ifelse(gene_expr > 0, 1, 0)
+
+# Calculate percentage of expressing cells per group
+expr_freq <- tapply(binary_expr, wt_only$Sac_Learner, mean) * 100
+
+VlnPlot_scCustom(wt_only[, gene_expr > 0],
+  group.by = "Sac_Learner",
+  features = "Arc",
+  colors_use = palette_learner,
+  pt.size = 1
+) +
+  geom_boxplot(width = 0.2, fill = NA, color = "white", alpha = 1, outlier.shape = NA) +
+  ggtitle(paste0(
+    "Arc expression\n",
+    "% expressing cells: Learner=", round(expr_freq["Learner"], 1),
+    "%, Non_Learner=", round(expr_freq["Non_Learner"], 1), "%"
+  ))
+
+ggsave(
+  filename = "../results/IEGactivity_WTonly/250214_ArcGEX_bylearner.pdf",
+  device = pdf,
+  width = 6,
+  height = 8
+)
+```
+
+```{r wilcoxon test Arc GEX}
+test_data <- data.frame(
+  Arc = gene_expr,
+  learner = wt_only$Sac_Learner
+)
+
+# Perform Wilcoxon test on non-zero values
+wilcox_test <- wilcox.test(
+  Arc ~ learner,
+  data = test_data[test_data$Arc > 0, ],
+  exact = FALSE
+)
+
+print(wilcox_test)
+
+# Calculate medians for direction
+group_medians <- tapply(
+  test_data[test_data$Arc > 0, ]$Arc,
+  test_data[test_data$Arc > 0, ]$learner,
+  median
+)
+
+# Calculate effect size (r = Z/sqrt(N))
+# First get Z score from wilcox test
+z_score <- qnorm(wilcox_test$p.value / 2) # divided by 2 for two-tailed test
+n <- nrow(test_data[test_data$Arc > 0, ])
+effect_size_r <- abs(z_score / sqrt(n))
+
+# Print results
+print("Medians:")
+print(group_medians)
+print(paste("Effect size (r):", round(effect_size_r, 3)))
+```
+
+# Stats on Pct activated by Sample
+
+```{r filtered iegs list}
+filtered_iegs <- c("Fos", "Fosb", "Fosl2", "Jun", "Junb", "Jund", "Egr1", "Egr3", "Egr4", "Nr4a1", "Nr4a2", "Nr4a3", "Arc", "Rgs2", "Plk2", "Bdnf", "Inhba", "Nptx2", "Plat", "Nrn1", "Dusp1", "Dusp5", "Dusp6", "Pcdh8", "Trib1", "Gem", "Btg2", "Npas4", "Rasd1", "Gadd45g", "Ppp1r15a", "Fbxo33", "Srf", "Mcl1", "Bhlhe40", "Nfkbia", "Klf6", "Klf10", "Nfkbiz", "Tnfaip3", "Hbegf", "Ldlr", "F3", "Csrnp1", "Zfp36l2", "Irf1", "Cd83", "Map3k8", "Pim1", "Noct", "Ifit2", "Vcam1", "Ackr4", "Marcksl1", "Nfkbid", "Ikbke", "Zfp36l1", "Hes1", "Wee1", "Sik1", "Ier5", "Id2")
+```
+
+## by Sex
+
+```{r fishers pct activated by sex}
+Idents(wt_only) <- wt_only@meta.data$cell_type
+
+# Fetch expression data for all IEGs
+ieg_expression <- FetchData(wt_only, vars = filtered_iegs)
+
+# Create a data frame with cluster assignments, Sex, sample, and IEG expression
+cluster_ieg_Sex_sample_df <- data.frame(
+  Cluster = Idents(wt_only),
+  Sex = wt_only$sex,
+  Sample = wt_only$sample,
+  ieg_expression
+)
+
+# Calculate the percentage of cells expressing 2 or more IEGs within each cluster, Sex, and sample
+cluster_ieg_Sex_sample_percentages <- cluster_ieg_Sex_sample_df %>%
+  group_by(Cluster, Sex, Sample) %>%
+  summarise(
+    Cluster_Cells = n(),
+    Activated_Cells = sum(rowSums(across(all_of(filtered_iegs)) > 0) >= 2)
+  ) %>%
+  dplyr::mutate(Activated_Percentage = Activated_Cells / Cluster_Cells * 100) %>%
+  ungroup()
+
+# Perform Fisher's exact test on activated percentages between Sexs within each cluster
+cluster_ieg_Sex_comparison <- cluster_ieg_Sex_sample_percentages %>%
+  group_by(Cluster) %>%
+  summarise(
+    Activated_Percentage_M_mean = mean(Activated_Percentage[Sex == "M"]),
+    Activated_Percentage_F_mean = mean(Activated_Percentage[Sex == "F"]),
+    Activated_Percentage_Difference = Activated_Percentage_M_mean - Activated_Percentage_F_mean,
+    p_value = fisher.test(
+      x = matrix(
+        c(
+          sum(Activated_Cells[Sex == "M"]),
+          sum(Cluster_Cells[Sex == "M"] - Activated_Cells[Sex == "M"]),
+          sum(Activated_Cells[Sex == "F"]),
+          sum(Cluster_Cells[Sex == "F"] - Activated_Cells[Sex == "F"])
+        ),
+        nrow = 2
+      )
+    )$p.value
+  )
+
+# Adjust p-values for multiple comparisons (optional)
+adjusted_p_values <- p.adjust(cluster_ieg_Sex_comparison$p_value, method = "BH")
+
+# Add adjusted p-values to the results data frame
+cluster_ieg_Sex_comparison$AdjustedPValue <- adjusted_p_values
+
+cluster_ieg_Sex_comparison <- cluster_ieg_Sex_comparison %>%
+  arrange(AdjustedPValue)
+
+# Print the updated results
+print(cluster_ieg_Sex_comparison)
+
+# # Write the results to a CSV file
+write.csv(cluster_ieg_Sex_comparison, file = "../results/IEGactivity_WTonly/250303_activationpercent_bysex.csv", row.names = FALSE)
+```
+
+## by Learner 
+
+```{r fishers pct activated by learner}
+Idents(wt_only) <- wt_only@meta.data$cell_type
+
+# Fetch expression data for all IEGs
+# ieg_expression <- FetchData(wt_only, vars = filtered_iegs)
+
+# Create a data frame with cluster assignments, Sex, sample, and IEG expression
+cluster_ieg_Learner_sample_df <- data.frame(
+  Cluster = Idents(wt_only),
+  Learner = wt_only$Sac_Learner,
+  Sample = wt_only$sample,
+  ieg_expression
+)
+
+# Calculate the percentage of cells expressing 2 or more IEGs within each cluster, Sex, and sample
+cluster_ieg_Learner_sample_percentages <- cluster_ieg_Learner_sample_df %>%
+  group_by(Cluster, Learner, Sample) %>%
+  summarise(
+    Cluster_Cells = n(),
+    Activated_Cells = sum(rowSums(across(all_of(filtered_iegs)) > 0) >= 2)
+  ) %>%
+  dplyr::mutate(Activated_Percentage = Activated_Cells / Cluster_Cells * 100) %>%
+  ungroup()
+
+# Perform Fisher's exact test on activated percentages between Sexs within each cluster
+cluster_ieg_Learner_comparison <- cluster_ieg_Learner_sample_percentages %>%
+  group_by(Cluster) %>%
+  summarise(
+    Activated_Percentage_Learner_mean = mean(Activated_Percentage[Learner == "Learner"]),
+    Activated_Percentage_Non_Learner_mean = mean(Activated_Percentage[Learner == "Non_Learner"]),
+    Activated_Percentage_Difference = Activated_Percentage_Learner_mean - Activated_Percentage_Non_Learner_mean,
+    p_value = fisher.test(
+      x = matrix(
+        c(
+          sum(Activated_Cells[Learner == "Learner"]),
+          sum(Cluster_Cells[Learner == "Learner"] - Activated_Cells[Learner == "Learner"]),
+          sum(Activated_Cells[Learner == "Non_Learner"]),
+          sum(Cluster_Cells[Learner == "Non_Learner"] - Activated_Cells[Learner == "Non_Learner"])
+        ),
+        nrow = 2
+      )
+    )$p.value
+  )
+
+# Adjust p-values for multiple comparisons (optional)
+adjusted_p_values <- p.adjust(cluster_ieg_Learner_comparison$p_value, method = "BH")
+
+# Add adjusted p-values to the results data frame
+cluster_ieg_Learner_comparison$AdjustedPValue <- adjusted_p_values
+
+cluster_ieg_Learner_comparison <- cluster_ieg_Learner_comparison %>%
+  arrange(AdjustedPValue)
+
+# Print the updated results
+print(cluster_ieg_Learner_comparison)
+
+# Write the results to a CSV file
+write.csv(cluster_ieg_Learner_comparison, file = "../results/IEGactivity_WTonly/250303_activationpercent_bylearner.csv", row.names = FALSE)
+```
+
+# Percentage bar plots
+
+## by Sex
+```{r pct activated by sex df}
+# Fetch expression data for all IEGs
+# ieg_expression <- FetchData(wt_only, vars = filtered_iegs)
+
+# Create a data frame with cluster assignments, sex, and IEG expression
+cluster_ieg_sex_df <- data.frame(
+  Cluster = Idents(wt_only),
+  Sample = wt_only@meta.data$sample,
+  Sex = wt_only@meta.data$sex,
+  ieg_expression
+)
+
+# Calculate the percentage of cells expressing 2 or more IEGs within each cluster and sample
+cluster_ieg_sex_percentages <- cluster_ieg_sex_df %>%
+  group_by(Cluster, Sample) %>%
+  summarise(
+    Cluster_Cells = n(),
+    Activated_Cells = sum(rowSums(across(all_of(filtered_iegs)) > 0) >= 2)
+  ) %>%
+  dplyr::mutate(Activated_Percentage = Activated_Cells / Cluster_Cells * 100) %>%
+  ungroup()
+
+# Convert Cluster to a factor with desired order of levels
+cluster_ieg_sex_percentages$Cluster <- factor(cluster_ieg_sex_percentages$Cluster,
+  levels = sort(as.character(levels(wt_only)))
+)
+
+cluster_ieg_sex_percentages$Sex <- gsub(".*_(\\w)_.*", "\\1", cluster_ieg_sex_percentages$Sample)
+```
+
+```{r pct activated by sex calculations}
+# Determine mean average per cluster for sex
+cluster_ieg_sex_percentages_norm <- cluster_ieg_sex_percentages %>%
+  group_by(Cluster, Sex) %>%
+  dplyr::mutate(Mean_Activated_Percentage = mean(Activated_Percentage)) %>%
+  dplyr::mutate(SE_Mean = sd(Activated_Percentage) / sqrt(36))
+
+WT_M_1_values <- cluster_ieg_sex_percentages_norm[cluster_ieg_sex_percentages_norm$Sample == "WT_M_1", c("Cluster", "Mean_Activated_Percentage")]
+cluster_ieg_sex_percentages_norm <- merge(cluster_ieg_sex_percentages_norm, WT_M_1_values, by = "Cluster", all.x = TRUE)
+colnames(cluster_ieg_sex_percentages_norm)[colnames(cluster_ieg_sex_percentages_norm) == "Mean_Activated_Percentage.y"] <- "Mean_Activated_Percentage_M"
+
+cluster_ieg_sex_percentages_norm <- cluster_ieg_sex_percentages_norm %>%
+  dplyr::mutate(Activated_Percentage_normalizedtoM = ((Activated_Percentage / Mean_Activated_Percentage_M) - 1))
+
+# Make sure the WT mean is around 0
+cluster_ieg_sex_percentages_norm %>%
+  filter(Sex == "M") %>%
+  group_by(Cluster) %>%
+  summarize(mean = mean(Activated_Percentage_normalizedtoM))
+
+cluster_ieg_sex_percentages_norm <- cluster_ieg_sex_percentages_norm %>%
+  group_by(Cluster, Sex) %>%
+  dplyr::mutate(Mean_Activated_Percentage_normalizedtoM = mean(Activated_Percentage_normalizedtoM)) %>%
+  dplyr::mutate(SE_Mean_Activated_Percentage_normalizedtoM = sd(Activated_Percentage_normalizedtoM) / sqrt(36))
+```
+
+```{r pct activated by geno plot}
+p1 <- ggplot(cluster_ieg_sex_percentages_norm, aes(x = Mean_Activated_Percentage.x, y = Cluster, fill = Sex)) +
+  geom_bar(
+    stat = "identity", position = "dodge",
+    width = 0.7
+  ) +
+  geom_errorbar(aes(y = Cluster, xmin = Mean_Activated_Percentage.x - SE_Mean, xmax = Mean_Activated_Percentage.x + SE_Mean),
+    position = position_dodge(0.7),
+    width = 0.2, size = 0.2
+  ) +
+  geom_point(aes(x = Activated_Percentage, y = Cluster),
+    position = position_dodge(width = 0.7),
+    color = "black",
+    size = 0.01
+  ) +
+  labs(x = "Proportion", y = "Cluster") +
+  theme_classic() +
+  scale_fill_manual(values = palette_sex) +
+  theme(legend.position = "right")
+
+p2 <- ggplot(cluster_ieg_sex_percentages_norm, aes(x = Mean_Activated_Percentage_normalizedtoM, y = Cluster, fill = Sex)) +
+  geom_bar(
+    stat = "identity", position = "dodge",
+    width = 0.7
+  ) +
+  geom_errorbar(aes(y = Cluster, xmin = Mean_Activated_Percentage_normalizedtoM - SE_Mean_Activated_Percentage_normalizedtoM, xmax = Mean_Activated_Percentage_normalizedtoM + SE_Mean_Activated_Percentage_normalizedtoM),
+    position = position_dodge(0.7),
+    width = 0.2, size = 0.2
+  ) +
+  labs(x = "Proportion", y = "") +
+  theme_classic() +
+  scale_fill_manual(values = palette_sex) +
+  theme(
+    axis.text.y = element_blank(),
+    legend.position = "none"
+  )
+
+wrap_plots(p1, p2)
+ggsave("../results/IEGactivity_WTonly/250303-activationbySex_neuronal_1-5_5pct_50_1.8.pdf",
+  device = pdf,
+  width = 12,
+  height = 8
+)
+```
+
+## by Learner
+```{r pct activated by learner df}
+# Fetch expression data for all IEGs
+# ieg_expression <- FetchData(wt_only, vars = filtered_iegs)
+
+# Create a data frame with cluster assignments, sex, and IEG expression
+cluster_ieg_Learner_df <- data.frame(
+  Cluster = Idents(wt_only),
+  Sample = wt_only@meta.data$sample,
+  Learner = wt_only@meta.data$Sac_Learner,
+  ieg_expression
+)
+
+# Calculate the percentage of cells expressing 2 or more IEGs within each cluster and sample
+cluster_ieg_Learner_percentages <- cluster_ieg_Learner_df %>%
+  group_by(Cluster, Sample) %>%
+  summarise(
+    Cluster_Cells = n(),
+    Activated_Cells = sum(rowSums(across(all_of(filtered_iegs)) > 0) >= 2),
+    Learner = dplyr::first(Learner)
+  ) %>%
+  dplyr::mutate(Activated_Percentage = Activated_Cells / Cluster_Cells * 100) %>%
+  ungroup()
+```
+
+```{r pct activated by learner calculations}
+# Determine mean average per cluster for sex
+cluster_ieg_Learner_percentages_norm <- cluster_ieg_Learner_percentages %>%
+  group_by(Cluster, Learner) %>%
+  dplyr::mutate(Mean_Activated_Percentage = mean(Activated_Percentage)) %>%
+  dplyr::mutate(SE_Mean = sd(Activated_Percentage) / sqrt(36))
+
+WT_M_10_values <- cluster_ieg_Learner_percentages_norm[cluster_ieg_Learner_percentages_norm$Sample == "WT_M_10", c("Cluster", "Mean_Activated_Percentage")]
+cluster_ieg_Learner_percentages_norm <- merge(cluster_ieg_Learner_percentages_norm, WT_M_10_values, by = "Cluster", all.x = TRUE)
+colnames(cluster_ieg_Learner_percentages_norm)[colnames(cluster_ieg_Learner_percentages_norm) == "Mean_Activated_Percentage.y"] <- "Mean_Activated_Percentage_NL"
+
+cluster_ieg_Learner_percentages_norm <- cluster_ieg_Learner_percentages_norm %>%
+  dplyr::mutate(Activated_Percentage_normalizedtoNL = ((Activated_Percentage / Mean_Activated_Percentage_NL) - 1))
+
+# Make sure the WT mean is around 0
+cluster_ieg_Learner_percentages_norm %>%
+  filter(Learner == "Non_Learner") %>%
+  group_by(Cluster) %>%
+  summarize(mean = mean(Activated_Percentage_normalizedtoNL))
+
+cluster_ieg_Learner_percentages_norm <- cluster_ieg_Learner_percentages_norm %>%
+  group_by(Cluster, Learner) %>%
+  dplyr::mutate(Mean_Activated_Percentage_normalizedtoNL = mean(Activated_Percentage_normalizedtoNL)) %>%
+  dplyr::mutate(SE_Mean_Activated_Percentage_normalizedtoNL = sd(Activated_Percentage_normalizedtoNL) / sqrt(36))
+```
+
+```{r pct activated by learner plot}
+p1 <- ggplot(cluster_ieg_Learner_percentages_norm, aes(x = Mean_Activated_Percentage.x, y = Cluster, fill = Learner)) +
+  geom_bar(
+    stat = "identity", position = "dodge",
+    width = 0.7
+  ) +
+  geom_errorbar(aes(y = Cluster, xmin = Mean_Activated_Percentage.x - SE_Mean, xmax = Mean_Activated_Percentage.x + SE_Mean),
+    position = position_dodge(0.7),
+    width = 0.2, size = 0.2
+  ) +
+  geom_point(aes(x = Activated_Percentage, y = Cluster),
+    position = position_dodge(width = 0.7),
+    color = "black",
+    size = 0.01
+  ) +
+  labs(x = "Proportion", y = "Cluster") +
+  theme_classic() +
+  scale_fill_manual(values = palette_learner) +
+  theme(legend.position = "right")
+
+p2 <- ggplot(cluster_ieg_Learner_percentages_norm, aes(x = Mean_Activated_Percentage_normalizedtoNL, y = Cluster, fill = Learner)) +
+  geom_bar(
+    stat = "identity", position = "dodge",
+    width = 0.7
+  ) +
+  geom_errorbar(aes(y = Cluster, xmin = Mean_Activated_Percentage_normalizedtoNL - SE_Mean_Activated_Percentage_normalizedtoNL, xmax = Mean_Activated_Percentage_normalizedtoNL + SE_Mean_Activated_Percentage_normalizedtoNL),
+    position = position_dodge(0.7),
+    width = 0.2, size = 0.2
+  ) +
+  labs(x = "Proportion", y = "") +
+  theme_classic() +
+  scale_fill_manual(values = palette_learner) +
+  theme(
+    axis.text.y = element_blank(),
+    legend.position = "none"
+  )
+
+wrap_plots(p1, p2)
+ggsave("../results/IEGactivity_WTonly/250303-activationbyLearner_neuronal_1-5_5pct_50_1.8.pdf",
+  device = pdf,
+  width = 12,
+  height = 8
+)
+```
+
+```{r sig clusters only plotr}
+significant_clusters <- cluster_ieg_Learner_comparison %>%
+  filter(p_value < 0.1) %>%
+  pull(Cluster) %>%
+  as.character()
+
+sig_cluster_ieg_Learner_percentages_norm <- cluster_ieg_Learner_percentages_norm %>%
+  dplyr::filter(Cluster %in% significant_clusters) %>%
+  arrange(match(Cluster, significant_clusters))
+
+sig_p1 <- ggplot(sig_cluster_ieg_Learner_percentages_norm, aes(x = Mean_Activated_Percentage.x, y = Cluster, fill = Learner)) +
+  geom_bar(
+    stat = "identity", position = "dodge",
+    width = 0.7
+  ) +
+  geom_errorbar(aes(y = Cluster, xmin = Mean_Activated_Percentage.x - SE_Mean, xmax = Mean_Activated_Percentage.x + SE_Mean),
+    position = position_dodge(0.7),
+    width = 0.2, size = 0.2
+  ) +
+  labs(x = "Proportion", y = "Cluster") +
+  theme_classic() +
+  scale_fill_manual(values = palette_learner) +
+  geom_point(aes(x = Activated_Percentage, y = Cluster),
+    position = position_dodge(width = 0.7),
+    color = "black",
+    size = 0.01
+  ) +
+  theme(legend.position = "right")
+
+sig_p1
+
+ggsave("../results/IEGactivity_WTonly/250303-activationbyLearner_neuronal_1-5_5pct_50_1.8_sigonly.pdf",
+  device = pdf,
+  width = 5,
+  height = 8
+)
+```
+
+# Regressions of Behavior by Pct activated
+## Rewards
+```{r regression rewards by pct activated}
+Idents(wt_only) <- wt_only$cell_type
+
+# Fetch expression data for all IEGs
+ieg_expression <- FetchData(wt_only, vars = filtered_iegs)
+
+# Create a data frame with cluster assignments, Sex, sample, and IEG expression
+cluster_ieg_sample_df <- data.frame(
+  Cluster = Idents(wt_only),
+  Sex = wt_only$sex,
+  Sample = wt_only$sample,
+  TotalRewards = wt_only$Avg_Total_Rewards,
+  ieg_expression
+)
+
+# Calculate the percentage of cells expressing 2 or more IEGs within each cluster, Sex, and sample
+cluster_ieg_sample_percentages <- cluster_ieg_sample_df %>%
+  group_by(Cluster, Sample) %>%
+  summarise(
+    Cluster_Cells = n(),
+    Activated_Cells = sum(rowSums(across(all_of(filtered_iegs)) > 0) >= 2),
+    TotalRewards = dplyr::first(TotalRewards)
+  ) %>%
+  dplyr::mutate(Activated_Percentage = Activated_Cells / Cluster_Cells * 100) %>%
+  ungroup()
+
+cluster_regression_results <- cluster_ieg_sample_percentages %>%
+  group_by(Cluster) %>%
+  nest() %>%
+  dplyr::mutate(
+    lm_model = map(data, ~ lm(TotalRewards ~ Activated_Percentage, data = .x)),
+    summary = map(lm_model, summary),
+    coefficients = map(lm_model, coef),
+    p_value = map_dbl(summary, ~ .x$coefficients[2, 4]),
+    r_squared = map_dbl(summary, ~ .x$r.squared)
+  ) %>%
+  dplyr::mutate(
+    Slope = map_dbl(coefficients, ~ .x[2]),
+    Intercept = map_dbl(coefficients, ~ .x[1])
+  ) %>%
+  dplyr::select(Cluster, Slope, Intercept, p_value, r_squared)
+
+# Adjust p-values for multiple comparisons (optional)
+adjusted_p_values <- p.adjust(cluster_regression_results$p_value, method = "BH")
+
+# Add adjusted p-values to the results data frame
+cluster_regression_results$AdjustedPValue <- adjusted_p_values
+cluster_regression_results <- cluster_regression_results %>%
+  arrange(AdjustedPValue)
+
+# Print the updated results
+print(cluster_regression_results)
+
+# # Write the results to a CSV file
+write.csv(cluster_regression_results, file = "../results/IEGactivity_WTonly/250303_rewards_byactivationpercent.csv", row.names = FALSE)
+```
+
+```{r scatters rewards by pct activated}
+plot_cluster <- function(cluster, cluster_regression_results, cluster_ieg_sample_percentages) {
+  # Extract the results for the specific cluster we're plotting
+  cluster_results <- cluster_regression_results[cluster_regression_results$Cluster == cluster, ]
+
+  # Filter the data for the specific cluster
+  cluster_df <- cluster_ieg_sample_percentages %>%
+    filter(Cluster == cluster)
+
+  # Create the plot
+  plot(cluster_df$Activated_Percentage, cluster_df$TotalRewards,
+    main = paste("Cluster", cluster),
+    pch = 16, cex = 2,
+    xlab = "Activated Percentage", ylab = "Total Rewards",
+    cex.lab = 1.5, cex.axis = 1.5,
+    cex.main = 2,
+    xlim = c(0, max(cluster_df$Activated_Percentage)),
+    bty = "l"
+  )
+
+  # Fit line
+  fit <- lm(TotalRewards ~ Activated_Percentage, data = cluster_df)
+
+  # Add the fit line
+  abline(fit, col = "black", lwd = 2)
+
+  # Create legend labels with statistics
+  legend_labels <- c(
+    paste("R² =", round(cluster_results$r_squared, 3)),
+    paste("p-value =", format.pval(cluster_results$p_value, digits = 3)),
+    paste("Adj. p-value =", format.pval(cluster_results$AdjustedPValue, digits = 3))
+  )
+
+  # Add legend
+  legend("topleft",
+    legend = legend_labels,
+    col = "black",
+    cex = 1.2,
+    bty = "n"
+  )
+
+  # Add title with cluster name and coefficients
+  title_text <- paste(
+    "Cluster", cluster, "\n",
+    "Intercept =", round(cluster_results$Intercept, 3), "\n",
+    "Slope =", round(cluster_results$Slope, 3)
+  )
+  title(main = title_text, cex.main = 1.5)
+}
+
+# Get all unique cluster numbers
+clusters <- unique(cluster_regression_results$Cluster)
+
+# Create a directory to save the PDFs if it doesn't exist
+dir.create("../results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303", showWarnings = FALSE)
+
+# Iterate through clusters
+for (cluster in clusters) {
+  # Open a PDF device
+  pdf(file = paste0("../results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303/cluster_", cluster, "_plot.pdf"), width = 6, height = 8)
+
+  # Create the plot
+  plot_cluster(cluster, cluster_regression_results, cluster_ieg_sample_percentages)
+
+  # Close the PDF device
+  dev.off()
+
+  # Print progress
+  cat("Saved plot for cluster", cluster, "\n")
+}
+
+cat("All plots have been saved in the 'RewardsbyActivatedPercentage' directory.\n")
+```
+
+### with Sex
+```{r regression rewards by pct activated and sex }
+# Create a data frame with cluster assignments, Sex, sample, and IEG expression
+cluster_ieg_Sex_sample_df <- data.frame(
+  Cluster = Idents(wt_only),
+  Sex = wt_only$sex,
+  Sample = wt_only$sample,
+  TotalRewards = wt_only$Avg_Total_Rewards,
+  ieg_expression
+)
+# Calculate the percentage of cells expressing 2 or more IEGs within each cluster, Sex, and sample
+cluster_ieg_Sex_sample_percentages <- cluster_ieg_Sex_sample_df %>%
+  group_by(Cluster, Sex, Sample) %>%
+  summarise(
+    Cluster_Cells = n(),
+    Activated_Cells = sum(rowSums(across(all_of(filtered_iegs)) > 0) >= 2),
+    TotalRewards = dplyr::first(TotalRewards)
+  ) %>%
+  dplyr::mutate(Activated_Percentage = Activated_Cells / Cluster_Cells * 100) %>%
+  ungroup()
+# Perform linear regression for each cluster, skipping those with only one Sex level
+regression_results <- cluster_ieg_Sex_sample_percentages %>%
+  # First identify clusters with only one Sex level
+  group_by(Cluster) %>%
+  mutate(sex_levels_count = n_distinct(Sex)) %>%
+  ungroup() %>%
+  # Filter to keep only clusters with at least 2 Sex levels
+  filter(sex_levels_count >= 2) %>%
+  # Now proceed with your analysis on the filtered data
+  group_by(Cluster) %>%
+  nest() %>%
+  dplyr::mutate(
+    lm_model = map(data, ~ lm(TotalRewards ~ Activated_Percentage + Sex, data = .x)),
+    summary = map(lm_model, summary),
+    coefficients = map(lm_model, coef),
+    r_squared = map_dbl(summary, ~ .x$r.squared),
+    p_value_activated_percentage = map_dbl(summary, ~ {
+      coef_matrix <- .x$coefficients
+      if (nrow(coef_matrix) >= 2 && ncol(coef_matrix) >= 4) .x$coefficients[2, 4] else NA_real_
+    }),
+    p_value_sex = map_dbl(summary, ~ {
+      coef_matrix <- .x$coefficients
+      if (nrow(coef_matrix) >= 3 && ncol(coef_matrix) >= 4) .x$coefficients[3, 4] else NA_real_
+    })
+  ) %>%
+  dplyr::mutate(
+    Slope_Activated_Percentage = map_dbl(coefficients, ~ {
+      if (length(.x) >= 2) .x[2] else NA_real_
+    }),
+    Slope_Sex = map_dbl(coefficients, ~ {
+      if (length(.x) >= 3) .x[3] else NA_real_
+    }),
+    Intercept = map_dbl(coefficients, ~ .x[1])
+  ) %>%
+  dplyr::select(
+    Cluster, Slope_Activated_Percentage, Slope_Sex, Intercept,
+    p_value_activated_percentage, p_value_sex, r_squared
+  )
+
+# Adjust p-values for multiple comparisons (optional)
+adjusted_p_values_activated <- p.adjust(regression_results$p_value_activated_percentage, method = "BH")
+adjusted_p_values_sex <- p.adjust(regression_results$p_value_sex, method = "BH")
+
+# Add adjusted p-values to the results data frame
+regression_results$adjusted_p_values_activated <- adjusted_p_values_activated
+regression_results$adjusted_p_values_sex <- adjusted_p_values_sex
+
+regression_results <- regression_results %>%
+  arrange(adjusted_p_values_activated)
+
+# Print the updated results
+print(regression_results)
+
+# Write the results to a CSV file
+write.csv(regression_results, file = "../results/IEGactivity_WTonly/250303_rewards_byactivationpercent_bysex.csv", row.names = FALSE)
+```
+
+```{r scatters rewards by pct activated with sex}
+plot_cluster_withsex <- function(cluster, regression_results, cluster_ieg_Sex_sample_percentages) {
+  # Extract the results for the specific cluster we're plotting
+  cluster_results <- regression_results[regression_results$Cluster == cluster, ]
+
+  # Filter the data for the specific cluster
+  cluster_df <- cluster_ieg_Sex_sample_percentages %>%
+    filter(Cluster == cluster)
+
+  # Create the plot
+  plot(cluster_df$Activated_Percentage, cluster_df$TotalRewards,
+    main = paste("Cluster", cluster),
+    pch = 16, cex = 2,
+    xlab = "Activated Percentage", ylab = "Rewards",
+    cex.lab = 1.5, cex.axis = 1.5,
+    cex.main = 2,
+    xlim = c(0, max(cluster_df$Activated_Percentage)),
+    bty = "l",
+    col = ifelse(cluster_df$Sex == "M", "#4478AB", "#ED6677")
+  )
+
+  # Fit lines for all data, male, and female
+  fit_all <- lm(TotalRewards ~ Activated_Percentage + Sex, data = cluster_df)
+  fit_male <- lm(TotalRewards ~ Activated_Percentage, data = cluster_df[cluster_df$Sex == "M", ])
+  fit_female <- lm(TotalRewards ~ Activated_Percentage, data = cluster_df[cluster_df$Sex == "F", ])
+
+  # Add the fit lines
+  abline(fit_all, col = "black", lwd = 2)
+  abline(fit_male, col = "#4478AB", lwd = 2)
+  abline(fit_female, col = "#ED6677", lwd = 2)
+
+  # Calculate R-squared values for each fit
+  r2_all <- summary(fit_all)$r.squared
+  r2_male <- summary(fit_male)$r.squared
+  r2_female <- summary(fit_female)$r.squared
+
+  # Create legend labels with statistics
+  legend_labels <- c(
+    paste("All (R² =", round(r2_all, 3), ")"),
+    paste("Male (R² =", round(r2_male, 3), ")"),
+    paste("Female (R² =", round(r2_female, 3), ")"),
+    paste("Activated % Slope =", round(cluster_results$Slope_Activated_Percentage, 3)),
+    paste("Sex Slope =", round(cluster_results$Slope_Sex, 3)),
+    paste("Intercept =", round(cluster_results$Intercept, 3)),
+    paste("Activated % p-value =", format.pval(cluster_results$p_value_activated_percentage, digits = 3)),
+    paste("Sex p-value =", format.pval(cluster_results$p_value_sex, digits = 3)),
+    paste("Activated % Adj. p-value =", format.pval(cluster_results$adjusted_p_values_activated, digits = 3)),
+    paste("Sex Adj. p-value =", format.pval(cluster_results$adjusted_p_values_sex, digits = 3))
+  )
+
+  # Add legend
+  legend("topleft",
+    legend = legend_labels,
+    col = c("black", "#4478AB", "#ED6677", rep("black", 5)),
+    lty = c(1, 1, 1, rep(NA, 5)),
+    cex = 1.2,
+    bty = "n"
+  )
+}
+
+# Get all unique cluster numbers
+clusters <- unique(regression_results$Cluster)
+
+# Iterate through clusters
+for (cluster in clusters) {
+  # Open a PDF device
+  pdf(file = paste0("../results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303/cluster_", cluster, "_plot_bySex.pdf"), width = 6, height = 8)
+
+  # Create the plot
+  plot_cluster_withsex(cluster, regression_results, cluster_ieg_Sex_sample_percentages)
+
+  # Close the PDF device
+  dev.off()
+
+  # Print progress
+  cat("Saved plot for cluster", cluster, "\n")
+}
+
+cat("All plots have been saved in the 'RewardsbyActivatedPercentage' directory.\n")
+```
+
+### with Learner 
+```{r regression rewards by pct activated and learner}
+# Create a data frame with cluster assignments, Sex, sample, and IEG expression
+cluster_ieg_Learner_sample_df <- data.frame(
+  Cluster = Idents(wt_only),
+  Sample = wt_only$sample,
+  Sac_Learner = wt_only$Sac_Learner,
+  TotalRewards = wt_only$Avg_Total_Rewards,
+  ieg_expression
+)
+# Calculate the percentage of cells expressing 2 or more IEGs within each cluster, Sac_Learner, and sample
+cluster_ieg_Learner_sample_percentages <- cluster_ieg_Learner_sample_df %>%
+  group_by(Cluster, Sac_Learner, Sample) %>%
+  summarise(
+    Cluster_Cells = n(),
+    Activated_Cells = sum(rowSums(across(all_of(filtered_iegs)) > 0) >= 2),
+    TotalRewards = dplyr::first(TotalRewards)
+  ) %>%
+  dplyr::mutate(Activated_Percentage = Activated_Cells / Cluster_Cells * 100) %>%
+  ungroup()
+
+regression_results <- cluster_ieg_Learner_sample_percentages %>%
+  # First identify clusters with only one Sac_Learner level
+  group_by(Cluster) %>%
+  mutate(learner_levels_count = n_distinct(Sac_Learner)) %>%
+  ungroup() %>%
+  # Filter to keep only clusters with at least 2 Sac_Learner levels
+  filter(learner_levels_count >= 2) %>%
+  # Now proceed with your analysis on the filtered data
+  group_by(Cluster) %>%
+  nest() %>%
+  dplyr::mutate(
+    lm_model = map(data, ~ lm(TotalRewards ~ Activated_Percentage + Sac_Learner, data = .x)),
+    summary = map(lm_model, summary),
+    coefficients = map(lm_model, coef),
+    r_squared = map_dbl(summary, ~ .x$r.squared),
+    p_value_activated_percentage = map_dbl(summary, ~ {
+      coef_matrix <- .x$coefficients
+      if (nrow(coef_matrix) >= 2 && ncol(coef_matrix) >= 4) .x$coefficients[2, 4] else NA_real_
+    }),
+    p_value_sac_learner = map_dbl(summary, ~ {
+      coef_matrix <- .x$coefficients
+      if (nrow(coef_matrix) >= 3 && ncol(coef_matrix) >= 4) .x$coefficients[3, 4] else NA_real_
+    })
+  ) %>%
+  dplyr::mutate(
+    Slope_Activated_Percentage = map_dbl(coefficients, ~ {
+      if (length(.x) >= 2) .x[2] else NA_real_
+    }),
+    Slope_Sac_Learner = map_dbl(coefficients, ~ {
+      if (length(.x) >= 3) .x[3] else NA_real_
+    }),
+    Intercept = map_dbl(coefficients, ~ .x[1])
+  ) %>%
+  dplyr::select(
+    Cluster, Slope_Activated_Percentage, Slope_Sac_Learner, Intercept,
+    p_value_activated_percentage, p_value_sac_learner, r_squared
+  )
+
+# Adjust p-values for multiple comparisons (optional)
+adjusted_p_values_activated <- p.adjust(regression_results$p_value_activated_percentage, method = "BH")
+adjusted_p_values_sac_learner <- p.adjust(regression_results$p_value_sac_learner, method = "BH")
+
+# Add adjusted p-values to the results data frame
+regression_results$adjusted_p_values_activated <- adjusted_p_values_activated
+regression_results$adjusted_p_values_sac_learner <- adjusted_p_values_sac_learner
+
+regression_results <- regression_results %>%
+  arrange(adjusted_p_values_activated)
+
+# Print the updated results
+print(regression_results)
+
+# Write the results to a CSV file
+write.csv(regression_results, file = "../results/IEGactivity_WTonly/250303_rewards_byactivationpercent_bysaclearner.csv", row.names = FALSE)
+```
+
+```{r scatters rewards by pct activated with learner}
+plot_cluster_withSac_Learner <- function(cluster, regression_results, cluster_ieg_Learner_sample_percentages) {
+  # Extract the results for the specific cluster we're plotting
+  cluster_results <- regression_results[regression_results$Cluster == cluster, ]
+
+  # Filter the data for the specific cluster
+  cluster_df <- cluster_ieg_Learner_sample_percentages %>%
+    filter(Cluster == cluster)
+
+  # Create the plot
+  plot(cluster_df$Activated_Percentage, cluster_df$TotalRewards,
+    main = paste("Cluster", cluster),
+    pch = 16, cex = 2,
+    xlab = "Activated Percentage", ylab = "Rewards",
+    cex.lab = 1.5, cex.axis = 1.5,
+    cex.main = 2,
+    xlim = c(0, max(cluster_df$Activated_Percentage)),
+    bty = "l",
+    col = ifelse(cluster_df$Sac_Learner == "Learner", "#547B80", "#D1D3D4")
+  )
+
+  # Fit lines for all data, male, and female
+  fit_all <- lm(TotalRewards ~ Activated_Percentage + Sac_Learner, data = cluster_df)
+  fit_learner <- lm(TotalRewards ~ Activated_Percentage, data = cluster_df[cluster_df$Sac_Learner == "Learner", ])
+  fit_nonlearner <- lm(TotalRewards ~ Activated_Percentage, data = cluster_df[cluster_df$Sac_Learner == "Non_Learner", ])
+
+  # Add the fit lines
+  abline(fit_all, col = "black", lwd = 2)
+  abline(fit_learner, col = "#547B80", lwd = 2)
+  abline(fit_nonlearner, col = "#D1D3D4", lwd = 2)
+
+  # Calculate R-squared values for each fit
+  r2_all <- summary(fit_all)$r.squared
+  r2_learner <- summary(fit_learner)$r.squared
+  r2_nonleaner <- summary(fit_nonlearner)$r.squared
+
+  # Create legend labels with statistics
+  legend_labels <- c(
+    paste("All (R² =", round(r2_all, 3), ")"),
+    paste("Learner (R² =", round(r2_learner, 3), ")"),
+    paste("Non-Learner (R² =", round(r2_nonleaner, 3), ")"),
+    paste("Activated % Slope =", round(cluster_results$Slope_Activated_Percentage, 3)),
+    paste("Sac_Learner Slope =", round(cluster_results$Slope_Sac_Learner, 3)),
+    paste("Intercept =", round(cluster_results$Intercept, 3)),
+    paste("Activated % p-value =", format.pval(cluster_results$p_value_activated_percentage, digits = 3)),
+    paste("Sac_Learner p-value =", format.pval(cluster_results$p_value_sac_sLearner, digits = 3)),
+    paste("Activated % Adj. p-value =", format.pval(cluster_results$adjusted_p_values_activated, digits = 3)),
+    paste("Sac_Learner Adj. p-value =", format.pval(cluster_results$adjusted_p_values_sac_learner, digits = 3))
+  )
+
+  # Add legend
+  legend("topleft",
+    legend = legend_labels,
+    col = c("black", "#547B80", "#D1D3D4", rep("black", 5)),
+    lty = c(1, 1, 1, rep(NA, 5)),
+    cex = 1.2,
+    bty = "n"
+  )
+}
+
+# Get all unique cluster numbers
+clusters <- unique(regression_results$Cluster)
+problem_clusters <- c("Hist Gaba", "PO-MEA Slc17a7 Glut")
+clusters_to_plot <- clusters[!clusters %in% problem_clusters] # ablines wouldn't fit
+
+# Iterate through clusters
+for (cluster in clusters_to_plot) {
+  print(cluster)
+  # Open a PDF device
+  pdf(file = paste0("../results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303/cluster_", cluster, "_plot_bySac_Learner.pdf"), width = 6, height = 8)
+
+  # Create the plot
+  plot_cluster_withSac_Learner(cluster, regression_results, cluster_ieg_Learner_sample_percentages)
+
+  # Close the PDF device
+  dev.off()
+
+  # Print progress
+  cat("Saved plot for cluster", cluster, "\n")
+}
+
+cat("All plots have been saved in the 'RewardsbyActivatedPercentage' directory.\n")
+```
+
+```{r}
+plot_cluster_withSac_Learner_no_abline <- function(cluster, regression_results, cluster_ieg_Learner_sample_percentages) {
+  # Extract the results for the specific cluster we're plotting
+  cluster_results <- regression_results[regression_results$Cluster == cluster, ]
+
+  # Filter the data for the specific cluster
+  cluster_df <- cluster_ieg_Learner_sample_percentages %>%
+    filter(Cluster == cluster)
+
+  # Create the plot - just the scatter points, no regression lines
+  plot(cluster_df$Activated_Percentage, cluster_df$TotalRewards,
+    main = paste("Cluster", cluster),
+    pch = 16, cex = 2,
+    xlab = "Activated Percentage", ylab = "Rewards",
+    cex.lab = 1.5, cex.axis = 1.5,
+    cex.main = 2,
+    xlim = c(0, max(cluster_df$Activated_Percentage, na.rm = TRUE) + 1),
+    bty = "l",
+    col = ifelse(!is.na(cluster_df$Sac_Learner) & cluster_df$Sac_Learner == "Learner", "#547B80", "#D1D3D4")
+  )
+
+  # Create legend with just the regression statistics, no R² values
+  if (nrow(cluster_results) > 0) {
+    legend_labels <- c(
+      "Learner",
+      "Non-Learner",
+      paste("Activated % Slope =", round(cluster_results$Slope_Activated_Percentage, 3)),
+      paste("Sac_Learner Slope =", round(cluster_results$Slope_Sac_Learner, 3)),
+      paste("Intercept =", round(cluster_results$Intercept, 3)),
+      paste("Activated % p-value =", format.pval(cluster_results$p_value_activated_percentage, digits = 3)),
+      paste("Sac_Learner p-value =", format.pval(cluster_results$p_value_sac_learner, digits = 3)),
+      paste("Activated % Adj. p-value =", format.pval(cluster_results$adjusted_p_values_activated, digits = 3)),
+      paste("Sac_Learner Adj. p-value =", format.pval(cluster_results$adjusted_p_values_sac_learner, digits = 3))
+    )
+
+    legend("topleft",
+      legend = legend_labels,
+      col = c("#547B80", "#D1D3D4", rep("black", 7)),
+      pch = c(16, 16, rep(NA, 7)),
+      cex = 1.2,
+      bty = "n"
+    )
+  }
+}
+
+# Iterate through clusters
+for (cluster in problem_clusters) {
+  print(cluster)
+  # Open a PDF device
+  pdf(file = paste0("../results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303/cluster_", cluster, "_plot_bySac_Learner_noabline.pdf"), width = 6, height = 8)
+
+  # Create the plot
+  plot_cluster_withSac_Learner_no_abline(cluster, regression_results, cluster_ieg_Learner_sample_percentages)
+
+  # Close the PDF device
+  dev.off()
+
+  # Print progress
+  cat("Saved plot for cluster", cluster, "\n")
+}
+
+cat("All plots have been saved in the 'RewardsbyActivatedPercentage' directory.\n")
+```
+
+### Control: by Pct Activity in All Clusters
+```{r scatter rewards by pct activity in all neurons}
+# First calculate the activation percentage across all neurons for each sample
+overall_sample_percentages <- cluster_ieg_sample_df %>%
+  group_by(Sample) %>%
+  summarise(
+    Total_Cells = n(),
+    Activated_Cells = sum(rowSums(across(all_of(filtered_iegs)) > 0) >= 2),
+    TotalRewards = dplyr::first(TotalRewards)
+  ) %>%
+  dplyr::mutate(Activated_Percentage = Activated_Cells / Total_Cells * 100) %>%
+  ungroup()
+
+# Create a plotting function for the control
+plot_control <- function(sample_data) {
+  # Fit regression line
+  fit <- lm(TotalRewards ~ Activated_Percentage, data = sample_data)
+  fit_summary <- summary(fit)
+
+  # Create the plot
+  plot(sample_data$Activated_Percentage, sample_data$TotalRewards,
+    main = "All Neurons",
+    pch = 16, cex = 2,
+    xlab = "Activated Percentage", ylab = "Rewards",
+    cex.lab = 1.5, cex.axis = 1.5,
+    cex.main = 2,
+    # xlim = c(0, max(sample_data$Activated_Percentage)),
+    bty = "l"
+  )
+
+  # Add the fit line
+  abline(fit, col = "black", lwd = 2)
+
+  # Create legend labels with statistics
+  legend_labels <- c(
+    paste("R² =", round(fit_summary$r.squared, 3)),
+    paste("p-value =", format.pval(fit_summary$coefficients[2, 4], digits = 3)),
+    paste("Slope =", round(fit_summary$coefficients[2, 1], 3)),
+    paste("Intercept =", round(fit_summary$coefficients[1, 1], 3))
+  )
+
+  # Add legend
+  legend("topleft",
+    legend = legend_labels,
+    col = "black",
+    cex = 1.2,
+    bty = "n"
+  )
+}
+
+# Save the  plot
+pdf(
+  file = "../results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303/control_all_neurons_plot.pdf",
+  width = 6, height = 8
+)
+plot_control(overall_sample_percentages)
+dev.off()
+```
+
+```{r regression rewards by pct activity in all neurons}
+overall_stats <- overall_sample_percentages %>%
+  {
+    fit <- lm(TotalRewards ~ Activated_Percentage, data = .)
+    sum_fit <- summary(fit)
+
+    data.frame(
+      Analysis = "All_Neurons",
+      Slope = coef(fit)[2],
+      Intercept = coef(fit)[1],
+      p_value = sum_fit$coefficients[2, 4],
+      r_squared = sum_fit$r.squared
+    )
+  }
+
+# Write results to CSV
+write.csv(overall_stats,
+  file = "../results/IEGactivity_WTonly/250303_Rewards_byactivationpercent_allneurons.csv",
+  row.names = FALSE
+)
+```
+
+```{r scatter rewards by pct activity in all neurons by sex}
+# Calculate overall activation by sample and sex
+overall_sample_sex_percentages <- cluster_ieg_sample_df %>%
+  group_by(Sample, Sex) %>%
+  summarise(
+    Total_Cells = n(),
+    Activated_Cells = sum(rowSums(across(all_of(filtered_iegs)) > 0) >= 2),
+    TotalRewards = dplyr::first(TotalRewards)
+  ) %>%
+  dplyr::mutate(Activated_Percentage = Activated_Cells / Total_Cells * 100) %>%
+  ungroup()
+
+# Create a plotting function for the control with sex
+plot_control_withsex <- function(sample_data) {
+  # Fit lines for all data, male, and female
+  fit_all <- lm(TotalRewards ~ Activated_Percentage + Sex, data = sample_data)
+  fit_male <- lm(TotalRewards ~ Activated_Percentage, data = sample_data[sample_data$Sex == "M", ])
+  fit_female <- lm(TotalRewards ~ Activated_Percentage, data = sample_data[sample_data$Sex == "F", ])
+
+  # Create the plot
+  plot(sample_data$Activated_Percentage, sample_data$TotalRewards,
+    main = "All Neurons",
+    pch = 16, cex = 2,
+    xlab = "Activated Percentage", ylab = "Rewards",
+    cex.lab = 1.5, cex.axis = 1.5,
+    cex.main = 2,
+    xlim = c(10, max(sample_data$Activated_Percentage)),
+    bty = "l",
+    col = ifelse(sample_data$Sex == "M", "#4478AB", "#ED6677")
+  )
+
+  # Add the fit lines
+  abline(fit_all, col = "black", lwd = 2)
+  abline(fit_male, col = "#4478AB", lwd = 2)
+  abline(fit_female, col = "#ED6677", lwd = 2)
+
+  # Calculate R-squared values for each fit
+  r2_all <- summary(fit_all)$r.squared
+  r2_male <- summary(fit_male)$r.squared
+  r2_female <- summary(fit_female)$r.squared
+
+  # Create legend labels with statistics
+  legend_labels <- c(
+    paste("All (R² =", round(r2_all, 3), ")"),
+    paste("Male (R² =", round(r2_male, 3), ")"),
+    paste("Female (R² =", round(r2_female, 3), ")"),
+    paste("Activated % Slope =", round(summary(fit_all)$coefficients[2, 1], 3)),
+    paste("Sex Slope =", round(summary(fit_all)$coefficients[3, 1], 3)),
+    paste("Intercept =", round(summary(fit_all)$coefficients[1, 1], 3)),
+    paste("Activated % p-value =", format.pval(summary(fit_all)$coefficients[2, 4], digits = 3)),
+    paste("Sex p-value =", format.pval(summary(fit_all)$coefficients[3, 4], digits = 3))
+  )
+
+  # Add legend
+  legend("topleft",
+    legend = legend_labels,
+    col = c("black", "#4478AB", "#ED6677", rep("black", 5)),
+    lty = c(1, 1, 1, rep(NA, 5)),
+    cex = 1.2,
+    bty = "n"
+  )
+}
+
+# Save the control plot with sex
+pdf(
+  file = "../results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303/control_all_neurons_plot_bySex.pdf",
+  width = 6, height = 8
+)
+plot_control_withsex(overall_sample_sex_percentages)
+dev.off()
+```
+
+```{r regression rewards by pct activity in all neurons by sex}
+overall_sex_stats <- overall_sample_sex_percentages %>%
+  {
+    # Full model with sex
+    fit <- lm(TotalRewards ~ Activated_Percentage + Sex, data = .)
+    sum_fit <- summary(fit)
+
+    # Sex-specific models
+    fit_male <- lm(TotalRewards ~ Activated_Percentage, data = .[.$Sex == "M", ])
+    fit_female <- lm(TotalRewards ~ Activated_Percentage, data = .[.$Sex == "F", ])
+
+    data.frame(
+      Analysis = "All_Neurons",
+      Slope_Activated_Percentage = coef(fit)[2],
+      Slope_Sex = coef(fit)[3],
+      Intercept = coef(fit)[1],
+      p_value_activated_percentage = sum_fit$coefficients[2, 4],
+      p_value_sex = sum_fit$coefficients[3, 4],
+      r_squared_full = sum_fit$r.squared,
+      r_squared_male = summary(fit_male)$r.squared,
+      r_squared_female = summary(fit_female)$r.squared
+    )
+  }
+
+# Write results to CSV
+write.csv(overall_sex_stats,
+  file = "../results/IEGactivity_WTonly/250303_Rewards_byactivationpercent_allneurons_bysex.csv",
+  row.names = FALSE
+)
+```
+
+
+## Plotting B values
+```{r plotting beta coefficients rewards}
+# First, go back to the nested data and models to get standard errors
+standard_errors <- cluster_ieg_sample_percentages %>%
+  group_by(Cluster) %>%
+  nest() %>%
+  dplyr::mutate(
+    lm_model = map(data, ~ lm(TotalRewards ~ Activated_Percentage, data = .x)),
+    std_error = map_dbl(lm_model, ~ summary(.x)$coefficients[2, 2])
+  ) %>%
+  dplyr::select(Cluster, std_error)
+
+# Join the standard errors with your existing results
+cluster_regression_results <- cluster_regression_results %>%
+  left_join(standard_errors, by = "Cluster")
+
+# Now create the plot with error bars
+p_beta <- ggplot(
+  cluster_regression_results,
+  aes(x = Slope, y = reorder(Cluster, Slope))
+) +
+  geom_bar(
+    stat = "identity",
+    width = 0.7,
+    fill = "#888888"
+  ) +
+  geom_errorbar(
+    aes(
+      xmin = Slope - std_error,
+      xmax = Slope + std_error
+    ),
+    position = position_dodge(0.7),
+    width = 0.2,
+    size = 0.2
+  ) +
+  labs(
+    x = "Beta Coefficient (Slope)",
+    y = "Cluster"
+  ) +
+  theme_classic() +
+  theme(
+    legend.position = "none",
+    axis.text.y = element_text(color = rep(c("#000000", "#555555"),
+      length.out = length(unique(cluster_regression_results$Cluster))
+    ))
+  )
+
+p_beta
+
+ggsave("../results/IEGactivity_WTonly/intermed-figs/250225_rewardsbyactivity_betacoeffs.pdf",
+  device = pdf,
+  width = 6,
+  height = 8
+)
+```
+
+```{r selecting sig clusters rewards}
+sig_clusters_rewards <- cluster_regression_results[cluster_regression_results$p_value < 0.10, ]
+
+sig_clusters_rewards_names <- sort(as.character(sig_clusters_rewards$Cluster))
+print(sig_clusters_rewards)
+```
+
+```{r plotting beta coefficients rewards sig only}
+sig_clusters_rewards$Cluster <- factor(sig_clusters_rewards$Cluster,
+  levels = rev(sort(unique(as.character(sig_clusters_rewards$Cluster))))
+)
+
+# Now create the plot
+p_beta <- ggplot(
+  sig_clusters_rewards,
+  aes(x = Slope, y = Cluster)
+) +
+  geom_bar(
+    stat = "identity",
+    width = 0.7,
+    fill = "#888888"
+  ) +
+  geom_errorbar(
+    aes(
+      xmin = Slope - std_error,
+      xmax = Slope + std_error
+    ),
+    position = position_dodge(0.7),
+    width = 0.2,
+    size = 0.2
+  ) +
+  labs(
+    x = "Beta Coefficient (Slope)",
+    y = ""
+  ) +
+  theme_classic() +
+  theme(
+    legend.position = "none",
+    axis.text.y = element_text(color = rep(c("#000000", "#555555"),
+      length.out = length(unique(sig_clusters_rewards))
+    ))
+  )
+
+p_beta
+
+ggsave("../results/IEGactivity_WTonly/250225_rewardsbyactivity_betacoeffs_sigonly.pdf",
+  device = pdf,
+  width = 5,
+  height = 10.5
+)
+```
+## Sac Rewards
+
+```{r regression sac rewards by pct activated}
+# Fetch expression data for all IEGs
+# ieg_expression <- FetchData(wt_only, vars = filtered_iegs)
+
+# Create a data frame with cluster assignments, Sex, sample, and IEG expression
+cluster_ieg_sample_df <- data.frame(
+  Cluster = Idents(wt_only),
+  Sex = wt_only$sex,
+  Sample = wt_only$sample,
+  SacRewards = wt_only$Sac_Total_Rewards,
+  ieg_expression
+)
+
+# Calculate the percentage of cells expressing 2 or more IEGs within each cluster, Sex, and sample
+cluster_ieg_sample_percentages <- cluster_ieg_sample_df %>%
+  group_by(Cluster, Sample) %>%
+  summarise(
+    Cluster_Cells = n(),
+    Activated_Cells = sum(rowSums(across(all_of(filtered_iegs)) > 0) >= 2),
+    SacRewards = dplyr::first(SacRewards)
+  ) %>%
+  dplyr::mutate(Activated_Percentage = Activated_Cells / Cluster_Cells * 100) %>%
+  ungroup()
+
+cluster_regression_results <- cluster_ieg_sample_percentages %>%
+  group_by(Cluster) %>%
+  nest() %>%
+  dplyr::mutate(
+    lm_model = map(data, ~ lm(SacRewards ~ Activated_Percentage, data = .x)),
+    summary = map(lm_model, summary),
+    coefficients = map(lm_model, coef),
+    p_value = map_dbl(summary, ~ .x$coefficients[2, 4]),
+    r_squared = map_dbl(summary, ~ .x$r.squared)
+  ) %>%
+  dplyr::mutate(
+    Slope = map_dbl(coefficients, ~ .x[2]),
+    Intercept = map_dbl(coefficients, ~ .x[1])
+  ) %>%
+  dplyr::select(Cluster, Slope, Intercept, p_value, r_squared)
+
+# Adjust p-values for multiple comparisons (optional)
+adjusted_p_values <- p.adjust(cluster_regression_results$p_value, method = "BH")
+
+# Add adjusted p-values to the results data frame
+cluster_regression_results$AdjustedPValue <- adjusted_p_values
+cluster_regression_results <- cluster_regression_results %>%
+  arrange(AdjustedPValue)
+
+# Print the updated results
+print(cluster_regression_results)
+
+# # # Write the results to a CSV file
+write.csv(cluster_regression_results, file = "../results/IEGactivity_WTonly/250303_sac_rewards_byactivationpercent.csv", row.names = FALSE)
+```
+
+```{r scatters sac rewards by pct activated}
+plot_cluster <- function(cluster, cluster_regression_results, cluster_ieg_sample_percentages) {
+  # Extract the results for the specific cluster we're plotting
+  cluster_results <- cluster_regression_results[cluster_regression_results$Cluster == cluster, ]
+
+  # Filter the data for the specific cluster
+  cluster_df <- cluster_ieg_sample_percentages %>%
+    filter(Cluster == cluster)
+
+  # Create the plot
+  plot(cluster_df$Activated_Percentage, cluster_df$SacRewards,
+    main = paste("Cluster", cluster),
+    pch = 16, cex = 2,
+    xlab = "Activated Percentage", ylab = "Sac Rewards",
+    cex.lab = 1.5, cex.axis = 1.5,
+    cex.main = 2,
+    xlim = c(0, max(cluster_df$Activated_Percentage)),
+    bty = "l"
+  )
+
+  # Fit line
+  fit <- lm(SacRewards ~ Activated_Percentage, data = cluster_df)
+
+  # Add the fit line
+  abline(fit, col = "black", lwd = 2)
+
+  # Create legend labels with statistics
+  legend_labels <- c(
+    paste("R² =", round(cluster_results$r_squared, 3)),
+    paste("p-value =", format.pval(cluster_results$p_value, digits = 3)),
+    paste("Adj. p-value =", format.pval(cluster_results$AdjustedPValue, digits = 3))
+  )
+
+  # Add legend
+  legend("topleft",
+    legend = legend_labels,
+    col = "black",
+    cex = 1.2,
+    bty = "n"
+  )
+
+  # Add title with cluster name and coefficients
+  title_text <- paste(
+    "Cluster", cluster, "\n",
+    "Intercept =", round(cluster_results$Intercept, 3), "\n",
+    "Slope =", round(cluster_results$Slope, 3)
+  )
+  title(main = title_text, cex.main = 1.5)
+}
+
+# Get all unique cluster numbers
+clusters <- unique(cluster_regression_results$Cluster)
+
+
+# Get all unique cluster numbers
+clusters <- unique(cluster_regression_results$Cluster)
+
+# Create a directory to save the PDFs if it doesn't exist
+dir.create("../results/IEGactivity_WTonly/SacRewardsbyActivatedPercentage_250303", showWarnings = FALSE)
+
+# Iterate through clusters
+for (cluster in clusters) {
+  # Open a PDF device
+  pdf(file = paste0("../results/IEGactivity_WTonly/SacRewardsbyActivatedPercentage_250303/cluster_", cluster, "_plot.pdf"), width = 6, height = 8)
+
+  # Create the plot
+  plot_cluster(cluster, cluster_regression_results, cluster_ieg_sample_percentages)
+
+  # Close the PDF device
+  dev.off()
+
+  # Print progress
+  cat("Saved plot for cluster", cluster, "\n")
+}
+
+cat("All plots have been saved in the 'SacRewardsbyActivatedPercentage' directory.\n")
+```
+
+### with Sex
+```{r regression sac rewards by pct activated and sex }
+# Create a data frame with cluster assignments, Sex, sample, and IEG expression
+cluster_ieg_Sex_sample_df <- data.frame(
+  Cluster = Idents(wt_only),
+  Sex = wt_only$sex,
+  Sample = wt_only$sample,
+  SacRewards = wt_only$Sac_Total_Rewards,
+  ieg_expression
+)
+# Calculate the percentage of cells expressing 2 or more IEGs within each cluster, Sex, and sample
+cluster_ieg_Sex_sample_percentages <- cluster_ieg_Sex_sample_df %>%
+  group_by(Cluster, Sex, Sample) %>%
+  summarise(
+    Cluster_Cells = n(),
+    Activated_Cells = sum(rowSums(across(all_of(filtered_iegs)) > 0) >= 2),
+    SacRewards = dplyr::first(SacRewards)
+  ) %>%
+  dplyr::mutate(Activated_Percentage = Activated_Cells / Cluster_Cells * 100) %>%
+  ungroup()
+
+# Perform linear regression for each cluster
+regression_results <- cluster_ieg_Sex_sample_percentages %>%
+  # First identify clusters with only one Sex level
+  group_by(Cluster) %>%
+  mutate(sex_levels_count = n_distinct(Sex)) %>%
+  ungroup() %>%
+  # Filter to keep only clusters with at least 2 Sex levels
+  filter(sex_levels_count >= 2) %>%
+  # Now proceed with your analysis on the filtered data
+  group_by(Cluster) %>%
+  nest() %>%
+  dplyr::mutate(
+    lm_model = map(data, ~ lm(SacRewards ~ Activated_Percentage + Sex, data = .x)),
+    summary = map(lm_model, summary),
+    coefficients = map(lm_model, coef),
+    r_squared = map_dbl(summary, ~ .x$r.squared),
+    p_value_activated_percentage = map_dbl(summary, ~ {
+      coef_matrix <- .x$coefficients
+      if (nrow(coef_matrix) >= 2 && ncol(coef_matrix) >= 4) .x$coefficients[2, 4] else NA_real_
+    }),
+    p_value_sex = map_dbl(summary, ~ {
+      coef_matrix <- .x$coefficients
+      if (nrow(coef_matrix) >= 3 && ncol(coef_matrix) >= 4) .x$coefficients[3, 4] else NA_real_
+    })
+  ) %>%
+  dplyr::mutate(
+    Slope_Activated_Percentage = map_dbl(coefficients, ~ {
+      if (length(.x) >= 2) .x[2] else NA_real_
+    }),
+    Slope_Sex = map_dbl(coefficients, ~ {
+      if (length(.x) >= 3) .x[3] else NA_real_
+    }),
+    Intercept = map_dbl(coefficients, ~ .x[1])
+  ) %>%
+  dplyr::select(
+    Cluster, Slope_Activated_Percentage, Slope_Sex, Intercept,
+    p_value_activated_percentage, p_value_sex, r_squared
+  )
+
+# Adjust p-values for multiple comparisons (optional)
+adjusted_p_values_activated <- p.adjust(regression_results$p_value_activated_percentage, method = "BH")
+adjusted_p_values_sex <- p.adjust(regression_results$p_value_sex, method = "BH")
+
+# Add adjusted p-values to the results data frame
+regression_results$adjusted_p_values_activated <- adjusted_p_values_activated
+regression_results$adjusted_p_values_sex <- adjusted_p_values_sex
+
+regression_results <- regression_results %>%
+  arrange(adjusted_p_values_activated)
+
+# Print the updated results
+print(regression_results)
+
+# # Write the results to a CSV file
+write.csv(regression_results, file = "../results/IEGactivity_WTonly/250303_sacrewards_byactivationpercent_bysex.csv", row.names = FALSE)
+```
+
+```{r scatters sac rewards by pct activated with sex}
+# First, let's create a function for our plotting code
+plot_cluster_withsex <- function(cluster, regression_results, cluster_ieg_Sex_sample_percentages) {
+  # Extract the results for the specific cluster we're plotting
+  cluster_results <- regression_results[regression_results$Cluster == cluster, ]
+
+  # Filter the data for the specific cluster
+  cluster_df <- cluster_ieg_Sex_sample_percentages %>%
+    filter(Cluster == cluster)
+
+  # Create the plot
+  plot(cluster_df$Activated_Percentage, cluster_df$SacRewards,
+    main = paste("Cluster", cluster),
+    pch = 16, cex = 2,
+    xlab = "Activated Percentage", ylab = "Sac Rewards",
+    cex.lab = 1.5, cex.axis = 1.5,
+    cex.main = 2,
+    xlim = c(0, max(cluster_df$Activated_Percentage)),
+    bty = "l",
+    col = ifelse(cluster_df$Sex == "M", "#4478AB", "#ED6677")
+  )
+
+  # Fit lines for all data, male, and female
+  fit_all <- lm(SacRewards ~ Activated_Percentage + Sex, data = cluster_df)
+  fit_male <- lm(SacRewards ~ Activated_Percentage, data = cluster_df[cluster_df$Sex == "M", ])
+  fit_female <- lm(SacRewards ~ Activated_Percentage, data = cluster_df[cluster_df$Sex == "F", ])
+
+  # Add the fit lines
+  abline(fit_all, col = "black", lwd = 2)
+  abline(fit_male, col = "#4478AB", lwd = 2)
+  abline(fit_female, col = "#ED6677", lwd = 2)
+
+  # Calculate R-squared values for each fit
+  r2_all <- summary(fit_all)$r.squared
+  r2_male <- summary(fit_male)$r.squared
+  r2_female <- summary(fit_female)$r.squared
+
+  # Create legend labels with statistics
+  legend_labels <- c(
+    paste("All (R² =", round(r2_all, 3), ")"),
+    paste("Male (R² =", round(r2_male, 3), ")"),
+    paste("Female (R² =", round(r2_female, 3), ")"),
+    paste("Activated % Slope =", round(cluster_results$Slope_Activated_Percentage, 3)),
+    paste("Sex Slope =", round(cluster_results$Slope_Sex, 3)),
+    paste("Intercept =", round(cluster_results$Intercept, 3)),
+    paste("Activated % p-value =", format.pval(cluster_results$p_value_activated_percentage, digits = 3)),
+    paste("Sex p-value =", format.pval(cluster_results$p_value_sex, digits = 3)),
+    paste("Activated % Adj. p-value =", format.pval(cluster_results$adjusted_p_values_activated, digits = 3)),
+    paste("Sex Adj. p-value =", format.pval(cluster_results$adjusted_p_values_sex, digits = 3))
+  )
+
+  # Add legend
+  legend("topleft",
+    legend = legend_labels,
+    col = c("black", "#4478AB", "#ED6677", rep("black", 5)),
+    lty = c(1, 1, 1, rep(NA, 5)),
+    cex = 1.2,
+    bty = "n"
+  )
+}
+# Get all unique cluster numbers
+clusters <- unique(regression_results$Cluster)
+
+# Iterate through clusters
+for (cluster in clusters) {
+  # Open a PDF device
+  pdf(file = paste0("../results/IEGactivity_WTonly/SacRewardsbyActivatedPercentage_250303/cluster_", cluster, "_plot_bySex.pdf"), width = 6, height = 8)
+
+  # Create the plot
+  plot_cluster_withsex(cluster, regression_results, cluster_ieg_Sex_sample_percentages)
+
+  # Close the PDF device
+  dev.off()
+
+  # Print progress
+  cat("Saved plot for cluster", cluster, "\n")
+}
+
+cat("All plots have been saved in the 'SacRewardsbyActivatedPercentage' directory.\n")
+```
+
+### Control: by Pct Activity in All Clusters
+
+```{r scatter sac rewards by pct activity in all neurons}
+# First calculate the activation percentage across all neurons for each sample
+overall_sample_percentages <- cluster_ieg_sample_df %>%
+  group_by(Sample) %>%
+  summarise(
+    Total_Cells = n(),
+    Activated_Cells = sum(rowSums(across(all_of(filtered_iegs)) > 0) >= 2),
+    SacRewards = dplyr::first(SacRewards)
+  ) %>%
+  dplyr::mutate(Activated_Percentage = Activated_Cells / Total_Cells * 100) %>%
+  ungroup()
+
+# Create a plotting function for the control
+plot_control <- function(sample_data) {
+  # Fit regression line
+  fit <- lm(SacRewards ~ Activated_Percentage, data = sample_data)
+  fit_summary <- summary(fit)
+
+  # Create the plot
+  plot(sample_data$Activated_Percentage, sample_data$SacRewards,
+    main = "All Neurons",
+    pch = 16, cex = 2,
+    xlab = "Activated Percentage", ylab = "Sac Rewards",
+    cex.lab = 1.5, cex.axis = 1.5,
+    cex.main = 2,
+    xlim = c(0, max(sample_data$Activated_Percentage)),
+    bty = "l"
+  )
+
+  # Add the fit line
+  abline(fit, col = "black", lwd = 2)
+
+  # Create legend labels with statistics
+  legend_labels <- c(
+    paste("R² =", round(fit_summary$r.squared, 3)),
+    paste("p-value =", format.pval(fit_summary$coefficients[2, 4], digits = 3)),
+    paste("Slope =", round(fit_summary$coefficients[2, 1], 3)),
+    paste("Intercept =", round(fit_summary$coefficients[1, 1], 3))
+  )
+
+  # Add legend
+  legend("topleft",
+    legend = legend_labels,
+    col = "black",
+    cex = 1.2,
+    bty = "n"
+  )
+}
+
+# Save the  plot
+pdf(
+  file = "../results/IEGactivity_WTonly/SacRewardsbyActivatedPercentage_250303/control_all_neurons_plot.pdf",
+  width = 6, height = 8
+)
+plot_control(overall_sample_percentages)
+dev.off()
+```
+
+```{r regression sac rewards by pct activity in all neurons}
+overall_stats <- overall_sample_percentages %>%
+  {
+    fit <- lm(SacRewards ~ Activated_Percentage, data = .)
+    sum_fit <- summary(fit)
+
+    data.frame(
+      Analysis = "All_Neurons",
+      Slope = coef(fit)[2],
+      Intercept = coef(fit)[1],
+      p_value = sum_fit$coefficients[2, 4],
+      r_squared = sum_fit$r.squared
+    )
+  }
+
+# Write results to CSV
+write.csv(overall_stats,
+  file = "../results/IEGactivity_WTonly/250303_sacrewards_byactivationpercent_allneurons.csv",
+  row.names = FALSE
+)
+```
+
+```{r scatter sac rewards by pct activity in all neurons by sex}
+# Calculate overall activation by sample and sex
+overall_sample_sex_percentages <- cluster_ieg_sample_df %>%
+  group_by(Sample, Sex) %>%
+  summarise(
+    Total_Cells = n(),
+    Activated_Cells = sum(rowSums(across(all_of(filtered_iegs)) > 0) >= 2),
+    SacRewards = dplyr::first(SacRewards)
+  ) %>%
+  dplyr::mutate(Activated_Percentage = Activated_Cells / Total_Cells * 100) %>%
+  ungroup()
+
+# Create a plotting function for the control with sex
+plot_control_withsex <- function(sample_data) {
+  # Fit lines for all data, male, and female
+  fit_all <- lm(SacRewards ~ Activated_Percentage + Sex, data = sample_data)
+  fit_male <- lm(SacRewards ~ Activated_Percentage, data = sample_data[sample_data$Sex == "M", ])
+  fit_female <- lm(SacRewards ~ Activated_Percentage, data = sample_data[sample_data$Sex == "F", ])
+
+  # Create the plot
+  plot(sample_data$Activated_Percentage, sample_data$SacRewards,
+    main = "All Neurons",
+    pch = 16, cex = 2,
+    xlab = "Activated Percentage", ylab = "Sac Rewards",
+    cex.lab = 1.5, cex.axis = 1.5,
+    cex.main = 2,
+    xlim = c(0, max(sample_data$Activated_Percentage)),
+    bty = "l",
+    col = ifelse(sample_data$Sex == "M", "#4478AB", "#ED6677")
+  )
+
+  # Add the fit lines
+  abline(fit_all, col = "black", lwd = 2)
+  abline(fit_male, col = "#4478AB", lwd = 2)
+  abline(fit_female, col = "#ED6677", lwd = 2)
+
+  # Calculate R-squared values for each fit
+  r2_all <- summary(fit_all)$r.squared
+  r2_male <- summary(fit_male)$r.squared
+  r2_female <- summary(fit_female)$r.squared
+
+  # Create legend labels with statistics
+  legend_labels <- c(
+    paste("All (R² =", round(r2_all, 3), ")"),
+    paste("Male (R² =", round(r2_male, 3), ")"),
+    paste("Female (R² =", round(r2_female, 3), ")"),
+    paste("Activated % Slope =", round(summary(fit_all)$coefficients[2, 1], 3)),
+    paste("Sex Slope =", round(summary(fit_all)$coefficients[3, 1], 3)),
+    paste("Intercept =", round(summary(fit_all)$coefficients[1, 1], 3)),
+    paste("Activated % p-value =", format.pval(summary(fit_all)$coefficients[2, 4], digits = 3)),
+    paste("Sex p-value =", format.pval(summary(fit_all)$coefficients[3, 4], digits = 3))
+  )
+
+  # Add legend
+  legend("topleft",
+    legend = legend_labels,
+    col = c("black", "#4478AB", "#ED6677", rep("black", 5)),
+    lty = c(1, 1, 1, rep(NA, 5)),
+    cex = 1.2,
+    bty = "n"
+  )
+}
+
+# Save the control plot with sex
+pdf(
+  file = "../results/IEGactivity_WTonly/SacRewardsbyActivatedPercentage_250303/control_all_neurons_plot_bySex.pdf",
+  width = 6, height = 8
+)
+plot_control_withsex(overall_sample_sex_percentages)
+dev.off()
+```
+
+```{r get overall sex stats}
+overall_sex_stats <- overall_sample_sex_percentages %>%
+  {
+    # Full model with sex
+    fit <- lm(SacRewards ~ Activated_Percentage + Sex, data = .)
+    sum_fit <- summary(fit)
+
+    # Sex-specific models
+    fit_male <- lm(SacRewards ~ Activated_Percentage, data = .[.$Sex == "M", ])
+    fit_female <- lm(SacRewards ~ Activated_Percentage, data = .[.$Sex == "F", ])
+
+    data.frame(
+      Analysis = "All_Neurons",
+      Slope_Activated_Percentage = coef(fit)[2],
+      Slope_Sex = coef(fit)[3],
+      Intercept = coef(fit)[1],
+      p_value_activated_percentage = sum_fit$coefficients[2, 4],
+      p_value_sex = sum_fit$coefficients[3, 4],
+      r_squared_full = sum_fit$r.squared,
+      r_squared_male = summary(fit_male)$r.squared,
+      r_squared_female = summary(fit_female)$r.squared
+    )
+  }
+
+# Write results to CSV
+write.csv(overall_sex_stats,
+  file = "../results/IEGactivity_WTonly/250303_sacrewards_byactivationpercent_allneurons_bysex.csv",
+  row.names = FALSE
+)
+```
+
+## Distance
+```{r regressions distance by pct activated}
+# Fetch expression data for all IEGs
+# ieg_expression <- FetchData(wt_only, vars = filtered_iegs)
+
+# Create a data frame with cluster assignments, Sex, sample, and IEG expression
+cluster_ieg_sample_df <- data.frame(
+  Cluster = Idents(wt_only),
+  Sex = wt_only$sex,
+  Sample = wt_only$sample,
+  Distance = wt_only$Avg_Test_Distance,
+  ieg_expression
+)
+
+# Calculate the percentage of cells expressing 2 or more IEGs within each cluster, Sex, and sample
+cluster_ieg_sample_percentages <- cluster_ieg_sample_df %>%
+  group_by(Cluster, Sample) %>%
+  summarise(
+    Cluster_Cells = n(),
+    Activated_Cells = sum(rowSums(across(all_of(filtered_iegs)) > 0) >= 2),
+    Distance = dplyr::first(Distance)
+  ) %>%
+  dplyr::mutate(Activated_Percentage = Activated_Cells / Cluster_Cells * 100) %>%
+  ungroup()
+
+# Removing outlier for distance
+cluster_ieg_sample_percentages <- cluster_ieg_sample_percentages %>%
+  filter(Sample != "Het_F_6")
+
+# Perform linear regression for each cluster
+cluster_regression_results <- cluster_ieg_sample_percentages %>%
+  group_by(Cluster) %>%
+  nest() %>%
+  dplyr::mutate(
+    lm_model = map(data, ~ lm(Distance ~ Activated_Percentage, data = .x)),
+    summary = map(lm_model, summary),
+    coefficients = map(lm_model, coef),
+    p_value = map_dbl(summary, ~ .x$coefficients[2, 4]),
+    r_squared = map_dbl(summary, ~ .x$r.squared)
+  ) %>%
+  dplyr::mutate(
+    Slope = map_dbl(coefficients, ~ .x[2]),
+    Intercept = map_dbl(coefficients, ~ .x[1])
+  ) %>%
+  dplyr::select(Cluster, Slope, Intercept, p_value, r_squared)
+
+# Adjust p-values for multiple comparisons (optional)
+adjusted_p_values <- p.adjust(cluster_regression_results$p_value, method = "BH")
+
+# Add adjusted p-values to the results data frame
+cluster_regression_results$AdjustedPValue <- adjusted_p_values
+cluster_regression_results <- cluster_regression_results %>%
+  arrange(AdjustedPValue)
+
+# Print the updated results
+print(cluster_regression_results)
+
+# # Write the results to a CSV file
+write.csv(cluster_regression_results, file = "../results/IEGactivity_WTonly/250303_Distance_byactivationpercent.csv", row.names = FALSE)
+```
+
+```{r scatters distance by pct activated}
+# First, let's create a function for our plotting code
+plot_cluster <- function(cluster, cluster_regression_results, cluster_ieg_sample_percentages) {
+  # Extract the results for the specific cluster we're plotting
+  cluster_results <- cluster_regression_results[cluster_regression_results$Cluster == cluster, ]
+
+  # Filter the data for the specific cluster
+  cluster_df <- cluster_ieg_sample_percentages %>%
+    filter(Cluster == cluster)
+
+  # Create the plot
+  plot(cluster_df$Activated_Percentage, cluster_df$Distance,
+    main = paste("Cluster", cluster),
+    pch = 16, cex = 2,
+    xlab = "Activated Percentage", ylab = "Total Distance",
+    cex.lab = 1.5, cex.axis = 1.5,
+    cex.main = 2,
+    xlim = c(0, max(cluster_df$Activated_Percentage)),
+    bty = "l"
+  )
+
+  # Fit line
+  fit <- lm(Distance ~ Activated_Percentage, data = cluster_df)
+
+  # Add the fit line
+  abline(fit, col = "black", lwd = 2)
+
+  # Create legend labels with statistics
+  legend_labels <- c(
+    paste("R² =", round(cluster_results$r_squared, 3)),
+    paste("p-value =", format.pval(cluster_results$p_value, digits = 3)),
+    paste("Adj. p-value =", format.pval(cluster_results$AdjustedPValue, digits = 3))
+  )
+
+  # Add legend
+  legend("topleft",
+    legend = legend_labels,
+    col = "black",
+    cex = 1.2,
+    bty = "n"
+  )
+
+  # Add title with cluster name and coefficients
+  title_text <- paste(
+    "Cluster", cluster, "\n",
+    "Intercept =", round(cluster_results$Intercept, 3), "\n",
+    "Slope =", round(cluster_results$Slope, 3)
+  )
+  title(main = title_text, cex.main = 1.5)
+}
+
+# Get all unique cluster numbers
+clusters <- unique(cluster_regression_results$Cluster)
+
+# Create a directory to save the PDFs if it doesn't exist
+dir.create("../results/IEGactivity_WTonly/DistancebyActivatedPercentage_250303", showWarnings = FALSE)
+
+# Iterate through clusters
+for (cluster in clusters) {
+  # Open a PDF device
+  pdf(file = paste0("../results/IEGactivity_WTonly/DistancebyActivatedPercentage_250303/cluster_", cluster, "_plot.pdf"), width = 6, height = 8)
+
+  # Create the plot
+  plot_cluster(cluster, cluster_regression_results, cluster_ieg_sample_percentages)
+
+  # Close the PDF device
+  dev.off()
+
+  # Print progress
+  cat("Saved plot for cluster", cluster, "\n")
+}
+
+cat("All plots have been saved in the 'DistancebyActivatedPercentage' directory.\n")
+```
+
+### with Sex
+```{r regressions distance by pct activated and sex}
+# Create a data frame with cluster assignments, Sex, sample, and IEG expression
+cluster_ieg_Sex_sample_df <- data.frame(
+  Cluster = Idents(wt_only),
+  Sex = wt_only$sex,
+  Sample = wt_only$sample,
+  Distance = wt_only$Avg_Test_Distance,
+  ieg_expression
+)
+# Calculate the percentage of cells expressing 2 or more IEGs within each cluster, Sex, and sample
+cluster_ieg_Sex_sample_percentages <- cluster_ieg_Sex_sample_df %>%
+  group_by(Cluster, Sex, Sample) %>%
+  summarise(
+    Cluster_Cells = n(),
+    Activated_Cells = sum(rowSums(across(all_of(filtered_iegs)) > 0) >= 2),
+    Distance = dplyr::first(Distance)
+  ) %>%
+  dplyr::mutate(Activated_Percentage = Activated_Cells / Cluster_Cells * 100) %>%
+  ungroup()
+
+# Removing outlier for distance
+cluster_ieg_Sex_sample_percentages <- cluster_ieg_Sex_sample_percentages %>%
+  filter(Sample != "Het_F_6")
+
+# Perform linear regression for each cluster, skipping those with only one Sex level
+regression_results <- cluster_ieg_Sex_sample_percentages %>%
+  # First identify clusters with only one Sex level
+  group_by(Cluster) %>%
+  mutate(sex_levels_count = n_distinct(Sex)) %>%
+  ungroup() %>%
+  # Filter to keep only clusters with at least 2 Sex levels
+  filter(sex_levels_count >= 2) %>%
+  # Now proceed with your analysis on the filtered data
+  group_by(Cluster) %>%
+  nest() %>%
+  dplyr::mutate(
+    lm_model = map(data, ~ lm(Distance ~ Activated_Percentage + Sex, data = .x)),
+    summary = map(lm_model, summary),
+    coefficients = map(lm_model, coef),
+    p_value_activated_percentage = map_dbl(summary, ~ {
+      coef_matrix <- .x$coefficients
+      if (nrow(coef_matrix) >= 2 && ncol(coef_matrix) >= 4) .x$coefficients[2, 4] else NA_real_
+    }),
+    p_value_sex = map_dbl(summary, ~ {
+      coef_matrix <- .x$coefficients
+      if (nrow(coef_matrix) >= 3 && ncol(coef_matrix) >= 4) .x$coefficients[3, 4] else NA_real_
+    })
+  ) %>%
+  dplyr::mutate(
+    Slope_Activated_Percentage = map_dbl(coefficients, ~ {
+      if (length(.x) >= 2) .x[2] else NA_real_
+    }),
+    Slope_Sex = map_dbl(coefficients, ~ {
+      if (length(.x) >= 3) .x[3] else NA_real_
+    }),
+    Intercept = map_dbl(coefficients, ~ .x[1])
+  ) %>%
+  dplyr::select(
+    Cluster, Slope_Activated_Percentage, Slope_Sex, Intercept,
+    p_value_activated_percentage, p_value_sex
+  )
+
+# Adjust p-values for multiple comparisons (optional)
+adjusted_p_values_activated <- p.adjust(regression_results$p_value_activated_percentage, method = "BH")
+adjusted_p_values_sex <- p.adjust(regression_results$p_value_sex, method = "BH")
+
+# Add adjusted p-values to the results data frame
+regression_results$adjusted_p_values_activated <- adjusted_p_values_activated
+regression_results$adjusted_p_values_sex <- adjusted_p_values_sex
+
+regression_results <- regression_results %>%
+  arrange(adjusted_p_values_activated)
+
+# Print the updated results
+print(regression_results)
+
+# Write the results to a CSV file
+write.csv(regression_results, file = "../results/IEGactivity_WTonly/250303_distance_byactivationpercent_bysex.csv", row.names = FALSE)
+```
+
+```{r scatters distance by pct activated with sex}
+# First, let's create a function for our plotting code
+plot_cluster_withsex <- function(cluster, regression_results, cluster_ieg_Sex_sample_percentages) {
+  # Extract the results for the specific cluster we're plotting
+  cluster_results <- regression_results[regression_results$Cluster == cluster, ]
+
+  # Filter the data for the specific cluster
+  cluster_df <- cluster_ieg_Sex_sample_percentages %>%
+    filter(Cluster == cluster)
+
+  # Create the plot
+  plot(cluster_df$Activated_Percentage, cluster_df$Distance,
+    main = paste("Cluster", cluster),
+    pch = 16, cex = 2,
+    xlab = "Activated Percentage", ylab = "Mean Distance",
+    cex.lab = 1.5, cex.axis = 1.5,
+    cex.main = 2,
+    xlim = c(0, max(cluster_df$Activated_Percentage)),
+    bty = "l",
+    col = ifelse(cluster_df$Sex == "M", "#4478AB", "#ED6677")
+  )
+
+  # Fit lines for all data, male, and female
+  fit_all <- lm(Distance ~ Activated_Percentage + Sex, data = cluster_df)
+  fit_male <- lm(Distance ~ Activated_Percentage, data = cluster_df[cluster_df$Sex == "M", ])
+  fit_female <- lm(Distance ~ Activated_Percentage, data = cluster_df[cluster_df$Sex == "F", ])
+
+  # Add the fit lines
+  abline(fit_all, col = "black", lwd = 2)
+  abline(fit_male, col = "#4478AB", lwd = 2)
+  abline(fit_female, col = "#ED6677", lwd = 2)
+
+  # Calculate R-squared values for each fit
+  r2_all <- summary(fit_all)$r.squared
+  r2_male <- summary(fit_male)$r.squared
+  r2_female <- summary(fit_female)$r.squared
+
+  # Create legend labels with statistics
+  legend_labels <- c(
+    paste("All (R² =", round(r2_all, 3), ")"),
+    paste("Male (R² =", round(r2_male, 3), ")"),
+    paste("Female (R² =", round(r2_female, 3), ")"),
+    paste("Activated % Slope =", round(cluster_results$Slope_Activated_Percentage, 3)),
+    paste("Sex Slope =", round(cluster_results$Slope_Sex, 3)),
+    paste("Intercept =", round(cluster_results$Intercept, 3)),
+    paste("Activated % p-value =", format.pval(cluster_results$p_value_activated_percentage, digits = 3)),
+    paste("Sex p-value =", format.pval(cluster_results$p_value_sex, digits = 3)),
+    paste("Activated % Adj. p-value =", format.pval(cluster_results$adjusted_p_values_activated, digits = 3)),
+    paste("Sex Adj. p-value =", format.pval(cluster_results$adjusted_p_values_sex, digits = 3))
+  )
+
+  # Add legend
+  legend("topleft",
+    legend = legend_labels,
+    col = c("black", "#4478AB", "#ED6677", rep("black", 5)),
+    lty = c(1, 1, 1, rep(NA, 5)),
+    cex = 1.2,
+    bty = "n"
+  )
+}
+# Get all unique cluster numbers
+clusters <- unique(regression_results$Cluster)
+
+# Iterate through clusters
+for (cluster in clusters) {
+  # Open a PDF device
+  pdf(file = paste0("../results/IEGactivity_WTonly/DistancebyActivatedPercentage_250303/cluster_", cluster, "_plot_bySex.pdf"), width = 6, height = 8)
+
+  # Create the plot
+  plot_cluster_withsex(cluster, regression_results, cluster_ieg_Sex_sample_percentages)
+
+  # Close the PDF device
+  dev.off()
+
+  # Print progress
+  cat("Saved plot for cluster", cluster, "\n")
+}
+
+cat("All plots have been saved in the 'DistancebyActivatedPercentage' directory.\n")
+```
+
+## Sac Distance
+
+```{r regressions sac distance by pct activated}
+# Fetch expression data for all IEGs
+# ieg_expression <- FetchData(wt_only, vars = filtered_iegs)
+
+# Create a data frame with cluster assignments, Sex, sample, and IEG expression
+cluster_ieg_sample_df <- data.frame(
+  Cluster = Idents(wt_only),
+  Sex = wt_only$sex,
+  Sample = wt_only$sample,
+  SacDistance = wt_only$Sac_Test_Distance,
+  ieg_expression
+)
+
+# Calculate the percentage of cells expressing 2 or more IEGs within each cluster, Sex, and sample
+cluster_ieg_sample_percentages <- cluster_ieg_sample_df %>%
+  group_by(Cluster, Sample) %>%
+  summarise(
+    Cluster_Cells = n(),
+    Activated_Cells = sum(rowSums(across(all_of(filtered_iegs)) > 0) >= 2),
+    SacDistance = dplyr::first(SacDistance)
+  ) %>%
+  dplyr::mutate(Activated_Percentage = Activated_Cells / Cluster_Cells * 100) %>%
+  ungroup()
+
+# Removing outlier for distance
+cluster_ieg_sample_percentages <- cluster_ieg_sample_percentages %>%
+  filter(Sample != "Het_F_6")
+
+cluster_regression_results <- cluster_ieg_sample_percentages %>%
+  group_by(Cluster) %>%
+  nest() %>%
+  dplyr::mutate(
+    lm_model = map(data, ~ lm(SacDistance ~ Activated_Percentage, data = .x)),
+    summary = map(lm_model, summary),
+    coefficients = map(lm_model, coef),
+    p_value = map_dbl(summary, ~ .x$coefficients[2, 4]),
+    r_squared = map_dbl(summary, ~ .x$r.squared)
+  ) %>%
+  dplyr::mutate(
+    Slope = map_dbl(coefficients, ~ .x[2]),
+    Intercept = map_dbl(coefficients, ~ .x[1])
+  ) %>%
+  dplyr::select(Cluster, Slope, Intercept, p_value, r_squared)
+
+# Adjust p-values for multiple comparisons (optional)
+adjusted_p_values <- p.adjust(cluster_regression_results$p_value, method = "BH")
+
+# Add adjusted p-values to the results data frame
+cluster_regression_results$AdjustedPValue <- adjusted_p_values
+cluster_regression_results <- cluster_regression_results %>%
+  arrange(AdjustedPValue)
+
+# Print the updated results
+print(cluster_regression_results)
+
+# # # Write the results to a CSV file
+write.csv(cluster_regression_results, file = "../results/IEGactivity_WTonly/250303_sac_distance_byactivationpercent.csv", row.names = FALSE)
+```
+
+```{r scatters sac distance by pct activated}
+# First, let's create a function for our plotting code
+plot_cluster <- function(cluster, cluster_regression_results, cluster_ieg_sample_percentages) {
+  # Extract the results for the specific cluster we're plotting
+  cluster_results <- cluster_regression_results[cluster_regression_results$Cluster == cluster, ]
+
+  # Filter the data for the specific cluster
+  cluster_df <- cluster_ieg_sample_percentages %>%
+    filter(Cluster == cluster)
+
+  # Create the plot
+  plot(cluster_df$Activated_Percentage, cluster_df$SacDistance,
+    main = paste("Cluster", cluster),
+    pch = 16, cex = 2,
+    xlab = "Activated Percentage", ylab = "Sac Distance",
+    cex.lab = 1.5, cex.axis = 1.5,
+    cex.main = 2,
+    xlim = c(0, max(cluster_df$Activated_Percentage)),
+    bty = "l"
+  )
+
+  # Fit line
+  fit <- lm(SacDistance ~ Activated_Percentage, data = cluster_df)
+
+  # Add the fit line
+  abline(fit, col = "black", lwd = 2)
+
+  # Create legend labels with statistics
+  legend_labels <- c(
+    paste("R² =", round(cluster_results$r_squared, 3)),
+    paste("p-value =", format.pval(cluster_results$p_value, digits = 3)),
+    paste("Adj. p-value =", format.pval(cluster_results$AdjustedPValue, digits = 3))
+  )
+
+  # Add legend
+  legend("topleft",
+    legend = legend_labels,
+    col = "black",
+    cex = 1.2,
+    bty = "n"
+  )
+
+  # Add title with cluster name and coefficients
+  title_text <- paste(
+    "Cluster", cluster, "\n",
+    "Intercept =", round(cluster_results$Intercept, 3), "\n",
+    "Slope =", round(cluster_results$Slope, 3)
+  )
+  title(main = title_text, cex.main = 1.5)
+}
+
+# Get all unique cluster numbers
+clusters <- unique(cluster_regression_results$Cluster)
+
+# Create a directory to save the PDFs if it doesn't exist
+dir.create("../results/IEGactivity_WTonly/Sac_DistancebyActivatedPercentage_250303", showWarnings = FALSE)
+
+# Iterate through clusters
+for (cluster in clusters) {
+  # Open a PDF device
+  pdf(file = paste0("../results/IEGactivity_WTonly/Sac_DistancebyActivatedPercentage_250303/cluster_", cluster, "_plot.pdf"), width = 6, height = 8)
+
+  # Create the plot
+  plot_cluster(cluster, cluster_regression_results, cluster_ieg_sample_percentages)
+
+  # Close the PDF device
+  dev.off()
+
+  # Print progress
+  cat("Saved plot for cluster", cluster, "\n")
+}
+
+cat("All plots have been saved in the 'Sac_DistancebyActivatedPercentage' directory.\n")
+```
+
+### with Sex
+```{r regression sac distance by pct activated and sex}
+# Create a data frame with cluster assignments, Sex, sample, and IEG expression
+cluster_ieg_Sex_sample_df <- data.frame(
+  Cluster = Idents(wt_only),
+  Sex = wt_only$sex,
+  Sample = wt_only$sample,
+  SacDistance = wt_only$Sac_Test_Distance,
+  ieg_expression
+)
+# Calculate the percentage of cells expressing 2 or more IEGs within each cluster, Sex, and sample
+cluster_ieg_Sex_sample_percentages <- cluster_ieg_Sex_sample_df %>%
+  group_by(Cluster, Sex, Sample) %>%
+  summarise(
+    Cluster_Cells = n(),
+    Activated_Cells = sum(rowSums(across(all_of(filtered_iegs)) > 0) >= 2),
+    SacDistance = dplyr::first(SacDistance)
+  ) %>%
+  dplyr::mutate(Activated_Percentage = Activated_Cells / Cluster_Cells * 100) %>%
+  ungroup()
+
+# Removing outlier for distance
+cluster_ieg_Sex_sample_percentages <- cluster_ieg_Sex_sample_percentages %>%
+  filter(Sample != "Het_F_6")
+
+# Perform linear regression for each cluster, skipping those with only one Sex level
+regression_results <- cluster_ieg_Sex_sample_percentages %>%
+  # First identify clusters with only one Sex level
+  group_by(Cluster) %>%
+  mutate(sex_levels_count = n_distinct(Sex)) %>%
+  ungroup() %>%
+  # Filter to keep only clusters with at least 2 Sex levels
+  filter(sex_levels_count >= 2) %>%
+  # Now proceed with your analysis on the filtered data
+  group_by(Cluster) %>%
+  nest() %>%
+  dplyr::mutate(
+    lm_model = map(data, ~ lm(SacDistance ~ Activated_Percentage + Sex, data = .x)),
+    summary = map(lm_model, summary),
+    coefficients = map(lm_model, coef),
+    r_squared = map_dbl(summary, ~ .x$r.squared),
+    p_value_activated_percentage = map_dbl(summary, ~ {
+      coef_matrix <- .x$coefficients
+      if (nrow(coef_matrix) >= 2 && ncol(coef_matrix) >= 4) .x$coefficients[2, 4] else NA_real_
+    }),
+    p_value_sex = map_dbl(summary, ~ {
+      coef_matrix <- .x$coefficients
+      if (nrow(coef_matrix) >= 3 && ncol(coef_matrix) >= 4) .x$coefficients[3, 4] else NA_real_
+    })
+  ) %>%
+  dplyr::mutate(
+    Slope_Activated_Percentage = map_dbl(coefficients, ~ {
+      if (length(.x) >= 2) .x[2] else NA_real_
+    }),
+    Slope_Sex = map_dbl(coefficients, ~ {
+      if (length(.x) >= 3) .x[3] else NA_real_
+    }),
+    Intercept = map_dbl(coefficients, ~ .x[1])
+  ) %>%
+  dplyr::select(
+    Cluster, Slope_Activated_Percentage, Slope_Sex, Intercept,
+    p_value_activated_percentage, p_value_sex, r_squared
+  )
+
+# Adjust p-values for multiple comparisons (optional)
+adjusted_p_values_activated <- p.adjust(regression_results$p_value_activated_percentage, method = "BH")
+adjusted_p_values_sex <- p.adjust(regression_results$p_value_sex, method = "BH")
+
+# Add adjusted p-values to the results data frame
+regression_results$adjusted_p_values_activated <- adjusted_p_values_activated
+regression_results$adjusted_p_values_sex <- adjusted_p_values_sex
+
+regression_results <- regression_results %>%
+  arrange(adjusted_p_values_activated)
+
+# Print the updated results
+print(regression_results)
+
+# # Write the results to a CSV file
+write.csv(regression_results, file = "../results/IEGactivity_WTonly/250303_SacDistance_byactivationpercent_bysex.csv", row.names = FALSE)
+```
+
+```{r scatters sac distance by pct activated with sex}
+# First, let's create a function for our plotting code
+plot_cluster_withsex <- function(cluster, regression_results, cluster_ieg_Sex_sample_percentages) {
+  # Extract the results for the specific cluster we're plotting
+  cluster_results <- regression_results[regression_results$Cluster == cluster, ]
+
+  # Filter the data for the specific cluster
+  cluster_df <- cluster_ieg_Sex_sample_percentages %>%
+    filter(Cluster == cluster)
+
+  # Create the plot
+  plot(cluster_df$Activated_Percentage, cluster_df$SacDistance,
+    main = paste("Cluster", cluster),
+    pch = 16, cex = 2,
+    xlab = "Activated Percentage", ylab = "Sac Distance",
+    cex.lab = 1.5, cex.axis = 1.5,
+    cex.main = 2,
+    xlim = c(0, max(cluster_df$Activated_Percentage)),
+    bty = "l",
+    col = ifelse(cluster_df$Sex == "M", "#4478AB", "#ED6677")
+  )
+
+  # Fit lines for all data, male, and female
+  fit_all <- lm(SacDistance ~ Activated_Percentage + Sex, data = cluster_df)
+  fit_male <- lm(SacDistance ~ Activated_Percentage, data = cluster_df[cluster_df$Sex == "M", ])
+  fit_female <- lm(SacDistance ~ Activated_Percentage, data = cluster_df[cluster_df$Sex == "F", ])
+
+  # Add the fit lines
+  abline(fit_all, col = "black", lwd = 2)
+  abline(fit_male, col = "#4478AB", lwd = 2)
+  abline(fit_female, col = "#ED6677", lwd = 2)
+
+  # Calculate R-squared values for each fit
+  r2_all <- summary(fit_all)$r.squared
+  r2_male <- summary(fit_male)$r.squared
+  r2_female <- summary(fit_female)$r.squared
+
+  # Create legend labels with statistics
+  legend_labels <- c(
+    paste("All (R² =", round(r2_all, 3), ")"),
+    paste("Male (R² =", round(r2_male, 3), ")"),
+    paste("Female (R² =", round(r2_female, 3), ")"),
+    paste("Activated % Slope =", round(cluster_results$Slope_Activated_Percentage, 3)),
+    paste("Sex Slope =", round(cluster_results$Slope_Sex, 3)),
+    paste("Intercept =", round(cluster_results$Intercept, 3)),
+    paste("Activated % p-value =", format.pval(cluster_results$p_value_activated_percentage, digits = 3)),
+    paste("Sex p-value =", format.pval(cluster_results$p_value_sex, digits = 3)),
+    paste("Activated % Adj. p-value =", format.pval(cluster_results$adjusted_p_values_activated, digits = 3)),
+    paste("Sex Adj. p-value =", format.pval(cluster_results$adjusted_p_values_sex, digits = 3))
+  )
+
+  # Add legend
+  legend("topleft",
+    legend = legend_labels,
+    col = c("black", "#4478AB", "#ED6677", rep("black", 5)),
+    lty = c(1, 1, 1, rep(NA, 5)),
+    cex = 1.2,
+    bty = "n"
+  )
+}
+
+
+# Get all unique cluster numbers
+clusters <- unique(regression_results$Cluster)
+
+# Iterate through clusters
+for (cluster in clusters) {
+  # Open a PDF device
+  pdf(file = paste0("../results/IEGactivity_WTonly/Sac_DistancebyActivatedPercentage_250303/cluster_", cluster, "_plot_bySex.pdf"), width = 6, height = 8)
+  # Create the plot
+  plot_cluster_withsex(cluster, regression_results, cluster_ieg_Sex_sample_percentages)
+
+  # Close the PDF device
+  dev.off()
+
+  # Print progress
+  cat("Saved plot for cluster", cluster, "\n")
+}
+
+cat("All plots have been saved in the 'SacDistancebyActivatedPercentage' directory.\n")
+```
+
+# Gene Module Analysis
+
+```{r add module scores}
+ieg_lst <- list(ieg_62 = filtered_iegs)
+
+wt_only <- AddModuleScore(
+  object = wt_only,
+  features = ieg_lst,
+  pool = NULL,
+  nbin = 24,
+  ctrl = 100,
+  k = FALSE,
+  assay = NULL,
+  name = "IEG_score",
+  seed = 1,
+  search = FALSE,
+  slot = "data"
+)
+```
+
+```{r set up dataframe}
+sample_info <- wt_only@meta.data %>%
+  dplyr::select(
+    sample,
+    rewards = Avg_Total_Rewards,
+    sac_rewards = Sac_Total_Rewards,
+    distance = Avg_Test_Distance,
+    sac_distance = Sac_Test_Distance,
+    cell_type,
+    genotype,
+    sex,
+    score_ieg62 = IEG_score1
+  )
+```
+
+## Rewards
+
+```{r linear regression for IEG module rewards}
+model_summary_df <- data.frame()
+
+for (cluster in unique(sample_info$cell_type)) {
+  # Filter the data frame for the current cluster
+  cluster_df <- sample_info %>%
+    filter(cell_type == cluster) %>%
+    distinct()
+
+  # Fit the linear regression model
+  lm_model <- lm(rewards ~ score_ieg62, data = cluster_df)
+
+  # Extract the model summary
+  model_summary <- summary(lm_model)
+
+  # Create a named vector with model summary statistics
+  model_summary_vec <- c(
+    `(Intercept)` = coef(lm_model)[1],
+    `(Intercept) p-value` = coef(model_summary)[1, "Pr(>|t|)"],
+    coef(lm_model)[2],
+    `Std. Error` = coef(model_summary)[2, "Std. Error"],
+    `t_value` = coef(model_summary)[2, "t value"],
+    `p_value` = coef(model_summary)[2, "Pr(>|t|)"],
+    r_squared = model_summary$r.squared,
+    adj_r_squared = model_summary$adj.r.squared,
+    f_statistic = model_summary$fstatistic[1],
+    f_pvalue = pf(model_summary$fstatistic[1], model_summary$fstatistic[2], model_summary$fstatistic[3], lower.tail = FALSE)
+  )
+
+  # Convert the named vector to a data frame
+  model_summary_vec_df <- data.frame(t(model_summary_vec))
+
+  # Add a column for the cluster
+  model_summary_vec_df$Cluster <- cluster
+
+  # Append the data frame to the overall result
+  model_summary_df <- rbind(model_summary_df, model_summary_vec_df)
+}
+
+model_summary_df$adj_p_value <- p.adjust(model_summary_df$p_value, method = "BH")
+
+model_summary_df %>%
+  write_csv("../results/IEGactivity_WTonly/250303_genemodulescore_results_rewards.csv")
+```
+
+```{r plots for rewards}
+# filter only significant results
+sig_df <- model_summary_df %>% filter(p_value < 0.05)
+
+cts <- sig_df$Cluster %>% unique()
+
+dir.create("../results/IEGactivity_WTonly/RewardsbyModuleScore_Figs", showWarnings = FALSE)
+
+for (ct in cts) {
+  plot_df <- sample_info %>%
+    filter(cell_type == ct)
+
+  pp <- ggplot(plot_df, aes(score_ieg62, rewards)) +
+    geom_smooth(method = "lm", se = FALSE, fullrange = TRUE, color = "black", linewidth = 0.75) +
+    geom_smooth(method = "lm", aes(color = sex), se = FALSE, fullrange = TRUE, linewidth = 0.75) +
+    scale_color_manual(values = palette_sex) +
+    scale_x_continuous(expand = expansion(c(0, 0))) +
+    labs(title = ct, color = "Sex", x = "Score_IEG62", y = "Rewards") +
+    theme_bw() +
+    theme(
+      panel.grid = element_blank(),
+      plot.title = element_text(size = 16),
+      axis.text = element_text(size = 12, color = "black"),
+      axis.title = element_text(size = 14)
+    )
+
+  print(pp)
+  ct_name <- gsub("/", "-", ct)
+  ggsave(paste0("../results/IEGactivity_WTonly/RewardsbyModuleScore_Figs/250303_linearplot_", ct_name, "_genemodulescore.pdf"), pp, width = 5, height = 3.5)
+}
+```
+
+## Sac rewards
+
+```{r linear regression for IEG module sac_rewards}
+model_summary_df <- data.frame()
+
+for (cluster in unique(sample_info$cell_type)) {
+  # Filter the data frame for the current cluster
+  cluster_df <- sample_info %>%
+    filter(cell_type == cluster) %>%
+    distinct()
+
+  # Fit the linear regression model
+  lm_model <- lm(sac_rewards ~ score_ieg62, data = cluster_df)
+
+  # Extract the model summary
+  model_summary <- summary(lm_model)
+
+  # Create a named vector with model summary statistics
+  model_summary_vec <- c(
+    `(Intercept)` = coef(lm_model)[1],
+    `(Intercept) p-value` = coef(model_summary)[1, "Pr(>|t|)"],
+    coef(lm_model)[2],
+    `Std. Error` = coef(model_summary)[2, "Std. Error"],
+    `t_value` = coef(model_summary)[2, "t value"],
+    `p_value` = coef(model_summary)[2, "Pr(>|t|)"],
+    r_squared = model_summary$r.squared,
+    adj_r_squared = model_summary$adj.r.squared,
+    f_statistic = model_summary$fstatistic[1],
+    f_pvalue = pf(model_summary$fstatistic[1], model_summary$fstatistic[2], model_summary$fstatistic[3], lower.tail = FALSE)
+  )
+
+  # Convert the named vector to a data frame
+  model_summary_vec_df <- data.frame(t(model_summary_vec))
+
+  # Add a column for the cluster
+  model_summary_vec_df$Cluster <- cluster
+
+  # Append the data frame to the overall result
+  model_summary_df <- rbind(model_summary_df, model_summary_vec_df)
+}
+
+model_summary_df$adj_p_value <- p.adjust(model_summary_df$p_value, method = "BH")
+
+model_summary_df %>%
+  write_csv("../results/IEGactivity_WTonly/250303_genemodulescore_results_sac_rewards.csv")
+```
+
+```{r plots for sac_rewards}
+# filter only significant results
+sig_df <- model_summary_df %>% filter(p_value < 0.05)
+
+cts <- sig_df$Cluster %>% unique()
+
+dir.create("../results/IEGactivity_WTonly/sac_rewardsbyModuleScore_Figs", showWarnings = FALSE)
+
+for (ct in cts) {
+  plot_df <- sample_info %>%
+    filter(cell_type == ct)
+
+  pp <- ggplot(plot_df, aes(score_ieg62, sac_rewards)) +
+    geom_smooth(method = "lm", se = FALSE, fullrange = TRUE, color = "black", linewidth = 0.75) +
+    geom_smooth(method = "lm", aes(color = sex), se = FALSE, fullrange = TRUE, linewidth = 0.75) +
+    scale_color_manual(values = palette_sex) +
+    scale_x_continuous(expand = expansion(c(0, 0))) +
+    labs(title = ct, color = "Sex", x = "Score_IEG62", y = "sac_rewards") +
+    theme_bw() +
+    theme(
+      panel.grid = element_blank(),
+      plot.title = element_text(size = 16),
+      axis.text = element_text(size = 12, color = "black"),
+      axis.title = element_text(size = 14)
+    )
+
+  print(pp)
+  ct_name <- gsub("/", "-", ct)
+  ggsave(paste0("../results/IEGactivity_WTonly/sac_rewardsbyModuleScore_Figs/250303_linearplot_", ct_name, "_genemodulescore.pdf"), pp, width = 5, height = 3.5)
+}
+```
+
+## Distance
+
+```{r linear regression for IEG module distance}
+model_summary_df <- data.frame()
+
+for (cluster in unique(sample_info$cell_type)) {
+  # Filter the data frame for the current cluster
+  cluster_df <- sample_info %>%
+    filter(cell_type == cluster) %>%
+    distinct()
+
+  # Fit the linear regression model
+  lm_model <- lm(distance ~ score_ieg62, data = cluster_df)
+
+  # Extract the model summary
+  model_summary <- summary(lm_model)
+
+  # Create a named vector with model summary statistics
+  model_summary_vec <- c(
+    `(Intercept)` = coef(lm_model)[1],
+    `(Intercept) p-value` = coef(model_summary)[1, "Pr(>|t|)"],
+    coef(lm_model)[2],
+    `Std. Error` = coef(model_summary)[2, "Std. Error"],
+    `t_value` = coef(model_summary)[2, "t value"],
+    `p_value` = coef(model_summary)[2, "Pr(>|t|)"],
+    r_squared = model_summary$r.squared,
+    adj_r_squared = model_summary$adj.r.squared,
+    f_statistic = model_summary$fstatistic[1],
+    f_pvalue = pf(model_summary$fstatistic[1], model_summary$fstatistic[2], model_summary$fstatistic[3], lower.tail = FALSE)
+  )
+
+  # Convert the named vector to a data frame
+  model_summary_vec_df <- data.frame(t(model_summary_vec))
+
+  # Add a column for the cluster
+  model_summary_vec_df$Cluster <- cluster
+
+  # Append the data frame to the overall result
+  model_summary_df <- rbind(model_summary_df, model_summary_vec_df)
+}
+
+model_summary_df$adj_p_value <- p.adjust(model_summary_df$p_value, method = "BH")
+
+model_summary_df %>%
+  write_csv("../results/IEGactivity_WTonly/250303_genemodulescore_results_distance.csv")
+```
+
+```{r plots for distance}
+# filter only significant results
+sig_df <- model_summary_df %>% filter(p_value < 0.05)
+
+cts <- sig_df$Cluster %>% unique()
+
+dir.create("../results/IEGactivity_WTonly/distancebyModuleScore_Figs", showWarnings = FALSE)
+
+for (ct in cts) {
+  plot_df <- sample_info %>%
+    filter(cell_type == ct)
+
+  pp <- ggplot(plot_df, aes(score_ieg62, distance)) +
+    geom_smooth(method = "lm", se = FALSE, fullrange = TRUE, color = "black", linewidth = 0.75) +
+    geom_smooth(method = "lm", aes(color = sex), se = FALSE, fullrange = TRUE, linewidth = 0.75) +
+    scale_color_manual(values = palette_sex) +
+    scale_x_continuous(expand = expansion(c(0, 0))) +
+    labs(title = ct, color = "Sex", x = "Score_IEG62", y = "distance") +
+    theme_bw() +
+    theme(
+      panel.grid = element_blank(),
+      plot.title = element_text(size = 16),
+      axis.text = element_text(size = 12, color = "black"),
+      axis.title = element_text(size = 14)
+    )
+
+  print(pp)
+  ct_name <- gsub("/", "-", ct)
+  ggsave(paste0("../results/IEGactivity_WTonly/distancebyModuleScore_Figs/250303_linearplot_", ct_name, "_genemodulescore.pdf"), pp, width = 5, height = 3.5)
+}
+```
+
+## Sac distance
+
+```{r linear regression for IEG module sac_distance}
+model_summary_df <- data.frame()
+
+for (cluster in unique(sample_info$cell_type)) {
+  # Filter the data frame for the current cluster
+  cluster_df <- sample_info %>%
+    filter(cell_type == cluster) %>%
+    distinct()
+
+  # Fit the linear regression model
+  lm_model <- lm(sac_distance ~ score_ieg62, data = cluster_df)
+
+  # Extract the model summary
+  model_summary <- summary(lm_model)
+
+  # Create a named vector with model summary statistics
+  model_summary_vec <- c(
+    `(Intercept)` = coef(lm_model)[1],
+    `(Intercept) p-value` = coef(model_summary)[1, "Pr(>|t|)"],
+    coef(lm_model)[2],
+    `Std. Error` = coef(model_summary)[2, "Std. Error"],
+    `t_value` = coef(model_summary)[2, "t value"],
+    `p_value` = coef(model_summary)[2, "Pr(>|t|)"],
+    r_squared = model_summary$r.squared,
+    adj_r_squared = model_summary$adj.r.squared,
+    f_statistic = model_summary$fstatistic[1],
+    f_pvalue = pf(model_summary$fstatistic[1], model_summary$fstatistic[2], model_summary$fstatistic[3], lower.tail = FALSE)
+  )
+
+  # Convert the named vector to a data frame
+  model_summary_vec_df <- data.frame(t(model_summary_vec))
+
+  # Add a column for the cluster
+  model_summary_vec_df$Cluster <- cluster
+
+  # Append the data frame to the overall result
+  model_summary_df <- rbind(model_summary_df, model_summary_vec_df)
+}
+
+model_summary_df$adj_p_value <- p.adjust(model_summary_df$p_value, method = "BH")
+
+model_summary_df %>%
+  write_csv("../results/IEGactivity_WTonly/250303_genemodulescore_results_sac_distance.csv")
+```
+
+```{r plots for sac_distance}
+# filter only significant results
+sig_df <- model_summary_df %>% filter(p_value < 0.05)
+
+cts <- sig_df$Cluster %>% unique()
+
+dir.create("../results/IEGactivity_WTonly/sac_distancebyModuleScore_Figs", showWarnings = FALSE)
+
+for (ct in cts) {
+  plot_df <- sample_info %>%
+    filter(cell_type == ct)
+
+  pp <- ggplot(plot_df, aes(score_ieg62, sac_distance)) +
+    geom_smooth(method = "lm", se = FALSE, fullrange = TRUE, color = "black", linewidth = 0.75) +
+    geom_smooth(method = "lm", aes(color = sex), se = FALSE, fullrange = TRUE, linewidth = 0.75) +
+    scale_color_manual(values = palette_sex) +
+    scale_x_continuous(expand = expansion(c(0, 0))) +
+    labs(title = ct, color = "Sex", x = "Score_IEG62", y = "sac_distance") +
+    theme_bw() +
+    theme(
+      panel.grid = element_blank(),
+      plot.title = element_text(size = 16),
+      axis.text = element_text(size = 12, color = "black"),
+      axis.title = element_text(size = 14)
+    )
+
+  print(pp)
+  ct_name <- gsub("/", "-", ct)
+  ggsave(paste0("../results/IEGactivity_WTonly/sac_distancebyModuleScore_Figs/250303_linearplot_", ct_name, "_genemodulescore.pdf"), pp, width = 5, height = 3.5)
+}
+```
+
+# End
