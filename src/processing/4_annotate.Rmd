@@ -1,0 +1,248 @@
+---
+title: "250205_snRNAseq_annotate_clean"
+author: "Simona Sarafinovska"
+date: "2025-02-05"
+---
+
+# Set up environment
+We first need to tell RStudio where to find our packages. 
+```{r dependencies, warning=FALSE, message=FALSE}
+# Change this to your directory
+.libPaths('/ref/jdlab/software/r-envs/simona/r-packages/4.2/')
+
+# Load dependencies
+library(dplyr)
+library(Seurat)
+library(scCustomize)
+library(ggplot2)
+library(patchwork)
+library(plotly)
+library(clustree)
+library(AnnotationDbi)
+library(org.Mm.eg.db)
+library(anndata)
+
+set.seed(420)
+
+source("../color_utils.R")
+```
+
+# Load in Data
+```{r load in data}
+combined_clustered <- readRDS( "../../data/250221_combined_clustered_1-5_5pct.rds")
+combined_clustered
+```
+You should have an object with 37462 features across 138033 nuclei. 
+
+
+# Finding cluster markers
+```{r findMarkers, message=FALSE, results=FALSE}
+combined.markers.all <- FindAllMarkers(combined_clustered,
+                                             only.pos = FALSE,
+                                             min.pct = 0.25,
+                                             logfc.threshold = 0.5,
+                                             return.thresh = 0.01)
+
+write.csv(combined.markers.all,file = "../../results/processing/250308_combinedmarkers-5pct_50dims.csv")
+
+saveRDS(combined.markers.all,file = "../../results/processing/250308_combinedmarkers-5pct_50dims.rds")
+```
+
+## And plotting heatmaps
+```{r}
+combined.markers.all %>%
+    group_by(cluster) %>%
+    dplyr::filter(avg_log2FC > 1) %>%
+    slice_head(n = 10) %>%
+    ungroup() -> top10
+plot <- DoHeatmap(combined_clustered, features = top10$gene) + NoLegend()
+
+ ggsave(filename = "../../results/processing/intermed-figs/250308_combinedmarkers_50dim_5pct.pdf",
+        plot = plot,
+        width = 18,
+        height = 18,
+        dpi = 300)
+```
+
+```{r}
+ combined.markers.all %>%
+   group_by(cluster) %>%
+   top_n(n = 10, wt = avg_log2FC) -> top10_AY
+
+ plot <- DoHeatmap(combined_clustered, 
+                   feature = top10_AY$gene,
+                   label = FALSE,
+                   disp.min = 0,
+                   disp.max = 2,
+                   raster = TRUE) + 
+   scale_fill_viridis() +
+   NoLegend()
+ plot
+ ggsave(filename = "../../results/processing/intermed-figs/250308_combinedmarkers_50dim_5pct-2.pdf",
+        plot = plot,
+        width = 18,
+        height = 24,
+        dpi = 300)
+```
+
+
+# Hypomap
+We followed the vignette here: https://github.com/lsteuernagel/mapscvi to  map combined onto HypoMap (Steuernagel et al., Nature Met., 2022) and obtain predicted annotations. 
+
+```{r import hypomap annotations}
+hypomapped <- readRDS("../../data/240531_hypomapped_1-5_5pct_res2.rds")
+hypomapped
+```
+You should have the same features and nuclei (37462 features across 138033 nuclei), but more dimensional reductions (now have scvi and umap_scvi).
+
+```{r add annotations to combined}
+cols_to_transfer <- c("prediction_probability", "predicted", "avg_neighbor_distance")
+
+for (col in cols_to_transfer) {
+  new_col_name <- paste0("hypomap_", col)
+  
+  combined_clustered[[new_col_name]] <-
+    hypomapped@meta.data[[col]][match(colnames(combined_clustered),
+                                      colnames(hypomapped))]
+}
+```
+
+# MapMyCells
+## Create minimal h5ad
+```{r create h5ad}
+ph <- mapIds(org.Mm.eg.db,
+             keys = rownames(combined_clustered),
+             column = "ENSEMBL",
+             keytype = "SYMBOL",
+             multiVals = "first")
+ph <- as.data.frame(ph)
+
+df <- data.frame(
+  GeneSymbol = rownames(combined_clustered),
+  EnsemblID = ph
+)
+df <- na.omit(df)
+duplicates <- df$ph[duplicated(df$ph) | duplicated(df$ph, fromLast = TRUE)]
+df_dups_removed <- df %>% distinct(ph, .keep_all = TRUE)
+
+genes_to_remove <- rownames(combined_clustered)[is.na(ph)]
+combined_clustered.cleaned <- combined_clustered[rownames(combined_clustered) %in% df_dups_removed$GeneSymbol, ]
+
+ph <- mapIds(org.Mm.eg.db,
+             keys = rownames(combined_clustered.cleaned),
+             column = "ENSEMBL",
+             keytype = "SYMBOL",
+             multiVals = "first")
+ph <- as.data.frame(ph)
+
+df <- data.frame(
+  GeneSymbol = rownames(combined_clustered.cleaned),
+  EnsemblID = ph
+)
+
+raw_counts <- GetAssayData(object = combined_clustered.cleaned,
+                           slot = "counts")
+colnames(raw_counts) <- rownames(combined_clustered.cleaned@meta.data)
+samples <- colnames(raw_counts)
+genes <- df$ph
+raw_counts <- t(raw_counts)
+
+adata <- AnnData(X = raw_counts,
+                 var = data.frame(genes = genes, row.names = genes),
+                 obs = data.frame(samples = samples, row.names = samples))
+write_h5ad(adata, "../../data/250308_combined_clustered_1-5_5pct_res2.h5ad")
+remove(combined_clustered.cleaned)
+```
+And you can take the .h5ad file and upload it to MapMyCells on the Allen Brain Cell Atlas site!
+
+## Bring in MapMyCells Data
+Now we load in the csv provided by MapMyCells to see what it predicts for our cluster annotations.
+```{r read in MapMyCells data}
+ABC_map <- read.csv("../../data/250308_combined_clustered_1-5_5pct_res2_10xWholeMouseBrain(CCN20230722)_HierarchicalMapping_UTC_1741499269497.csv")
+
+combined_clustered <- AddMetaData(object = combined_clustered,metadata=ABC_map$class_name,col.name='ABC_class_name')
+combined_clustered <- AddMetaData(object = combined_clustered,metadata=ABC_map$class_bootstrapping_probability,col.name='ABC_class_probability')
+combined_clustered <- AddMetaData(object = combined_clustered,metadata=ABC_map$class_label,col.name='ABC_class_label')
+combined_clustered <- AddMetaData(object = combined_clustered,metadata=ABC_map$subclass_name,col.name='ABC_subclass_name')
+combined_clustered <- AddMetaData(object = combined_clustered,metadata=ABC_map$subclass_bootstrapping_probability,col.name='ABC_subclass_probability')
+combined_clustered <- AddMetaData(object = combined_clustered,metadata=ABC_map$subclass_label,col.name='ABC_subclass_label')
+```
+
+This will print out a csv with Seurat clusters on the columns and ABC clusters on the rows so you can sort and see how they corelate.
+```{r save table with MapMyCells clusters}
+clusters <- combined_clustered@meta.data$RNA_snn_res.2
+ABC_cluster_names <- combined_clustered@meta.data$ABC_class_name
+
+df <- data.frame(clusters, ABC_cluster_names)
+
+table <- table(df$ABC_cluster_names, df$clusters)
+write.csv (table, "../../results/processing/250308_clustersbyABCclass_1-5_5pct_50dims.csv", row.names = TRUE)
+```
+
+
+# Assign Cell Class
+Let's use the MapMyCells findings to map names to clusters:
+```{r assign cluster names by MapMyCells}
+cluster_matrix <- as.matrix(table)
+
+cluster_to_name <- apply(cluster_matrix, 2, function(x) {
+    # Get the ABC cluster name with maximum count
+    rownames(cluster_matrix)[which.max(x)]
+})
+
+
+new.cluster.ids <- sapply(names(cluster_to_name), function(cluster) {
+    abc_name <- cluster_to_name[cluster]
+    cell_type <- sub("^\\d+\\s+", "", abc_name)
+    paste0(cluster, "-", cell_type)
+})
+
+new.cluster.ids
+```
+
+```{r rename class idents}
+new.cluster.ids <- sort(new.cluster.ids)
+
+names(new.cluster.ids) <- levels(combined_clustered)
+combined_clustered <- RenameIdents(combined_clustered, new.cluster.ids)
+```
+
+Adding class as a metadata column
+```{r add class metadata}
+class_assignment <- function(cluster_name) {
+  if(grepl("GABA|Glut|IMN|Dopa", cluster_name, ignore.case=TRUE) && 
+     !grepl("Astro|OPC|Oligo|Vascular|Immune|OEC", cluster_name, ignore.case=TRUE)) {
+    return("Neuronal")
+  } else {
+    return("Non-Neuronal")
+  }
+}
+
+combined_clustered$class <- sapply(Idents(combined_clustered), class_assignment)
+```
+
+```{r table by class}
+class_table <- table(combined_clustered@meta.data$class)
+class_table
+```
+-
+```{r umap by class}
+DimPlot_scCustom(combined_clustered,
+                 group.by = 'class',
+                 reduction = 'umap',
+                 label = FALSE,
+                 raster = FALSE,
+                 split_seurat = TRUE,
+                 pt.size = 0.01) +
+  theme(legend.position = 'right')
+
+ggsave(filename = "../../results/processing/250308_umapbyclass_combined_1-5_5pct_res2.png",
+       width = 12,
+       height = 12,
+       dpi = 300)
+```
+
+
+```{r save}
+saveRDS(combined_clustered, "../../data/250308_combined_annotated_1-5_5pct_res2.rds")
+```

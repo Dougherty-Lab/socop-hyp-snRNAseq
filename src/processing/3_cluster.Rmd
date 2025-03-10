@@ -1,0 +1,182 @@
+---
+title: "250205_snRNAseq_cluster_clean"
+author: "Simona Sarafinovska"
+date: "2025-02-05"
+---
+
+# Set up environment
+We first need to tell RStudio where to find our packages. 
+```{r dependencies, warning=FALSE, message=FALSE}
+# Change this to your directory
+.libPaths('/ref/jdlab/software/r-envs/simona/r-packages/4.2/')
+
+# Load dependencies
+library(dplyr)
+library(Seurat)
+library(scCustomize)
+library(ggplot2)
+library(patchwork)
+library(plotly)
+library(clustree)
+
+source("../color_utils.R")
+
+set.seed(420)
+```
+
+# Load in Data
+```{r load in data}
+combined_postQC <- readRDS("../../data/250221_combined_postQC_1-5_5pct.rds")
+combined_postQC
+```
+You should have an object with 37462 features across 138033 nuclei. 
+
+
+# Normalize the data
+
+The combined_postQC data is scaled using a global-scaling normalization method. First we normalize the feature expression measurements for each cell by the total expression of the feature, scale using a factor of `10,000`, then the result is log-transformed.
+
+```{r normalize}
+combined_postQC <- NormalizeData(combined_postQC,
+                                    normalization.method = "LogNormalize",
+                                    scale.factor = 10000)
+```
+
+# Identification of highly variable features
+
+```{r ID variable features}
+combined_postQC <- FindVariableFeatures(combined_postQC,
+                                           selection.method = "vst",
+                                           nfeatures = 3000)
+```
+
+```{r variable feature plot}
+VariableFeaturePlot_scCustom(seurat_object = combined_postQC, num_features = 20, repel = TRUE)
+```
+
+# Scale the data
+
+We apply a linear transformation of the data so that highly-expressed genes do not dominate the analysis. First the expression of each gene is shifted so the mean expression across all cells is 0. Then it scales the expression so the variance across cells is 1.
+
+```{r scale}
+all.genes <- rownames(combined_postQC)
+combined_postQC <- ScaleData(combined_postQC, features = all.genes)
+```
+# Dimensional reduction
+
+We perform PCA on the scaled data using the most variable features determined above.
+```{r PCA}
+combined_postQC <- RunPCA(combined_postQC,
+                             npcs = 100,
+                             features = VariableFeatures(object = combined_postQC))
+```
+
+
+```{r VizDim PCA plot}
+VizDimLoadings(combined_postQC, dims=1:4, reduction="pca") &
+  theme(axis.text=element_text(size=6),
+        axis.title=element_text(size=8, face='bold'))
+```
+
+```{r PCA dim heatmap plot}
+DimHeatmap(combined_postQC, dims = 1:12, cells = 1000, balanced = TRUE)
+```
+
+```{r elbowplot 10 dims}
+ElbowPlot(combined_postQC, ndims = 10)
+```
+
+```{r elbowplot 100 dims}
+ElbowPlot(combined_postQC, ndims = 100)
+```
+
+# Cluster the cells
+
+```{r find neighbors}
+combined_postQC <- FindNeighbors(combined_postQC, dims = 1:50)
+```
+
+```{r find clusters}
+combined_postQC <- FindClusters(combined_postQC,
+                                  resolution = c(0.01, 0.05, 0.1, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4))
+```
+
+Drawing a cluster tree will help determine the appropriate resolution for clustering.
+
+```{r clustertree plot, fig.height=8}
+clustree(combined_postQC, prefix = 'RNA_snn_res.', layout = "sugiyama")
+
+ ggsave(filename = "../../results/processing/intermed-figs/250221_clustertree_1-5_optimalpK.pdf",
+        width = 8,
+        height = 8,
+        dpi = 300)
+```
+
+We'll chose the clustering resolution to be `2` so we'll set that as the active identity.
+```{r choose resolution}
+Idents(combined_postQC) <- combined_postQC$RNA_snn_res.2
+```
+
+```{r UMAP}
+combined_postQC <- RunUMAP(combined_postQC, dims = 1:50, n.components = 2L)
+```
+
+# Plot a UMAP
+
+```{r plot UMAP}
+DimPlot_scCustom(combined_postQC,
+                 colors_use = palette_90,
+                 reduction = 'umap',
+                 label = TRUE,
+                 raster = FALSE,
+                 split_seurat = TRUE,
+                 pt.size = 0.01) +
+  theme(legend.position = 'none')
+
+ggsave(filename = "../../results/processing/final-figs/250221_umap_combined_postQC_1-5_optimalpK_res2.pdf",
+       width = 12,
+       height = 12,
+       dpi = 300)
+```
+
+```{r plot UMAP by sample}
+DimPlot_scCustom(combined_postQC,
+                 group.by = 'sample',
+                 reduction = 'umap',
+                 label = FALSE,
+                 raster = FALSE,
+                 split_seurat = TRUE,
+                 pt.size = 0.01) +
+  theme(legend.position = 'none')
+
+ ggsave(filename = "../../results/processing/intermed-figs/250221_umap_combined_postQC_1-5_optimalpK_bysample.pdf",
+        width = 12,
+        height = 12,
+        dpi = 300)
+```
+
+This will create a series of UMAPs where each cluster is highlighted, which is helpful in identifying if clustering parameters need to be fine tuned. Highlighted clusters should be close together and not spread across UMAP space.
+```{r plot highlighting clusters}
+dir.create("../../results/processing/intermed-figs/IterateCluster_combined_postQC_1-5_optimalpK_res2_50dims_250221")
+
+Iterate_Cluster_Highlight_Plot(combined_postQC,
+                               highlight_color = 'navy',
+                               background_color = 'lightgrey',
+                               file_path = "../../results/processing/intermed-figs/IterateCluster_combined_postQC_1-5_optimalpK_res2_50dims_250221/",
+                               file_name = 'iterate',
+                               file_type = '.png',
+                               raster = FALSE,
+                               dpi = 100)
+```
+
+We can see how many cells we have for each cluster in a table format.
+```{r table of cells per cluster}
+table(combined_postQC@meta.data$RNA_snn_res.2)
+```
+
+And save!
+```{r save}
+saveRDS(combined_postQC,file = "../../data/250221_combined_clustered_1-5_5pct.rds")
+```
+
+# End
