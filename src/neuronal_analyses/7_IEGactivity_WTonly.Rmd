@@ -21,13 +21,13 @@ library(scCustomize)
 
 set.seed(420)
 
-source("color_utils.R")
+source("../color_utils.R")
 ```
 
 
 # Load in data
 ```{r load in data}
-combined_neuronal <- readRDS("../data/250228_combined.neuronal_1-5_5pct.rds")
+combined_neuronal <- readRDS("../../data/250228_combined.neuronal_1-5_5pct.rds")
 combined_neuronal
 ```
 
@@ -77,7 +77,7 @@ VlnPlot_scCustom(wt_only[, gene_expr > 0],
   ))
 
 ggsave(
-  filename = "../results/IEGactivity_WTonly/250214_FosGEX_bylearner.pdf",
+  filename = "../../results/IEGactivity_WTonly/250214_FosGEX_bylearner.pdf",
   device = pdf,
   width = 6,
   height = 8
@@ -141,7 +141,7 @@ VlnPlot_scCustom(wt_only[, gene_expr > 0],
   ))
 
 ggsave(
-  filename = "../results/IEGactivity_WTonly/250214_JunGEX_bylearner.pdf",
+  filename = "../../results/IEGactivity_WTonly/250214_JunGEX_bylearner.pdf",
   device = pdf,
   width = 6,
   height = 8
@@ -205,7 +205,7 @@ VlnPlot_scCustom(wt_only[, gene_expr > 0],
   ))
 
 ggsave(
-  filename = "../results/IEGactivity_WTonly/250214_ArcGEX_bylearner.pdf",
+  filename = "../../results/IEGactivity_WTonly/250214_ArcGEX_bylearner.pdf",
   device = pdf,
   width = 6,
   height = 8
@@ -311,7 +311,7 @@ cluster_ieg_Sex_comparison <- cluster_ieg_Sex_comparison %>%
 print(cluster_ieg_Sex_comparison)
 
 # # Write the results to a CSV file
-write.csv(cluster_ieg_Sex_comparison, file = "../results/IEGactivity_WTonly/250303_activationpercent_bysex.csv", row.names = FALSE)
+write.csv(cluster_ieg_Sex_comparison, file = "../../results/IEGactivity_WTonly/250303_activationpercent_bysex.csv", row.names = FALSE)
 ```
 
 ## by Learner 
@@ -373,7 +373,7 @@ cluster_ieg_Learner_comparison <- cluster_ieg_Learner_comparison %>%
 print(cluster_ieg_Learner_comparison)
 
 # Write the results to a CSV file
-write.csv(cluster_ieg_Learner_comparison, file = "../results/IEGactivity_WTonly/250303_activationpercent_bylearner.csv", row.names = FALSE)
+write.csv(cluster_ieg_Learner_comparison, file = "../../results/IEGactivity_WTonly/250303_activationpercent_bylearner.csv", row.names = FALSE)
 ```
 
 # Percentage bar plots
@@ -473,7 +473,7 @@ p2 <- ggplot(cluster_ieg_sex_percentages_norm, aes(x = Mean_Activated_Percentage
   )
 
 wrap_plots(p1, p2)
-ggsave("../results/IEGactivity_WTonly/250303-activationbySex_neuronal_1-5_5pct_50_1.8.pdf",
+ggsave("../../results/IEGactivity_WTonly/250303-activationbySex_neuronal_1-5_5pct_50_1.8.pdf",
   device = pdf,
   width = 12,
   height = 8
@@ -569,7 +569,7 @@ p2 <- ggplot(cluster_ieg_Learner_percentages_norm, aes(x = Mean_Activated_Percen
   )
 
 wrap_plots(p1, p2)
-ggsave("../results/IEGactivity_WTonly/250303-activationbyLearner_neuronal_1-5_5pct_50_1.8.pdf",
+ggsave("../../results/IEGactivity_WTonly/250303-activationbyLearner_neuronal_1-5_5pct_50_1.8.pdf",
   device = pdf,
   width = 12,
   height = 8
@@ -607,7 +607,7 @@ sig_p1 <- ggplot(sig_cluster_ieg_Learner_percentages_norm, aes(x = Mean_Activate
 
 sig_p1
 
-ggsave("../results/IEGactivity_WTonly/250303-activationbyLearner_neuronal_1-5_5pct_50_1.8_sigonly.pdf",
+ggsave("../../results/IEGactivity_WTonly/250303-activationbyLearner_neuronal_1-5_5pct_50_1.8_sigonly.pdf",
   device = pdf,
   width = 5,
   height = 8
@@ -670,7 +670,7 @@ cluster_regression_results <- cluster_regression_results %>%
 print(cluster_regression_results)
 
 # # Write the results to a CSV file
-write.csv(cluster_regression_results, file = "../results/IEGactivity_WTonly/250303_rewards_byactivationpercent.csv", row.names = FALSE)
+write.csv(cluster_regression_results, file = "../../results/IEGactivity_WTonly/250303_rewards_byactivationpercent.csv", row.names = FALSE)
 ```
 
 ```{r scatters rewards by pct activated}
@@ -727,12 +727,12 @@ plot_cluster <- function(cluster, cluster_regression_results, cluster_ieg_sample
 clusters <- unique(cluster_regression_results$Cluster)
 
 # Create a directory to save the PDFs if it doesn't exist
-dir.create("../results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303", showWarnings = FALSE)
+dir.create("../../results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303", showWarnings = FALSE)
 
 # Iterate through clusters
 for (cluster in clusters) {
   # Open a PDF device
-  pdf(file = paste0("../results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303/cluster_", cluster, "_plot.pdf"), width = 6, height = 8)
+  pdf(file = paste0("../../results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303/cluster_", cluster, "_plot.pdf"), width = 6, height = 8)
 
   # Create the plot
   plot_cluster(cluster, cluster_regression_results, cluster_ieg_sample_percentages)
@@ -821,7 +821,7 @@ regression_results <- regression_results %>%
 print(regression_results)
 
 # Write the results to a CSV file
-write.csv(regression_results, file = "../results/IEGactivity_WTonly/250303_rewards_byactivationpercent_bysex.csv", row.names = FALSE)
+write.csv(regression_results, file = "../../results/IEGactivity_WTonly/250303_rewards_byactivationpercent_bysex.csv", row.names = FALSE)
 ```
 
 ```{r scatters rewards by pct activated with sex}
@@ -890,7 +890,7 @@ clusters <- unique(regression_results$Cluster)
 # Iterate through clusters
 for (cluster in clusters) {
   # Open a PDF device
-  pdf(file = paste0("../results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303/cluster_", cluster, "_plot_bySex.pdf"), width = 6, height = 8)
+  pdf(file = paste0("../../results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303/cluster_", cluster, "_plot_bySex.pdf"), width = 6, height = 8)
 
   # Create the plot
   plot_cluster_withsex(cluster, regression_results, cluster_ieg_Sex_sample_percentages)
@@ -979,7 +979,7 @@ regression_results <- regression_results %>%
 print(regression_results)
 
 # Write the results to a CSV file
-write.csv(regression_results, file = "../results/IEGactivity_WTonly/250303_rewards_byactivationpercent_bysaclearner.csv", row.names = FALSE)
+write.csv(regression_results, file = "../../results/IEGactivity_WTonly/250303_rewards_byactivationpercent_bysaclearner.csv", row.names = FALSE)
 ```
 
 ```{r scatters rewards by pct activated with learner}
@@ -1051,7 +1051,7 @@ clusters_to_plot <- clusters[!clusters %in% problem_clusters] # ablines wouldn't
 for (cluster in clusters_to_plot) {
   print(cluster)
   # Open a PDF device
-  pdf(file = paste0("../results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303/cluster_", cluster, "_plot_bySac_Learner.pdf"), width = 6, height = 8)
+  pdf(file = paste0("../../results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303/cluster_", cluster, "_plot_bySac_Learner.pdf"), width = 6, height = 8)
 
   # Create the plot
   plot_cluster_withSac_Learner(cluster, regression_results, cluster_ieg_Learner_sample_percentages)
@@ -1115,7 +1115,7 @@ plot_cluster_withSac_Learner_no_abline <- function(cluster, regression_results, 
 for (cluster in problem_clusters) {
   print(cluster)
   # Open a PDF device
-  pdf(file = paste0("../results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303/cluster_", cluster, "_plot_bySac_Learner_noabline.pdf"), width = 6, height = 8)
+  pdf(file = paste0("../../results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303/cluster_", cluster, "_plot_bySac_Learner_noabline.pdf"), width = 6, height = 8)
 
   # Create the plot
   plot_cluster_withSac_Learner_no_abline(cluster, regression_results, cluster_ieg_Learner_sample_percentages)
@@ -1182,7 +1182,7 @@ plot_control <- function(sample_data) {
 
 # Save the  plot
 pdf(
-  file = "../results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303/control_all_neurons_plot.pdf",
+  file = "../../results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303/control_all_neurons_plot.pdf",
   width = 6, height = 8
 )
 plot_control(overall_sample_percentages)
@@ -1206,7 +1206,7 @@ overall_stats <- overall_sample_percentages %>%
 
 # Write results to CSV
 write.csv(overall_stats,
-  file = "../results/IEGactivity_WTonly/250303_Rewards_byactivationpercent_allneurons.csv",
+  file = "../../results/IEGactivity_WTonly/250303_Rewards_byactivationpercent_allneurons.csv",
   row.names = FALSE
 )
 ```
@@ -1276,7 +1276,7 @@ plot_control_withsex <- function(sample_data) {
 
 # Save the control plot with sex
 pdf(
-  file = "../results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303/control_all_neurons_plot_bySex.pdf",
+  file = "../../results/IEGactivity_WTonly/RewardsbyActivatedPercentage_250303/control_all_neurons_plot_bySex.pdf",
   width = 6, height = 8
 )
 plot_control_withsex(overall_sample_sex_percentages)
@@ -1309,7 +1309,7 @@ overall_sex_stats <- overall_sample_sex_percentages %>%
 
 # Write results to CSV
 write.csv(overall_sex_stats,
-  file = "../results/IEGactivity_WTonly/250303_Rewards_byactivationpercent_allneurons_bysex.csv",
+  file = "../../results/IEGactivity_WTonly/250303_Rewards_byactivationpercent_allneurons_bysex.csv",
   row.names = FALSE
 )
 ```
@@ -1364,7 +1364,7 @@ p_beta <- ggplot(
 
 p_beta
 
-ggsave("../results/IEGactivity_WTonly/intermed-figs/250225_rewardsbyactivity_betacoeffs.pdf",
+ggsave("../../results/IEGactivity_WTonly/intermed-figs/250225_rewardsbyactivity_betacoeffs.pdf",
   device = pdf,
   width = 6,
   height = 8
@@ -1416,7 +1416,7 @@ p_beta <- ggplot(
 
 p_beta
 
-ggsave("../results/IEGactivity_WTonly/250225_rewardsbyactivity_betacoeffs_sigonly.pdf",
+ggsave("../../results/IEGactivity_WTonly/250225_rewardsbyactivity_betacoeffs_sigonly.pdf",
   device = pdf,
   width = 5,
   height = 10.5
@@ -1476,7 +1476,7 @@ cluster_regression_results <- cluster_regression_results %>%
 print(cluster_regression_results)
 
 # # # Write the results to a CSV file
-write.csv(cluster_regression_results, file = "../results/IEGactivity_WTonly/250303_sac_rewards_byactivationpercent.csv", row.names = FALSE)
+write.csv(cluster_regression_results, file = "../../results/IEGactivity_WTonly/250303_sac_rewards_byactivationpercent.csv", row.names = FALSE)
 ```
 
 ```{r scatters sac rewards by pct activated}
@@ -1537,12 +1537,12 @@ clusters <- unique(cluster_regression_results$Cluster)
 clusters <- unique(cluster_regression_results$Cluster)
 
 # Create a directory to save the PDFs if it doesn't exist
-dir.create("../results/IEGactivity_WTonly/SacRewardsbyActivatedPercentage_250303", showWarnings = FALSE)
+dir.create("../../results/IEGactivity_WTonly/SacRewardsbyActivatedPercentage_250303", showWarnings = FALSE)
 
 # Iterate through clusters
 for (cluster in clusters) {
   # Open a PDF device
-  pdf(file = paste0("../results/IEGactivity_WTonly/SacRewardsbyActivatedPercentage_250303/cluster_", cluster, "_plot.pdf"), width = 6, height = 8)
+  pdf(file = paste0("../../results/IEGactivity_WTonly/SacRewardsbyActivatedPercentage_250303/cluster_", cluster, "_plot.pdf"), width = 6, height = 8)
 
   # Create the plot
   plot_cluster(cluster, cluster_regression_results, cluster_ieg_sample_percentages)
@@ -1632,7 +1632,7 @@ regression_results <- regression_results %>%
 print(regression_results)
 
 # # Write the results to a CSV file
-write.csv(regression_results, file = "../results/IEGactivity_WTonly/250303_sacrewards_byactivationpercent_bysex.csv", row.names = FALSE)
+write.csv(regression_results, file = "../../results/IEGactivity_WTonly/250303_sacrewards_byactivationpercent_bysex.csv", row.names = FALSE)
 ```
 
 ```{r scatters sac rewards by pct activated with sex}
@@ -1701,7 +1701,7 @@ clusters <- unique(regression_results$Cluster)
 # Iterate through clusters
 for (cluster in clusters) {
   # Open a PDF device
-  pdf(file = paste0("../results/IEGactivity_WTonly/SacRewardsbyActivatedPercentage_250303/cluster_", cluster, "_plot_bySex.pdf"), width = 6, height = 8)
+  pdf(file = paste0("../../results/IEGactivity_WTonly/SacRewardsbyActivatedPercentage_250303/cluster_", cluster, "_plot_bySex.pdf"), width = 6, height = 8)
 
   # Create the plot
   plot_cluster_withsex(cluster, regression_results, cluster_ieg_Sex_sample_percentages)
@@ -1769,7 +1769,7 @@ plot_control <- function(sample_data) {
 
 # Save the  plot
 pdf(
-  file = "../results/IEGactivity_WTonly/SacRewardsbyActivatedPercentage_250303/control_all_neurons_plot.pdf",
+  file = "../../results/IEGactivity_WTonly/SacRewardsbyActivatedPercentage_250303/control_all_neurons_plot.pdf",
   width = 6, height = 8
 )
 plot_control(overall_sample_percentages)
@@ -1793,7 +1793,7 @@ overall_stats <- overall_sample_percentages %>%
 
 # Write results to CSV
 write.csv(overall_stats,
-  file = "../results/IEGactivity_WTonly/250303_sacrewards_byactivationpercent_allneurons.csv",
+  file = "../../results/IEGactivity_WTonly/250303_sacrewards_byactivationpercent_allneurons.csv",
   row.names = FALSE
 )
 ```
@@ -1863,7 +1863,7 @@ plot_control_withsex <- function(sample_data) {
 
 # Save the control plot with sex
 pdf(
-  file = "../results/IEGactivity_WTonly/SacRewardsbyActivatedPercentage_250303/control_all_neurons_plot_bySex.pdf",
+  file = "../../results/IEGactivity_WTonly/SacRewardsbyActivatedPercentage_250303/control_all_neurons_plot_bySex.pdf",
   width = 6, height = 8
 )
 plot_control_withsex(overall_sample_sex_percentages)
@@ -1896,7 +1896,7 @@ overall_sex_stats <- overall_sample_sex_percentages %>%
 
 # Write results to CSV
 write.csv(overall_sex_stats,
-  file = "../results/IEGactivity_WTonly/250303_sacrewards_byactivationpercent_allneurons_bysex.csv",
+  file = "../../results/IEGactivity_WTonly/250303_sacrewards_byactivationpercent_allneurons_bysex.csv",
   row.names = FALSE
 )
 ```
@@ -1959,7 +1959,7 @@ cluster_regression_results <- cluster_regression_results %>%
 print(cluster_regression_results)
 
 # # Write the results to a CSV file
-write.csv(cluster_regression_results, file = "../results/IEGactivity_WTonly/250303_Distance_byactivationpercent.csv", row.names = FALSE)
+write.csv(cluster_regression_results, file = "../../results/IEGactivity_WTonly/250303_Distance_byactivationpercent.csv", row.names = FALSE)
 ```
 
 ```{r scatters distance by pct activated}
@@ -2017,12 +2017,12 @@ plot_cluster <- function(cluster, cluster_regression_results, cluster_ieg_sample
 clusters <- unique(cluster_regression_results$Cluster)
 
 # Create a directory to save the PDFs if it doesn't exist
-dir.create("../results/IEGactivity_WTonly/DistancebyActivatedPercentage_250303", showWarnings = FALSE)
+dir.create("../../results/IEGactivity_WTonly/DistancebyActivatedPercentage_250303", showWarnings = FALSE)
 
 # Iterate through clusters
 for (cluster in clusters) {
   # Open a PDF device
-  pdf(file = paste0("../results/IEGactivity_WTonly/DistancebyActivatedPercentage_250303/cluster_", cluster, "_plot.pdf"), width = 6, height = 8)
+  pdf(file = paste0("../../results/IEGactivity_WTonly/DistancebyActivatedPercentage_250303/cluster_", cluster, "_plot.pdf"), width = 6, height = 8)
 
   # Create the plot
   plot_cluster(cluster, cluster_regression_results, cluster_ieg_sample_percentages)
@@ -2115,7 +2115,7 @@ regression_results <- regression_results %>%
 print(regression_results)
 
 # Write the results to a CSV file
-write.csv(regression_results, file = "../results/IEGactivity_WTonly/250303_distance_byactivationpercent_bysex.csv", row.names = FALSE)
+write.csv(regression_results, file = "../../results/IEGactivity_WTonly/250303_distance_byactivationpercent_bysex.csv", row.names = FALSE)
 ```
 
 ```{r scatters distance by pct activated with sex}
@@ -2184,7 +2184,7 @@ clusters <- unique(regression_results$Cluster)
 # Iterate through clusters
 for (cluster in clusters) {
   # Open a PDF device
-  pdf(file = paste0("../results/IEGactivity_WTonly/DistancebyActivatedPercentage_250303/cluster_", cluster, "_plot_bySex.pdf"), width = 6, height = 8)
+  pdf(file = paste0("../../results/IEGactivity_WTonly/DistancebyActivatedPercentage_250303/cluster_", cluster, "_plot_bySex.pdf"), width = 6, height = 8)
 
   # Create the plot
   plot_cluster_withsex(cluster, regression_results, cluster_ieg_Sex_sample_percentages)
@@ -2257,7 +2257,7 @@ cluster_regression_results <- cluster_regression_results %>%
 print(cluster_regression_results)
 
 # # # Write the results to a CSV file
-write.csv(cluster_regression_results, file = "../results/IEGactivity_WTonly/250303_sac_distance_byactivationpercent.csv", row.names = FALSE)
+write.csv(cluster_regression_results, file = "../../results/IEGactivity_WTonly/250303_sac_distance_byactivationpercent.csv", row.names = FALSE)
 ```
 
 ```{r scatters sac distance by pct activated}
@@ -2315,12 +2315,12 @@ plot_cluster <- function(cluster, cluster_regression_results, cluster_ieg_sample
 clusters <- unique(cluster_regression_results$Cluster)
 
 # Create a directory to save the PDFs if it doesn't exist
-dir.create("../results/IEGactivity_WTonly/Sac_DistancebyActivatedPercentage_250303", showWarnings = FALSE)
+dir.create("../../results/IEGactivity_WTonly/Sac_DistancebyActivatedPercentage_250303", showWarnings = FALSE)
 
 # Iterate through clusters
 for (cluster in clusters) {
   # Open a PDF device
-  pdf(file = paste0("../results/IEGactivity_WTonly/Sac_DistancebyActivatedPercentage_250303/cluster_", cluster, "_plot.pdf"), width = 6, height = 8)
+  pdf(file = paste0("../../results/IEGactivity_WTonly/Sac_DistancebyActivatedPercentage_250303/cluster_", cluster, "_plot.pdf"), width = 6, height = 8)
 
   # Create the plot
   plot_cluster(cluster, cluster_regression_results, cluster_ieg_sample_percentages)
@@ -2414,7 +2414,7 @@ regression_results <- regression_results %>%
 print(regression_results)
 
 # # Write the results to a CSV file
-write.csv(regression_results, file = "../results/IEGactivity_WTonly/250303_SacDistance_byactivationpercent_bysex.csv", row.names = FALSE)
+write.csv(regression_results, file = "../../results/IEGactivity_WTonly/250303_SacDistance_byactivationpercent_bysex.csv", row.names = FALSE)
 ```
 
 ```{r scatters sac distance by pct activated with sex}
@@ -2485,7 +2485,7 @@ clusters <- unique(regression_results$Cluster)
 # Iterate through clusters
 for (cluster in clusters) {
   # Open a PDF device
-  pdf(file = paste0("../results/IEGactivity_WTonly/Sac_DistancebyActivatedPercentage_250303/cluster_", cluster, "_plot_bySex.pdf"), width = 6, height = 8)
+  pdf(file = paste0("../../results/IEGactivity_WTonly/Sac_DistancebyActivatedPercentage_250303/cluster_", cluster, "_plot_bySex.pdf"), width = 6, height = 8)
   # Create the plot
   plot_cluster_withsex(cluster, regression_results, cluster_ieg_Sex_sample_percentages)
 
@@ -2578,7 +2578,7 @@ for (cluster in unique(sample_info$cell_type)) {
 model_summary_df$adj_p_value <- p.adjust(model_summary_df$p_value, method = "BH")
 
 model_summary_df %>%
-  write_csv("../results/IEGactivity_WTonly/250303_genemodulescore_results_rewards.csv")
+  write_csv("../../results/IEGactivity_WTonly/250303_genemodulescore_results_rewards.csv")
 ```
 
 ```{r plots for rewards}
@@ -2587,7 +2587,7 @@ sig_df <- model_summary_df %>% filter(p_value < 0.05)
 
 cts <- sig_df$Cluster %>% unique()
 
-dir.create("../results/IEGactivity_WTonly/RewardsbyModuleScore_Figs", showWarnings = FALSE)
+dir.create("../../results/IEGactivity_WTonly/RewardsbyModuleScore_Figs", showWarnings = FALSE)
 
 for (ct in cts) {
   plot_df <- sample_info %>%
@@ -2609,7 +2609,7 @@ for (ct in cts) {
 
   print(pp)
   ct_name <- gsub("/", "-", ct)
-  ggsave(paste0("../results/IEGactivity_WTonly/RewardsbyModuleScore_Figs/250303_linearplot_", ct_name, "_genemodulescore.pdf"), pp, width = 5, height = 3.5)
+  ggsave(paste0("../../results/IEGactivity_WTonly/RewardsbyModuleScore_Figs/250303_linearplot_", ct_name, "_genemodulescore.pdf"), pp, width = 5, height = 3.5)
 }
 ```
 
@@ -2657,7 +2657,7 @@ for (cluster in unique(sample_info$cell_type)) {
 model_summary_df$adj_p_value <- p.adjust(model_summary_df$p_value, method = "BH")
 
 model_summary_df %>%
-  write_csv("../results/IEGactivity_WTonly/250303_genemodulescore_results_sac_rewards.csv")
+  write_csv("../../results/IEGactivity_WTonly/250303_genemodulescore_results_sac_rewards.csv")
 ```
 
 ```{r plots for sac_rewards}
@@ -2666,7 +2666,7 @@ sig_df <- model_summary_df %>% filter(p_value < 0.05)
 
 cts <- sig_df$Cluster %>% unique()
 
-dir.create("../results/IEGactivity_WTonly/sac_rewardsbyModuleScore_Figs", showWarnings = FALSE)
+dir.create("../../results/IEGactivity_WTonly/sac_rewardsbyModuleScore_Figs", showWarnings = FALSE)
 
 for (ct in cts) {
   plot_df <- sample_info %>%
@@ -2688,7 +2688,7 @@ for (ct in cts) {
 
   print(pp)
   ct_name <- gsub("/", "-", ct)
-  ggsave(paste0("../results/IEGactivity_WTonly/sac_rewardsbyModuleScore_Figs/250303_linearplot_", ct_name, "_genemodulescore.pdf"), pp, width = 5, height = 3.5)
+  ggsave(paste0("../../results/IEGactivity_WTonly/sac_rewardsbyModuleScore_Figs/250303_linearplot_", ct_name, "_genemodulescore.pdf"), pp, width = 5, height = 3.5)
 }
 ```
 
@@ -2736,7 +2736,7 @@ for (cluster in unique(sample_info$cell_type)) {
 model_summary_df$adj_p_value <- p.adjust(model_summary_df$p_value, method = "BH")
 
 model_summary_df %>%
-  write_csv("../results/IEGactivity_WTonly/250303_genemodulescore_results_distance.csv")
+  write_csv("../../results/IEGactivity_WTonly/250303_genemodulescore_results_distance.csv")
 ```
 
 ```{r plots for distance}
@@ -2745,7 +2745,7 @@ sig_df <- model_summary_df %>% filter(p_value < 0.05)
 
 cts <- sig_df$Cluster %>% unique()
 
-dir.create("../results/IEGactivity_WTonly/distancebyModuleScore_Figs", showWarnings = FALSE)
+dir.create("../../results/IEGactivity_WTonly/distancebyModuleScore_Figs", showWarnings = FALSE)
 
 for (ct in cts) {
   plot_df <- sample_info %>%
@@ -2767,7 +2767,7 @@ for (ct in cts) {
 
   print(pp)
   ct_name <- gsub("/", "-", ct)
-  ggsave(paste0("../results/IEGactivity_WTonly/distancebyModuleScore_Figs/250303_linearplot_", ct_name, "_genemodulescore.pdf"), pp, width = 5, height = 3.5)
+  ggsave(paste0("../../results/IEGactivity_WTonly/distancebyModuleScore_Figs/250303_linearplot_", ct_name, "_genemodulescore.pdf"), pp, width = 5, height = 3.5)
 }
 ```
 
@@ -2815,7 +2815,7 @@ for (cluster in unique(sample_info$cell_type)) {
 model_summary_df$adj_p_value <- p.adjust(model_summary_df$p_value, method = "BH")
 
 model_summary_df %>%
-  write_csv("../results/IEGactivity_WTonly/250303_genemodulescore_results_sac_distance.csv")
+  write_csv("../../results/IEGactivity_WTonly/250303_genemodulescore_results_sac_distance.csv")
 ```
 
 ```{r plots for sac_distance}
@@ -2824,7 +2824,7 @@ sig_df <- model_summary_df %>% filter(p_value < 0.05)
 
 cts <- sig_df$Cluster %>% unique()
 
-dir.create("../results/IEGactivity_WTonly/sac_distancebyModuleScore_Figs", showWarnings = FALSE)
+dir.create("../../results/IEGactivity_WTonly/sac_distancebyModuleScore_Figs", showWarnings = FALSE)
 
 for (ct in cts) {
   plot_df <- sample_info %>%
@@ -2846,7 +2846,7 @@ for (ct in cts) {
 
   print(pp)
   ct_name <- gsub("/", "-", ct)
-  ggsave(paste0("../results/IEGactivity_WTonly/sac_distancebyModuleScore_Figs/250303_linearplot_", ct_name, "_genemodulescore.pdf"), pp, width = 5, height = 3.5)
+  ggsave(paste0("../../results/IEGactivity_WTonly/sac_distancebyModuleScore_Figs/250303_linearplot_", ct_name, "_genemodulescore.pdf"), pp, width = 5, height = 3.5)
 }
 ```
 

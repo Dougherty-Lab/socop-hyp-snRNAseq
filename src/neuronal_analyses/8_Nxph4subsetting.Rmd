@@ -21,13 +21,13 @@ library(scCustomize)
 
 set.seed(420)
 
-source("color_utils.R")
+source("../color_utils.R")
 ```
 
 # Load in preprocessed data
 
 ```{r load in data}
-combined_neuronal <- readRDS("../data/250228_combined.neuronal_1-5_5pct.rds")
+combined_neuronal <- readRDS("../../data/250228_combined.neuronal_1-5_5pct.rds")
 combined_neuronal
 ```
 
@@ -93,7 +93,7 @@ DimPlot_scCustom(nxph4_subset,
 ) +
   theme(legend.position = "none")
 
-ggsave("../results/Nxph4subset/250304_Nxph4subset_umap.png",
+ggsave("../../results/Nxph4subset/250304_Nxph4subset_umap.png",
   device = png,
   width = 3,
   height = 3,
@@ -113,7 +113,7 @@ DimPlot_scCustom(nxph4_subset,
 ) +
   theme(legend.position = "right")
 
-ggsave("../results/Nxph4subset/250304_Nxph4subset_umap_withlabel.pdf",
+ggsave("../../results/Nxph4subset/250304_Nxph4subset_umap_withlabel.pdf",
   device = pdf,
   width = 5,
   height = 10,
@@ -135,9 +135,9 @@ dupes_counts <- table(nxph4_subset.markers.all$gene)
 
 nxph4_subset.markers.all$dups <- dupes_counts[match(nxph4_subset.markers.all$gene, names(dupes_counts))]
 
-saveRDS(nxph4_subset.markers.all, file = "../results/Nxph4subset/250304_markers_nxph4subcluster_res0.1.rds")
+saveRDS(nxph4_subset.markers.all, file = "../../results/Nxph4subset/250304_markers_nxph4subcluster_res0.1.rds")
 
-write.csv(nxph4_subset.markers.all, file = "../results/Nxph4subset/250304_markers_nxph4subcluster_res0.1.csv")
+write.csv(nxph4_subset.markers.all, file = "../../results/Nxph4subset/250304_markers_nxph4subcluster_res0.1.csv")
 ```
 
 ```{r use existing ABC lbels to make table}
@@ -368,7 +368,7 @@ arrange(subset_df, subset_df$bh_adjusted_pvalues)
 # Print the resulting data frame
 subset_df
 
-write.csv(subset_df, file = "../results/Nxph4subset/250304_rewardsbyprops_withNxph4subset.csv")
+write.csv(subset_df, file = "../../results/Nxph4subset/250304_rewardsbyprops_withNxph4subset.csv")
 ```
 
 #### with Sex
@@ -440,7 +440,7 @@ arrange(subset_df_bysex, subset_df_bysex$bh_adjusted_pvalues_props)
 subset_df_bysex
 
 # Write the data frame to a CSV file
-write.csv(subset_df_bysex, file = "../results/Nxph4subset/250304_rewardsbyprops_Nxph4subset_sex.csv")
+write.csv(subset_df_bysex, file = "../../results/Nxph4subset/250304_rewardsbyprops_Nxph4subset_sex.csv")
 ```
 
 #### Plot
@@ -461,7 +461,7 @@ head(new_merged_df)
 
 ```{r plot pdf for pvn nxph4 props by rewards, fig.height=8}
 # Open PDF device
-pdf("../results/Nxph4subset/250304_PVNwithinNxph4_propsbyrewards.pdf", width = 6, height = 8)
+pdf("../../results/Nxph4subset/250304_PVNwithinNxph4_propsbyrewards.pdf", width = 6, height = 8)
 
 # Choose the cluster you want to plot
 i <- "PVH-SO-PVa Otp Glut_subset" # Make sure i is a character to match the cluster column in model_summary_df
@@ -531,7 +531,7 @@ dev.off()
 
 ```{r plot pdf for lha nxph4 props by rewards, fig.height=8}
 # Open PDF device
-pdf("../results/Nxph4subset/250304_LHAwithinNxph4_propsbyrewards.pdf", width = 6, height = 8)
+pdf("../../results/Nxph4subset/250304_LHAwithinNxph4_propsbyrewards.pdf", width = 6, height = 8)
 
 # Choose the cluster you want to plot
 i <- "PH-ant-LHA Otp Bsx Glut_subset" # Make sure i is a character to match the cluster column in model_summary_df
@@ -599,7 +599,7 @@ dev.off()
 ```
 
 ```{r save subset}
-saveRDS(nxph4_subset, file = "../data/250304_Nxph4_subset_res0.1.rds")
+saveRDS(nxph4_subset, file = "../../data/250304_Nxph4_subset_res0.1.rds")
 ```
 
 # End

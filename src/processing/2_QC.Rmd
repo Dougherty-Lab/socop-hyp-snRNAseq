@@ -6,6 +6,7 @@ date: "2025-02-05"
 
 # Set up environment
 We first need to tell RStudio where to find our packages. 
+
 ```{r dependencies, warning=FALSE, message=FALSE}
 # Change this to your directory
 .libPaths('/ref/jdlab/software/r-envs/simona/r-packages/4.2/')
@@ -17,15 +18,16 @@ library(ggplot2)
 library(patchwork)
 library(tidyverse)
 
-source("color_utils.R")
+source("../color_utils.R")
 
 set.seed(420)
 ```
 
 # Load in data
 ```{r load combined object}
-combined <- readRDS("/scratch/jdlab/simona/socop-hyp-snRNAseq/data/250219_combined_1-5_5pct.rds")
+combined <- readRDS("../../data/250219_combined_1-5_5pct.rds")
 ```
+
 # Perform final merging of the objects
 ```{r final merging}
 combined$genotype <- factor(combined$genotype, levels=c('WT', 'Het'))
@@ -68,8 +70,8 @@ combined$sample <- factor(combined$sample, levels=c("Het_F_1",
 
 combined
 ```
-You now have a SeuratObject that contains all the nuclei. A quick look the object shows that there are 37462  features (genes) and 184274 samples (nuclei). In the following quality control steps, we will be filtering out low quality nuclei and potential doublets. 
 
+You now have a Seurat Object that contains all the nuclei. A quick look the object shows that there are 37462 features (genes) and 184274 samples (nuclei). In the following quality control steps, we will be filtering out low quality nuclei and potential doublets. 
 
 # QC and filtering
 
@@ -86,12 +88,14 @@ QC_Plots_Genes(seurat_object = combined,
                y_axis_log = TRUE,
                plot_title = 'Genes per nucleus')
 
-ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/processing/intermed-figs/250221_combined_genepernuc.png',
+ggsave('../../results/processing/intermed-figs/250221_combined_genepernuc.png',
        device = png,
        width = 6,
        height = 3)
 ```
+
 We can plot the number of UMIs per nucleus for each sample. The specified cutoff values are arbitrary now and can be changed. This is purely for visualization purposes for now.
+
 ```{r plot UMIs per nuc}
 QC_Plots_UMIs(seurat_object = combined, 
               group.by = 'sample',
@@ -100,33 +104,35 @@ QC_Plots_UMIs(seurat_object = combined,
               y_axis_log = FALSE,
               plot_title = 'UMIs per nucleus')
 
-ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/processing/intermed-figs/250221_combined_UMIspernuc.png',
+ggsave('../../results/processing/intermed-figs/250221_combined_UMIspernuc.png',
        device = png,
        width = 6,
        height = 3)
 ```
 
-
 We can plot the percentage of mitochondrial genes per nucleus for each sample. The specified cutoff values are arbitrary now and can be changed. This is purely for visualization purposes for now.
+
 ```{r plot pct mito}
 QC_Plots_Mito(seurat_object = combined, 
               group.by = 'sample',
               high_cutoff = 5,
               plot_title = 'Mito Gene % per nucleus')
 
-ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/processing/intermed-figs/250221_combined_mitopernuc.png',
+ggsave('../../results/processing/intermed-figs/250221_combined_mitopernuc.png',
        device = png,
        width = 6,
        height = 3)
 ```
+
 We can plot the complexity score for each sample. The specified cutoff values are arbitrary now and can be changed. This is purely for visualization purposes for now.
+
 ```{r plot complexity score}
 QC_Plots_Complexity(seurat_object = combined, 
                     group.by = 'sample',
                     high_cutoff = 0.85, 
                     plot_title = 'Complexity score per nucleus')
 
-ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/processing/intermed-figs/250221_combined_complexitypernuc.png',
+ggsave('../../results/processing/intermed-figs/250221_combined_complexitypernuc.png',
        device = png,
        width = 6,
        height = 3)
@@ -139,7 +145,7 @@ QC_Plot_UMIvsGene(seurat_object = combined,
                   low_cutoff_UMI = 800, high_cutoff_UMI = 40000,
                   )
 
-ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/processing/intermed-figs/250221_combined_UMIvsgene.png',
+ggsave('../../results/processing/intermed-figs/250221_combined_UMIvsgene.png',
        device = png,
        width = 6,
        height = 3)
@@ -152,17 +158,21 @@ QC_Plot_GenevsFeature(seurat_object = combined,
                       low_cutoff_gene = 300, high_cutoff_gene = 7000,
                       high_cutoff_feature = 5)
 
-ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/processing/intermed-figs/250221_combined_genesperfeature.png',
+ggsave('../../results/processing/intermed-figs/250221_combined_genesperfeature.png',
        device = png,
        width = 6,
        height = 3)
 ```
+
 We can calculate some basic QC stats and return a dataframe.
+
 ```{r median table}
 median_stats <- Median_Stats(seurat_object = combined, group_by_var = 'sample')
 median_stats
 ```
+
 We can now plot the median values.
+
 ```{r plot medians}
 p1 <- Plot_Median_Genes(seurat_object = combined, sample_col = 'sample', group_by = 'genotype') + 
   scale_fill_manual(values = palette_geno) +
@@ -174,7 +184,7 @@ p2 <- Plot_Median_UMIs(seurat_object = combined, sample_col = 'sample', group_by
   theme(legend.position = 'none')
 wrap_plots(p1, p2, ncol = 2)
 
-ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/processing/intermed-figs/250221_combined_medians.png',
+ggsave('../../results/processing/intermed-figs/250221_combined_medians.png',
        device = png,
        width = 6,
        height = 3)
@@ -186,13 +196,16 @@ ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/processing/intermed-fig
 combined <- subset(combined, subset = doublet == "Singlet")
 combined
 ```
+
 You should now have an object with 37462 features across 176009 nuclei. 
 
 I am changing my previously used min UMI threshold (nCount_RNA) here to 800 (from a less stringent 400).
+
 ```{r changing UMI threshold}
 combined <- subset(combined, subset = nCount_RNA > 800)
 combined
 ```
+
 You should now have an object with 37462 features across 138025 nuclei. 
 
 # QC plots
@@ -213,18 +226,23 @@ wrap_plots(p3, p4, ncol = 2)
 ```{r nucs per sample}
 Plot_Cells_per_Sample(seurat_object = combined, sample_col = 'sample', group_by = 'genotype')
 ```
+
 This shows the number of nuclei per sample.
+
 ```{r table nucs per sample}
 samplesTable <- table(combined@meta.data$sample)
 samplesTable
 ```
+
 This shows the number of nuclei per genotype.
+
 ```{r table nucs per geno}
 genotypesTable <- table(combined@meta.data$genotype)
 genotypesTable
 ```
 
 This creates a dataframe that summarizes the statistics across all samples and genotypes.
+
 ```{r df stats geno}
 df <- data.frame(
   numCells = as.vector(samplesTable),
@@ -366,12 +384,11 @@ p3 <- ggplot(combined@meta.data, aes(x = genotype, y = nCount_RNA, fill = sample
 
 wrap_plots(p1, p2, p3, ncol = 3)
 
-ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/processing/final-figs/250221_combined_1-5_5pct_genoQC.pdf',
+ggsave('../../results/processing/final-figs/250221_combined_1-5_5pct_genoQC.pdf',
        device = pdf,
        width = 9,
        height = 3)
 ```
-
 
 Same but for Sex.
 ```{r add sex to metadata}
@@ -520,13 +537,14 @@ p3 <- ggplot(combined@meta.data, aes(x = sex, y = nCount_RNA, fill = sample)) +
 
 wrap_plots(p1, p2, p3, ncol = 3)
 
-ggsave('/scratch/jdlab/simona/socop-hyp-snRNAseq/results/processing/final-figs/250221_combined_1-5_5pct_sexQC.pdf',
+ggsave('../../results/processing/final-figs/250221_combined_1-5_5pct_sexQC.pdf',
        device = pdf,
        width = 9,
        height = 3)
 ```
 
 # Save 
+
 ```{r save data}
-saveRDS(combined, "/scratch/jdlab/simona/socop-hyp-snRNAseq/data/250221_combined_postQC_1-5_5pct.rds")
+saveRDS(combined, "../../data/250221_combined_postQC_1-5_5pct.rds")
 ```

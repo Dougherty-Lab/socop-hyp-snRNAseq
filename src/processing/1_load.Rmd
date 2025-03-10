@@ -17,7 +17,7 @@ library(ggplot2)
 library(patchwork)
 library(tidyverse)
 
-source("color_utils.R")
+source("../color_utils.R")
 
 set.seed(420)
 ```
@@ -145,12 +145,12 @@ for (i in 1:length(mouse.sample)) {
 ```
 
 ```{r save processed}
-saveRDS(processed, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/data/250219_processed_1-5_5pct.rds")
+saveRDS(processed, file = "../../data/250219_processed_1-5_5pct.rds")
 ```
 
 ```{r merge and save}
 combined <- Merge_Seurat_List(processed,
                                      merge.data = TRUE)
 
-saveRDS(combined, file = "/scratch/jdlab/simona/socop-hyp-snRNAseq/data/250219_combined_1-5_5pct.rds")
+saveRDS(combined, file = "../../data/250219_combined_1-5_5pct.rds")
 ```

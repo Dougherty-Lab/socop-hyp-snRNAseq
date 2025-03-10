@@ -41,14 +41,14 @@ library(lisi)
 
 set.seed(420)
 
-source("color_utils.R")
+source("../color_utils.R")
 ```
 
 # Load in preprocessed data
 
 
 ```{r load rds}
-combined_neuronal <- readRDS("../data/250228_combined.neuronal_1-5_5pct.rds")
+combined_neuronal <- readRDS("../../data/250228_combined.neuronal_1-5_5pct.rds")
 combined_neuronal
 ```
 
@@ -92,7 +92,7 @@ DimPlot_scCustom(combined_neuronal,
   theme(legend.position = "right")
 
 ggsave(
-  filename = "../results/proportions/250301_umap_1-5_5pct_res1.8_50dims_neuronal_bygeno.png",
+  filename = "../../results/proportions/250301_umap_1-5_5pct_res1.8_50dims_neuronal_bygeno.png",
   width = 12,
   height = 12,
   dpi = 300
@@ -112,7 +112,7 @@ DimPlot_scCustom(combined_neuronal,
   theme(legend.position = "right")
 
 ggsave(
-  filename = "../results/proportions/intermed-figs/250301_pca_1-5_5pct_res1.8_50dims_neuronal_bygeno.png",
+  filename = "../../results/proportions/intermed-figs/250301_pca_1-5_5pct_res1.8_50dims_neuronal_bygeno.png",
   width = 12,
   height = 12,
   dpi = 300
@@ -226,7 +226,7 @@ p4 <- ggplot(calcnums, aes(x = mean_normtoWT_pct, y = Cluster, fill = Genotype))
   scale_fill_manual(values = palette_geno)
 
 wrap_plots(p1, p2, p4)
-ggsave("../results/proportions/intermed-figs/250301_proportionsbyGeno_1-5_5pct_res1.8_50dims_neuronal.png",
+ggsave("../../results/proportions/intermed-figs/250301_proportionsbyGeno_1-5_5pct_res1.8_50dims_neuronal.png",
   device = png,
   width = 12,
   height = 8
@@ -236,7 +236,7 @@ ggsave("../results/proportions/intermed-figs/250301_proportionsbyGeno_1-5_5pct_r
 ```{r propeller genotype}
 props.geno <- propeller(clusters = combined_neuronal@meta.data$cell_type, sample = combined_neuronal$sample, group = combined_neuronal$genotype, transform = "logit")
 
-write.csv(props.geno, file = "../results/proportions/250301_props_Geno_1-5_5pct_res1.8_50dims_neuronal.csv", row.names = TRUE)
+write.csv(props.geno, file = "../../results/proportions/250301_props_Geno_1-5_5pct_res1.8_50dims_neuronal.csv", row.names = TRUE)
 props.geno
 ```
 
@@ -357,7 +357,7 @@ wrap_plots(cells, genes)
 ```{r save wrapped plots geno}
 wrap_plots(cells, genes, sig_p1, nrow = 1)
 
-ggsave("../results/proportions/intermed-figs/250301_propsbyGeno_sigonly.pdf",
+ggsave("../../results/proportions/intermed-figs/250301_propsbyGeno_sigonly.pdf",
   device = pdf,
   width = 20,
   height = 4
@@ -468,7 +468,7 @@ ggplot(props.geno, aes(
   )
 
 ggsave(
-  filename = "../results/proportions/intermed-figs/250301_genodiff_pvalues_hypovother.pdf",
+  filename = "../../results/proportions/intermed-figs/250301_genodiff_pvalues_hypovother.pdf",
   width = 12,
   height = 12,
   dpi = 300
@@ -490,7 +490,7 @@ DimPlot_scCustom(combined_neuronal,
   theme(legend.position = "right")
 
 ggsave(
-  filename = "../results/proportions/250301_umap_1-5_5pct_res1.8_50dims_neuronal_bysex.png",
+  filename = "../../results/proportions/250301_umap_1-5_5pct_res1.8_50dims_neuronal_bysex.png",
   width = 12,
   height = 12,
   dpi = 300
@@ -510,7 +510,7 @@ DimPlot_scCustom(combined_neuronal,
   theme(legend.position = "right")
 
 ggsave(
-  filename = "../results/proportions/intermed-figs/250301_pca_1-5_5pct_res1.8_50dims_neuronal_bysex.png",
+  filename = "../../results/proportions/intermed-figs/250301_pca_1-5_5pct_res1.8_50dims_neuronal_bysex.png",
   width = 12,
   height = 12,
   dpi = 300
@@ -555,7 +555,7 @@ VlnPlot_scCustom(combined_neuronal[, gene_expr > 0],
 
 
 ggsave(
-  filename = "../results/proportions/250301_Moxd1GEX_bysex.pdf",
+  filename = "../../results/proportions/250301_Moxd1GEX_bysex.pdf",
   device = pdf,
   width = 6,
   height = 8
@@ -654,7 +654,7 @@ ggplot() +
 
 
 ggsave(
-  filename = "../results/proportions/250301_Moxd1props_bysex.pdf",
+  filename = "../../results/proportions/250301_Moxd1props_bysex.pdf",
   device = pdf,
   width = 6,
   height = 8
@@ -761,7 +761,7 @@ p4 <- ggplot(calcnums, aes(x = mean_normtoM_pct, y = Cluster, fill = Sex)) +
 
 
 wrap_plots(p1, p2, p4)
-ggsave("../results/proportions/intermed-figs/250301_proportionsbySex_1-5_5pct_res1.8_50dims_neuronal.png",
+ggsave("../../results/proportions/intermed-figs/250301_proportionsbySex_1-5_5pct_res1.8_50dims_neuronal.png",
   device = png,
   width = 12,
   height = 8
@@ -771,7 +771,7 @@ ggsave("../results/proportions/intermed-figs/250301_proportionsbySex_1-5_5pct_re
 ```{r propeller by sex}
 props.sex <- propeller(clusters = combined_neuronal@meta.data$cell_type, sample = combined_neuronal$sample, group = combined_neuronal$sex, transform = "logit")
 
-write.csv(props.sex, file = "../results/proportions/250301_props_Sex_1-5_5pct_res1.8_50dims_neuronal.csv", row.names = TRUE)
+write.csv(props.sex, file = "../../results/proportions/250301_props_Sex_1-5_5pct_res1.8_50dims_neuronal.csv", row.names = TRUE)
 props.sex
 ```
 
@@ -876,7 +876,7 @@ sig_p1
 ```{r save wrapped plots sex}
 wrap_plots(cells, genes, sig_p1, nrow = 1)
 
-ggsave("../results/proportions/intermed-figs/250301_propsandDEGsbySex_sigonly.pdf",
+ggsave("../../results/proportions/intermed-figs/250301_propsandDEGsbySex_sigonly.pdf",
   device = pdf,
   width = 20,
   height = 4
@@ -920,7 +920,7 @@ ggplot(props.sex, aes(
   )
 
 ggsave(
-  filename = "../results/proportions/intermed-figs/250301_sexdiff_pvalues_hypovother.pdf",
+  filename = "../../results/proportions/intermed-figs/250301_sexdiff_pvalues_hypovother.pdf",
   width = 12,
   height = 12,
   dpi = 300
@@ -967,7 +967,7 @@ ggplot(filtered_props, aes(
 
 
 ggsave(
-  filename = "../results/proportions/250301_sexdiff_pvalues_hypovother_sigonly.pdf",
+  filename = "../../results/proportions/250301_sexdiff_pvalues_hypovother_sigonly.pdf",
   width = 8,
   height = 12,
   dpi = 300
@@ -1002,7 +1002,7 @@ print(percentages[, "TRUE"])
 Since two people were dissecting the brains, we want to compare to see if 
 proportions differ by dissector. 
 ```{r load in dissector data}
-dissector_data <- read.csv("../doc/073123_Dissector_forR.csv", stringsAsFactors = FALSE)
+dissector_data <- read.csv("../../doc/073123_Dissector_forR.csv", stringsAsFactors = FALSE)
 dissector_data <- dissector_data[, apply(dissector_data, 2, function(x) {
   sum(!is.na(x)) > 0
 })]
@@ -1040,7 +1040,7 @@ DimPlot_scCustom(combined_neuronal,
   theme(legend.position = "right")
 
 ggsave(
-  filename = "../results/proportions/250301_umap_neuronal_bydissector.png",
+  filename = "../../results/proportions/250301_umap_neuronal_bydissector.png",
   width = 12,
   height = 12,
   dpi = 300
@@ -1061,7 +1061,7 @@ DimPlot_scCustom(combined_neuronal,
 
 
 ggsave(
-  filename = "../results/proportions/intermed-figs/250301_pca_neuronal_bydissector.png",
+  filename = "../../results/proportions/intermed-figs/250301_pca_neuronal_bydissector.png",
   width = 12,
   height = 12,
   dpi = 300
@@ -1196,14 +1196,14 @@ p4 <- ggplot(calcnums, aes(
   )
 
 wrap_plots(p1, p2, p4)
-ggsave("../results/proportions/intermed-figs/250301_proportionsbyDissector_1-5_5pct_res1.8_50dims_neuronal.pdf",
+ggsave("../../results/proportions/intermed-figs/250301_proportionsbyDissector_1-5_5pct_res1.8_50dims_neuronal.pdf",
   device = pdf,
   width = 12,
   height = 8
 )
 
 p1
-ggsave("../results/proportions/250301_proportionsbyDissector_1-5_5pct_res1.8_50dims_neuronal_final.pdf",
+ggsave("../../results/proportions/250301_proportionsbyDissector_1-5_5pct_res1.8_50dims_neuronal_final.pdf",
   device = pdf,
   width = 12,
   height = 8
@@ -1213,7 +1213,7 @@ ggsave("../results/proportions/250301_proportionsbyDissector_1-5_5pct_res1.8_50d
 ```{r propeller by dissector}
 props.dissector <- propeller(clusters = combined_neuronal@meta.data$cell_type, sample = combined_neuronal$sample, group = combined_neuronal$Dissector, transform = "logit")
 
-write.csv(props.dissector, file = "../results/proportions/250301_props_Dissector_neuronal_1-5_5pct_50_1.8.csv", row.names = TRUE)
+write.csv(props.dissector, file = "../../results/proportions/250301_props_Dissector_neuronal_1-5_5pct_50_1.8.csv", row.names = TRUE)
 props.dissector
 ```
 
@@ -1232,7 +1232,7 @@ DimPlot_scCustom(combined_neuronal,
   theme(legend.position = "right")
 
 ggsave(
-  filename = "../results/proportions/250301_umap_1-5_5pct_res1.8_50dims_neuronal_bylearner.png",
+  filename = "../../results/proportions/250301_umap_1-5_5pct_res1.8_50dims_neuronal_bylearner.png",
   width = 12,
   height = 12,
   dpi = 300
@@ -1252,7 +1252,7 @@ DimPlot_scCustom(combined_neuronal,
   theme(legend.position = "right")
 
 ggsave(
-  filename = "../results/proportions/intermed-figs/250301_pca_1-5_5pct_res1.8_50dims_neuronal_bylearner.png",
+  filename = "../../results/proportions/intermed-figs/250301_pca_1-5_5pct_res1.8_50dims_neuronal_bylearner.png",
   width = 12,
   height = 12,
   dpi = 300
@@ -1375,7 +1375,7 @@ p4 <- ggplot(calcnums, aes(x = mean_normtoNL_pct, y = Cluster, fill = Sac_Learne
   scale_fill_manual(values = palette_learner)
 
 wrap_plots(p1, p2, p4)
-ggsave("../results/proportions/intermed-figs/250301_proportionsbyLearner_1-5_5pct_res1.8_50dims_neuronal.png",
+ggsave("../../results/proportions/intermed-figs/250301_proportionsbyLearner_1-5_5pct_res1.8_50dims_neuronal.png",
   device = png,
   width = 12,
   height = 8
@@ -1385,7 +1385,7 @@ ggsave("../results/proportions/intermed-figs/250301_proportionsbyLearner_1-5_5pc
 ```{r propeller by learner}
 props.learner <- propeller(clusters = combined_neuronal@meta.data$cell_type, sample = combined_neuronal$sample, group = combined_neuronal$Sac_Learner, transform = "logit")
 
-write.csv(props.learner, file = "../results/proportions/250301_props_Learner_1-5_5pct_res1.8_50dims_neuronal.csv", row.names = TRUE)
+write.csv(props.learner, file = "../../results/proportions/250301_props_Learner_1-5_5pct_res1.8_50dims_neuronal.csv", row.names = TRUE)
 ```
 
 ### adding cells and genes to props plot
@@ -1480,7 +1480,7 @@ wrap_plots(cells, genes)
 
 ```{r save wrapped plot for learner}
 wrap_plots(cells, genes, sig_p1)
-ggsave("../results/proportions/intermed-figs/250301_propsbyLearner_sigonly.pdf",
+ggsave("../../results/proportions/intermed-figs/250301_propsbyLearner_sigonly.pdf",
   device = pdf,
   width = 12,
   height = 6
@@ -1639,7 +1639,7 @@ head(res.combined)
 
 # Write to CSV
 write.csv(res.combined,
-  file = "../results/proportions/250301_props_Learner_Sex_neuronal_1-5_5pct_50dims.csv",
+  file = "../../results/proportions/250301_props_Learner_Sex_neuronal_1-5_5pct_50dims.csv",
   row.names = FALSE
 )
 ```
@@ -1682,7 +1682,7 @@ ggplot(props.learner, aes(
   )
 
 ggsave(
-  filename = "../results/proportions/intermed-figs/250301_learnerprops_pvalues_hypovother.pdf",
+  filename = "../../results/proportions/intermed-figs/250301_learnerprops_pvalues_hypovother.pdf",
   width = 12,
   height = 12,
   dpi = 300
@@ -1730,7 +1730,7 @@ ggplot(filtered_props, aes(
   )
 
 ggsave(
-  filename = "../results/proportions/intermed-figs/250301_learnerprops_pvalues_hypovother_sigonly.pdf",
+  filename = "../../results/proportions/intermed-figs/250301_learnerprops_pvalues_hypovother_sigonly.pdf",
   width = 6,
   height = 8,
   dpi = 300
@@ -1851,7 +1851,7 @@ head(res.combined)
 
 # Write to CSV - you may need to create a subdirectory
 write.csv(res.combined,
-  file = "../results/proportions/250301_props_Geno_Sex_Interaction_neuronal.csv",
+  file = "../../results/proportions/250301_props_Geno_Sex_Interaction_neuronal.csv",
   row.names = FALSE
 )
 ```
@@ -1961,7 +1961,7 @@ model_summary_df %>%
 # Print the resulting data frame
 model_summary_df
 
-write.csv(model_summary_df, file = "../results/proportions/250301_rewardsbyprops.csv")
+write.csv(model_summary_df, file = "../../results/proportions/250301_rewardsbyprops.csv")
 ```
 
 ## . with Sex
@@ -2030,7 +2030,7 @@ model_summary_sex_df %>%
 model_summary_sex_df
 
 # Write the data frame to a CSV file
-write.csv(model_summary_sex_df, file = "../results/proportions/250301_rewardsbyprops_sex.csv")
+write.csv(model_summary_sex_df, file = "../../results/proportions/250301_rewardsbyprops_sex.csv")
 ```
 
 ## . with Learner
@@ -2099,7 +2099,7 @@ model_summary_learner_df %>%
 model_summary_learner_df
 
 # Write the data frame to a CSV file
-write.csv(model_summary_learner_df, file = "../results/proportions/intermed-tables/250301_rewardsbyprops_learner.csv")
+write.csv(model_summary_learner_df, file = "../../results/proportions/intermed-tables/250301_rewardsbyprops_learner.csv")
 ```
 
 ## Untransformed props
@@ -2176,7 +2176,7 @@ arrange(new_model_summary_df, new_model_summary_df$bh_adjusted_pvalues)
 # Print the resulting data frame
 new_model_summary_df
 
-write.csv(new_model_summary_df, file = "../results/proportions/intermed-tables/250301_rewardsbyprops_untransformed.csv")
+write.csv(new_model_summary_df, file = "../../results/proportions/intermed-tables/250301_rewardsbyprops_untransformed.csv")
 ```
 
 ```{r linear regression rewards by untransformed props and sex}
@@ -2243,7 +2243,7 @@ arrange(new_model_summary_df_sex, new_model_summary_df_sex$bh_adjusted_pvalues_p
 new_model_summary_df_sex
 
 # Write the data frame to a CSV file
-write.csv(new_model_summary_df_sex, file = "../results/proportions/intermed-tables/250301_rewardsbypropsandsex_untransformed.csv")
+write.csv(new_model_summary_df_sex, file = "../../results/proportions/intermed-tables/250301_rewardsbypropsandsex_untransformed.csv")
 ```
 
 ```{r linear regression rewards by untransformed props and learner}
@@ -2310,7 +2310,7 @@ arrange(new_model_summary_df_learner, new_model_summary_df_learner$bh_adjusted_p
 new_model_summary_df_learner
 
 # Write the data frame to a CSV file
-write.csv(new_model_summary_df_learner, file = "../results/proportions/intermed-tables/250301_rewardsbypropsandlearner_untransformed.csv")
+write.csv(new_model_summary_df_learner, file = "../../results/proportions/intermed-tables/250301_rewardsbypropsandlearner_untransformed.csv")
 ```
 
 ## Scatterplots 
@@ -2367,12 +2367,12 @@ plot_cluster <- function(i, model_summary_df, new_merged_df) {
 clusters <- unique(model_summary_sex_df$cluster)
 
 # Create a directory to save the PDFs if it doesn't exist
-dir.create("../results/proportions/RewardsbyProp_Figs", showWarnings = FALSE)
+dir.create("../../results/proportions/RewardsbyProp_Figs", showWarnings = FALSE)
 
 # Iterate through clusters
 for (cluster in clusters) {
   # Open a PDF device
-  pdf(file = paste0("../results/proportions/RewardsbyProp_Figs/cluster_", cluster, "_plot.pdf"), width = 6, height = 8)
+  pdf(file = paste0("../../results/proportions/RewardsbyProp_Figs/cluster_", cluster, "_plot.pdf"), width = 6, height = 8)
 
   # Create the plot
   plot_cluster(cluster, model_summary_df, new_merged_df)
@@ -2451,12 +2451,12 @@ plot_cluster_bysex <- function(i, model_summary_sex_df, new_merged_df) {
 clusters <- unique(model_summary_sex_df$cluster)
 
 # Create a directory to save the PDFs if it doesn't exist
-dir.create("../results/proportions/RewardsbyProp_Figs", showWarnings = FALSE)
+dir.create("../../results/proportions/RewardsbyProp_Figs", showWarnings = FALSE)
 
 # Iterate through clusters
 for (cluster in clusters) {
   # Open a PDF device
-  pdf(file = paste0("../results/proportions/RewardsbyProp_Figs/cluster_", cluster, "_plotwithSex.pdf"), width = 6, height = 8)
+  pdf(file = paste0("../../results/proportions/RewardsbyProp_Figs/cluster_", cluster, "_plotwithSex.pdf"), width = 6, height = 8)
 
   # Create the plot
   plot_cluster_bysex(cluster, model_summary_sex_df, new_merged_df)
@@ -2535,12 +2535,12 @@ plot_cluster_bylearner <- function(i, model_summary_learner_df, new_merged_df) {
 clusters <- unique(model_summary_learner_df$cluster)
 
 # Create a directory to save the PDFs if it doesn't exist
-dir.create("../results/proportions/RewardsbyProp_Figs/p", showWarnings = FALSE)
+dir.create("../../results/proportions/RewardsbyProp_Figs/p", showWarnings = FALSE)
 
 # Iterate through clusters
 for (cluster in clusters) {
   # Open a PDF device
-  pdf(file = paste0("../results/proportions/RewardsbyProp_Figs/cluster_", cluster, "_plotwithLearner.pdf"), width = 6, height = 8)
+  pdf(file = paste0("../../results/proportions/RewardsbyProp_Figs/cluster_", cluster, "_plotwithLearner.pdf"), width = 6, height = 8)
 
   # Create the plot
   plot_cluster_bylearner(cluster, model_summary_learner_df, new_merged_df)
@@ -2589,7 +2589,7 @@ p_beta <- ggplot(
   )
 
 p_beta
-ggsave("../results/proportions/intermed-figs/250301_rewardsbyprops_betacoeffs.pdf",
+ggsave("../../results/proportions/intermed-figs/250301_rewardsbyprops_betacoeffs.pdf",
   device = pdf,
   width = 6,
   height = 8
@@ -2727,7 +2727,7 @@ merged_sig_p1
 ```{r save plot with beta coeffs and props by learner}
 wrap_plots(cells, genes, merged_sig_p1, p_beta_sig, nrow = 1)
 
-ggsave("../results/proportions/250301_propsbyLearnerandbetacoeffsforRewards_sigonly.pdf",
+ggsave("../../results/proportions/250301_propsbyLearnerandbetacoeffsforRewards_sigonly.pdf",
   device = pdf,
   width = 20,
   height = 4
@@ -2771,7 +2771,7 @@ ggplot(model_summary_df, aes(
   )
 
 ggsave(
-  filename = "../results/proportions/intermed-figs/250301_rewardsprops_pvalues_hypovother.pdf",
+  filename = "../../results/proportions/intermed-figs/250301_rewardsprops_pvalues_hypovother.pdf",
   width = 12,
   height = 12,
   dpi = 300
@@ -2817,7 +2817,7 @@ ggplot(filtered_model_summary_df, aes(
   )
 
 ggsave(
-  filename = "../results/proportions/250301_rewardsprops_pvalues_hypovother.pdf",
+  filename = "../../results/proportions/250301_rewardsprops_pvalues_hypovother.pdf",
   width = 6,
   height = 8,
   dpi = 300
@@ -2907,7 +2907,7 @@ model_summary_df %>%
 # Print the resulting data frame
 model_summary_df
 
-write.csv(model_summary_df, file = "../results/proportions/250301_distancebyprops.csv")
+write.csv(model_summary_df, file = "../../results/proportions/250301_distancebyprops.csv")
 ```
 
 ## . with Sex
@@ -2976,7 +2976,7 @@ model_summary_sex_df %>%
 model_summary_sex_df
 
 # Write the data frame to a CSV file
-write.csv(model_summary_sex_df, file = "../results/proportions/250301_distancebyprops_sex.csv")
+write.csv(model_summary_sex_df, file = "../../results/proportions/250301_distancebyprops_sex.csv")
 ```
 
 ## Untransformed props
@@ -3038,7 +3038,7 @@ arrange(new_model_summary_df, new_model_summary_df$bh_adjusted_pvalues)
 # Print the resulting data frame
 new_model_summary_df
 
-write.csv(new_model_summary_df, file = "../results/proportions/intermed-tables/250301_distancebyprops_untransformed.csv")
+write.csv(new_model_summary_df, file = "../../results/proportions/intermed-tables/250301_distancebyprops_untransformed.csv")
 ```
 
 ```{r linear regression distance by untransformed props and sex}
@@ -3105,7 +3105,7 @@ arrange(new_model_summary_df_sex, new_model_summary_df_sex$bh_adjusted_pvalues_p
 new_model_summary_df_sex
 
 # Write the data frame to a CSV file
-write.csv(new_model_summary_df_sex, file = "../results/proportions/intermed-tables/250301_distancebypropsandsex_untransformed.csv")
+write.csv(new_model_summary_df_sex, file = "../../results/proportions/intermed-tables/250301_distancebypropsandsex_untransformed.csv")
 ```
 
 ## Scatterplots 
@@ -3162,12 +3162,12 @@ plot_cluster <- function(i, model_summary_df, new_merged_df) {
 clusters <- unique(model_summary_sex_df$cluster)
 
 # Create a directory to save the PDFs if it doesn't exist
-dir.create("../results/proportions/DistancebyProp_Figs", showWarnings = FALSE)
+dir.create("../../results/proportions/DistancebyProp_Figs", showWarnings = FALSE)
 
 # Iterate through clusters
 for (cluster in clusters) {
   # Open a PDF device
-  pdf(file = paste0("../results/proportions/DistancebyProp_Figs/cluster_", cluster, "_plot.pdf"), width = 6, height = 8)
+  pdf(file = paste0("../../results/proportions/DistancebyProp_Figs/cluster_", cluster, "_plot.pdf"), width = 6, height = 8)
 
   # Create the plot
   plot_cluster(cluster, model_summary_df, new_merged_df)
@@ -3246,12 +3246,12 @@ plot_cluster_bysex <- function(i, model_summary_sex_df, new_merged_df) {
 clusters <- unique(model_summary_sex_df$cluster)
 
 # Create a directory to save the PDFs if it doesn't exist
-dir.create("../results/proportions/DistancebyProp_Figs", showWarnings = FALSE)
+dir.create("../../results/proportions/DistancebyProp_Figs", showWarnings = FALSE)
 
 # Iterate through clusters
 for (cluster in clusters) {
   # Open a PDF device
-  pdf(file = paste0("../results/proportions/DistancebyProp_Figs/cluster_", cluster, "_plotwithSex.pdf"), width = 6, height = 8)
+  pdf(file = paste0("../../results/proportions/DistancebyProp_Figs/cluster_", cluster, "_plotwithSex.pdf"), width = 6, height = 8)
 
   # Create the plot
   plot_cluster_bysex(cluster, model_summary_sex_df, new_merged_df)
@@ -3304,7 +3304,7 @@ p_beta <- ggplot(
   )
 
 p_beta
-ggsave("../results/proportions/250301_distancebyprops_betacoeffs.pdf",
+ggsave("../../results/proportions/250301_distancebyprops_betacoeffs.pdf",
   device = pdf,
   width = 6,
   height = 8
@@ -3355,7 +3355,7 @@ ggplot(res, aes(x = genotype)) +
   xlim(1, 2) +
   theme_classic()
 
-ggsave("../results/proportions/250301_lisi_genotype.png",
+ggsave("../../results/proportions/250301_lisi_genotype.png",
   device = png,
   width = 5,
   height = 3
@@ -3373,7 +3373,7 @@ ggplot(res, aes(x = sex)) +
   xlim(1, 2) +
   theme_classic()
 
-ggsave("../results/proportions/250301_lisi_sex.png",
+ggsave("../../results/proportions/250301_lisi_sex.png",
   device = png,
   width = 5,
   height = 3

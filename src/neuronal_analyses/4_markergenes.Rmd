@@ -17,11 +17,11 @@ library(monocle3)
 
 set.seed(420)
 
-source("color_utils.R")
+source("../color_utils.R")
 ```
 
 ```{r load in data}
-combined_neuronal <- readRDS("../data/250228_combined.neuronal_1-5_5pct.rds")
+combined_neuronal <- readRDS("../../data/250228_combined.neuronal_1-5_5pct.rds")
 combined_neuronal
 ```
 
@@ -113,7 +113,7 @@ plot_cells(cds,
   scale_color_manual(values = palette_90) +
   theme(legend.position = "none")
 
-ggsave("../results/intermed-figs/250303_umap_1-5_5pct_res1.8_50dims_neuronal_monocle.png",
+ggsave("../../results/intermed-figs/250303_umap_1-5_5pct_res1.8_50dims_neuronal_monocle.png",
   device = png,
   dpi = 600,
   width = 6,
@@ -136,7 +136,7 @@ plot_cells(cds,
 ) +
   theme(legend.position = "right")
 
-ggsave("../results/intermed-figs/250303_umap_1-5_5pct_res1.8_50dims_neuronal_monocle_bysample.png",
+ggsave("../../results/intermed-figs/250303_umap_1-5_5pct_res1.8_50dims_neuronal_monocle_bysample.png",
   device = png,
   dpi = 600,
   width = 6,
@@ -151,7 +151,7 @@ cds@int_colData@listData$reducedDims$UMAP <- combined_neuronal@reductions$umap@c
 ```
 
 ```{r save cds}
-saveRDS(cds, "../data/250303_cds_1-5_5pct_res1.8_50dims_neuronal.rds")
+saveRDS(cds, "../../data/250303_cds_1-5_5pct_res1.8_50dims_neuronal.rds")
 ```
 
 
@@ -224,7 +224,7 @@ genes <- c("Sim1", "Nr5a1", "Agrp", "Pomc", "Kiss1r", "Ghrh", "Npy", "Trh", "Nkx
 ```
 
 ```{r plot!}
-output_dir <- "../results/markergenes/"
+output_dir <- "../../results/markergenes/"
 plot_gene_list(combined_neuronal, cds, genes, output_dir, min_expr = 1, width = 6)
 ```
 
