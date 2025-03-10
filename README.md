@@ -4,7 +4,7 @@ Single-Cell Resolution of Individual Variation in Hypothalamic Neurons Allows Ta
 
 ## Authors
 
-Sarafinovska, S., Koester, S.K., Fang, L.Z., Ji, J., Thorpe, J.W., Kornbluth, D.J., Selmanovic, D., Chaturvedi, S.M., Barrett, M.R., Rurak, G.M., Jones, E.F., Maloney, S.E., Creed, M.C., Mitra, R.D., Dougherty, J.D.
+Sarafinovska, S., Koester, S.K., Fang, L.Z., Thorpe, J.W., Chaturvedi, S.M., Ji, J., Jones, E.F., Selmanovic, D., Kornbluth, D.J., Barrett, M.R., Rurak, G.M., Maloney, S.E, Creed, M.C., Mitra, R.D., Dougherty, J.D.
 
 ## Abstract
 
