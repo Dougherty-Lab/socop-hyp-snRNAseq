@@ -1,0 +1,18 @@
+##### Required Analysis Parameters
+# Run "nextflow run path/to/ScaleRna --help" for a full list and documentation
+# Also see "nextflow.config" for defaults
+
+
+### A file listing all samples in the analysis with their barcode sequences and sample settings
+samples : "/scratch/jdlab/simona/SS19_deep_240323/MYT1L_samples.csv"
+
+#### Reference information
+### Path to a .json file defining the reference genome
+genome : "/scratch/jdlab/simona/SS19_deep_240323/genome-mm10.json"
+
+### Adjust parameters
+#minCellRatio: "20"
+#minReads: "1"
+libStructure: "libV1.json"
+#cellFinder: "true" #Compare cell-barcode expression profiles to background to call more cells
+    
