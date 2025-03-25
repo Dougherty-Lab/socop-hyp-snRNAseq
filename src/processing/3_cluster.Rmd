@@ -106,7 +106,7 @@ Drawing a cluster tree will help determine the appropriate resolution for cluste
 ```{r clustertree plot, fig.height=8}
 clustree(combined_postQC, prefix = 'RNA_snn_res.', layout = "sugiyama")
 
- ggsave(filename = "../../results/processing/intermed-figs/250221_clustertree_1-5_optimalpK.pdf",
+ ggsave(filename = "../../results/processing/intermed-figs/250221_clustertree.pdf",
         width = 8,
         height = 8,
         dpi = 300)
@@ -133,7 +133,7 @@ DimPlot_scCustom(combined_postQC,
                  pt.size = 0.01) +
   theme(legend.position = 'none')
 
-ggsave(filename = "../../results/processing/final-figs/250221_umap_combined_postQC_1-5_optimalpK_res2.pdf",
+ggsave(filename = "../../results/processing/final-figs/250221_umap_combined_postQC_1-5_5pct_res2.pdf",
        width = 12,
        height = 12,
        dpi = 300)
@@ -149,7 +149,7 @@ DimPlot_scCustom(combined_postQC,
                  pt.size = 0.01) +
   theme(legend.position = 'none')
 
- ggsave(filename = "../../results/processing/intermed-figs/250221_umap_combined_postQC_1-5_optimalpK_bysample.pdf",
+ ggsave(filename = "../../results/processing/intermed-figs/250221_umap_combined_postQC_1-5_5pct_bysample.pdf",
         width = 12,
         height = 12,
         dpi = 300)
@@ -157,12 +157,12 @@ DimPlot_scCustom(combined_postQC,
 
 This will create a series of UMAPs where each cluster is highlighted, which is helpful in identifying if clustering parameters need to be fine tuned. Highlighted clusters should be close together and not spread across UMAP space.
 ```{r plot highlighting clusters}
-dir.create("../../results/processing/intermed-figs/IterateCluster_combined_postQC_1-5_optimalpK_res2_50dims_250221")
+dir.create("../../results/processing/intermed-figs/IterateCluster_combined_postQC_1-5_5pct_res2_50dims_250221")
 
 Iterate_Cluster_Highlight_Plot(combined_postQC,
                                highlight_color = 'navy',
                                background_color = 'lightgrey',
-                               file_path = "../../results/processing/intermed-figs/IterateCluster_combined_postQC_1-5_optimalpK_res2_50dims_250221/",
+                               file_path = "../../results/processing/intermed-figs/IterateCluster_combined_postQC_1-5_5pct_res2_50dims_250221/",
                                file_name = 'iterate',
                                file_type = '.png',
                                raster = FALSE,

@@ -30,7 +30,7 @@ source("../color_utils.R")
 # Load in Data
 ```{r load in data}
 combined_clustered <- readRDS( "../../data/250221_combined_clustered_1-5_5pct.rds")
-combined_clustered
+combined_clustered 
 ```
 You should have an object with 37462 features across 138033 nuclei. 
 
@@ -49,7 +49,7 @@ saveRDS(combined.markers.all,file = "../../results/processing/250308_combinedmar
 ```
 
 ## And plotting heatmaps
-```{r}
+```{r plot marker heatmaps 1}
 combined.markers.all %>%
     group_by(cluster) %>%
     dplyr::filter(avg_log2FC > 1) %>%
@@ -64,7 +64,7 @@ plot <- DoHeatmap(combined_clustered, features = top10$gene) + NoLegend()
         dpi = 300)
 ```
 
-```{r}
+```{r plot marker heatmaps 2}
  combined.markers.all %>%
    group_by(cluster) %>%
    top_n(n = 10, wt = avg_log2FC) -> top10_AY
@@ -156,9 +156,9 @@ remove(combined_clustered.cleaned)
 And you can take the .h5ad file and upload it to MapMyCells on the Allen Brain Cell Atlas site!
 
 ## Bring in MapMyCells Data
-Now we load in the csv provided by MapMyCells to see what it predicts for our cluster annotations.
+Now we load in the csv provided by MapMyCells to see what it predicts for our cluster annotations. Make sure to delete the first four rows before uploading the .csv to your folder.
 ```{r read in MapMyCells data}
-ABC_map <- read.csv("../../data/250308_combined_clustered_1-5_5pct_res2_10xWholeMouseBrain(CCN20230722)_HierarchicalMapping_UTC_1741499269497.csv")
+ABC_map <- read.csv("../../data/250308_combined_clustered_1-5_5pct_res2_10xWholeMouseBrain(CCN20230722)_HierarchicalMapping_UTC_1742853361925.csv")
 
 combined_clustered <- AddMetaData(object = combined_clustered,metadata=ABC_map$class_name,col.name='ABC_class_name')
 combined_clustered <- AddMetaData(object = combined_clustered,metadata=ABC_map$class_bootstrapping_probability,col.name='ABC_class_probability')
@@ -236,7 +236,7 @@ DimPlot_scCustom(combined_clustered,
                  pt.size = 0.01) +
   theme(legend.position = 'right')
 
-ggsave(filename = "../../results/processing/250308_umapbyclass_combined_1-5_5pct_res2.png",
+ggsave(filename = "../../results/processing/final-figs/250308_umapbyclass_combined_1-5_5pct_res2.png",
        width = 12,
        height = 12,
        dpi = 300)
