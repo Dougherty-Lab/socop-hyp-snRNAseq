@@ -1,0 +1,158 @@
+---
+title: "Analysis of P1 MYT1L snRNAseq"
+author: "Simona Sarafinovska"
+date: "2024-06-01"
+---
+
+# Set up environment
+```{r dependencies, warning=FALSE, message=FALSE}
+# Change this to your directory
+.libPaths('/ref/jdlab/software/r-envs/simona/r-packages/4.2/')
+
+# Load dependencies
+library(dplyr)
+library(Seurat)
+library(scCustomize)
+
+set.seed(420)
+
+source("../color_utils.R")
+```
+
+
+# Load in preprocessed data
+```{r load}
+combined_neuronal_annotated <- readRDS("../../data/250321_combined_neuronal_annotated.rds")
+combined_neuronal_annotated
+```
+You should have a seurat object wiht 37462 features across 124601 nuclei.
+
+# Sample annotation table
+```{r sample annotation table by sample}
+# Get the necessary columns from the Seurat object metadata
+# First, select only one row per sample to avoid duplicates
+sample_info <- combined_neuronal_annotated@meta.data %>%
+  dplyr::select(
+    # Core information
+    sample, 
+    orig.ident, 
+    genotype, 
+    sex, 
+    Coded_ID.x,
+    
+    # Quality metrics - will be summarized per sample
+    nCount_RNA, 
+    nFeature_RNA, 
+    percent_mito, 
+    percent_ribo,
+    doublet,
+    
+    # Cell type information
+    cell_type,
+    ABC_class_name,
+    ABC_subclass_name,
+    
+    # Experimental variables
+    Ever_Learner,
+    Avg_Test_Distance,
+    Avg_Total_Rewards,
+    Sac_Test_Distance,
+    Sac_Total_Rewards
+  )
+
+# Create a summary table with one row per sample
+sample_summary <- sample_info %>%
+  group_by(sample) %>%
+  summarize(
+    # Core information (take the first value as these should be the same for all cells in a sample)
+    genotype = dplyr::first(genotype),
+    sex = dplyr::first(sex),
+    Coded_ID = dplyr::first(Coded_ID.x),
+    
+    # Quality metrics (calculate means per sample)
+    mean_nCount_RNA = mean(nCount_RNA, na.rm = TRUE),
+    mean_nFeature_RNA = mean(nFeature_RNA, na.rm = TRUE),
+    mean_percent_mito = mean(percent_mito, na.rm = TRUE),
+    mean_percent_ribo = mean(percent_ribo, na.rm = TRUE)/ n(),
+    
+    # Cell type percentages (calculate the proportion of each cell type)
+    total_nuclei = n(),
+    
+    # Experimental variables (take the first value as these should be constant per sample)
+    Ever_Learner = dplyr::first(Ever_Learner),
+    Avg_Test_Distance = dplyr::first(Avg_Test_Distance),
+    Avg_Total_Rewards = dplyr::first(Avg_Total_Rewards),
+    Sac_Test_Distance = dplyr::first(Sac_Test_Distance),
+    Sac_Total_Rewards = dplyr::first(Sac_Total_Rewards)
+  )
+
+# Add additional technical information needed for GEO
+geo_annotation <- sample_summary %>%
+  mutate(
+    organism = "Mus musculus",  
+    sequencing_platform = "Illumina NovaSeq X Plus",  
+    library_protocol = "ScaleBio Single Cell RNA Sequencing Kit",  
+    tissue = "Brain", 
+    brain_region = "tuberal hypothalamus and thalamus" 
+  )
+
+
+# Preview the table
+head(geo_annotation)
+
+# Write to CSV file
+write.csv(geo_annotation, "../../results/neuronal_processing/250324_snRNAseq_GEO_annotation_table.csv", row.names = FALSE)
+```
+
+```{r}
+# Code to generate cell-level metadata supplemental table
+
+# Extract cell-level metadata
+cell_metadata <- combined_neuronal_annotated@meta.data %>%
+  dplyr::select(
+    # Core information
+    sample, 
+    genotype, 
+    sex, 
+    Coded_ID.x,
+    
+    # Cell-specific quality metrics
+    nCount_RNA, 
+    nFeature_RNA, 
+    percent_mito, 
+    percent_ribo,
+    
+    # Clustering information
+    RNA_snn_res.1.8,
+    
+    # Cell type information
+    cell_type,
+    ABC_class_name,
+    ABC_subclass_name,
+    ABC_supertype_name,
+    hypomap_prediction_probability,
+    hypomap_predicted,
+    
+    # Experimental variables
+    Ever_Learner,
+    Avg_Test_Distance,
+    Avg_Total_Rewards,
+    Sac_Test_Distance,
+    Sac_Total_Rewards
+  )
+
+# Add a unique cell identifier
+cell_metadata <- cell_metadata %>%
+  mutate(
+    cell_id = rownames(combined_neuronal_annotated@meta.data),
+    organism = "Mus musculus",
+    brain_region = "tuberal hypothalamus and thalamus",
+    sequencing_platform = "Illumina NovaSeq X Plus",
+    library_protocol = "ScaleBio Single Cell RNA Sequencing Kit"
+  )
+
+write.csv(cell_metadata, "../../results/neuronal_processing/250324_snRNAseq_cell_metadata.csv", row.names = FALSE)
+
+# Preview the table
+head(cell_metadata)
+```
