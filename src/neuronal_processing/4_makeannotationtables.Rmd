@@ -7,7 +7,7 @@ date: "2024-06-01"
 # Set up environment
 ```{r dependencies, warning=FALSE, message=FALSE}
 # Change this to your directory
-.libPaths('/ref/jdlab/software/r-envs/simona/r-packages/4.2/')
+.libPaths("/ref/jdlab/software/r-envs/simona/r-packages/4.2/")
 
 # Load dependencies
 library(dplyr)
@@ -18,7 +18,6 @@ set.seed(420)
 
 source("../color_utils.R")
 ```
-
 
 # Load in preprocessed data
 ```{r load}
@@ -34,24 +33,24 @@ You should have a seurat object wiht 37462 features across 124601 nuclei.
 sample_info <- combined_neuronal_annotated@meta.data %>%
   dplyr::select(
     # Core information
-    sample, 
-    orig.ident, 
-    genotype, 
-    sex, 
+    sample,
+    orig.ident,
+    genotype,
+    sex,
     Coded_ID.x,
-    
+
     # Quality metrics - will be summarized per sample
-    nCount_RNA, 
-    nFeature_RNA, 
-    percent_mito, 
+    nCount_RNA,
+    nFeature_RNA,
+    percent_mito,
     percent_ribo,
     doublet,
-    
+
     # Cell type information
     cell_type,
     ABC_class_name,
     ABC_subclass_name,
-    
+
     # Experimental variables
     Ever_Learner,
     Avg_Test_Distance,
@@ -68,16 +67,16 @@ sample_summary <- sample_info %>%
     genotype = dplyr::first(genotype),
     sex = dplyr::first(sex),
     Coded_ID = dplyr::first(Coded_ID.x),
-    
+
     # Quality metrics (calculate means per sample)
     mean_nCount_RNA = mean(nCount_RNA, na.rm = TRUE),
     mean_nFeature_RNA = mean(nFeature_RNA, na.rm = TRUE),
     mean_percent_mito = mean(percent_mito, na.rm = TRUE),
-    mean_percent_ribo = mean(percent_ribo, na.rm = TRUE)/ n(),
-    
+    mean_percent_ribo = mean(percent_ribo, na.rm = TRUE) / n(),
+
     # Cell type percentages (calculate the proportion of each cell type)
     total_nuclei = n(),
-    
+
     # Experimental variables (take the first value as these should be constant per sample)
     Ever_Learner = dplyr::first(Ever_Learner),
     Avg_Test_Distance = dplyr::first(Avg_Test_Distance),
@@ -89,11 +88,11 @@ sample_summary <- sample_info %>%
 # Add additional technical information needed for GEO
 geo_annotation <- sample_summary %>%
   mutate(
-    organism = "Mus musculus",  
-    sequencing_platform = "Illumina NovaSeq X Plus",  
-    library_protocol = "ScaleBio Single Cell RNA Sequencing Kit",  
-    tissue = "Brain", 
-    brain_region = "tuberal hypothalamus and thalamus" 
+    organism = "Mus musculus",
+    sequencing_platform = "Illumina NovaSeq X Plus",
+    library_protocol = "ScaleBio Single Cell RNA Sequencing Kit",
+    tissue = "Brain",
+    brain_region = "tuberal hypothalamus and thalamus"
   )
 
 
@@ -111,20 +110,20 @@ write.csv(geo_annotation, "../../results/neuronal_processing/250324_snRNAseq_GEO
 cell_metadata <- combined_neuronal_annotated@meta.data %>%
   dplyr::select(
     # Core information
-    sample, 
-    genotype, 
-    sex, 
+    sample,
+    genotype,
+    sex,
     Coded_ID.x,
-    
+
     # Cell-specific quality metrics
-    nCount_RNA, 
-    nFeature_RNA, 
-    percent_mito, 
+    nCount_RNA,
+    nFeature_RNA,
+    percent_mito,
     percent_ribo,
-    
+
     # Clustering information
     RNA_snn_res.1.8,
-    
+
     # Cell type information
     cell_type,
     ABC_class_name,
@@ -132,7 +131,7 @@ cell_metadata <- combined_neuronal_annotated@meta.data %>%
     ABC_supertype_name,
     hypomap_prediction_probability,
     hypomap_predicted,
-    
+
     # Experimental variables
     Ever_Learner,
     Avg_Test_Distance,

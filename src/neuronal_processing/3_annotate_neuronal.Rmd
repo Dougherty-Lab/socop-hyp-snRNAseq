@@ -7,7 +7,7 @@ date: "2024-06-01"
 # Set up environment
 ```{r dependencies, warning=FALSE, message=FALSE}
 # Change this to your directory
-.libPaths('/ref/jdlab/software/r-envs/simona/r-packages/4.2/')
+.libPaths("/ref/jdlab/software/r-envs/simona/r-packages/4.2/")
 
 # Load dependencies
 library(dplyr)
@@ -26,11 +26,10 @@ set.seed(420)
 source("../color_utils.R")
 ```
 
-
 # Load in preprocessed data
 ```{r load}
 combined_neuronal_clustered <- readRDS("../../data/250321_combined_neuronal_clustered.rds")
-combined_neuronal_clustered 
+combined_neuronal_clustered
 ```
 You should have a Seurat object with 37462 features across 127456 nuclei.
 
@@ -38,81 +37,86 @@ You should have a Seurat object with 37462 features across 127456 nuclei.
 
 ```{r findMarkers, message=FALSE, results=FALSE}
 combined_neuronal_clustered_markers_all <- FindAllMarkers(combined_neuronal_clustered,
-                                             only.pos = FALSE,
-                                             min.pct = 0.25,
-                                             logfc.threshold = 0.5,
-                                             return.thresh = 0.01)
+  only.pos = FALSE,
+  min.pct = 0.25,
+  logfc.threshold = 0.5,
+  return.thresh = 0.01
+)
 
-write.csv(combined_neuronal_clustered_markers_all,file = "../../results/neuronal_processing/intermed-figs/250321_markers_neuronal_clustered_res1.8_50dims.csv")
+write.csv(combined_neuronal_clustered_markers_all, file = "../../results/neuronal_processing/intermed-figs/250321_markers_neuronal_clustered_res1.8_50dims.csv")
 
-saveRDS(combined_neuronal_clustered_markers_all,file = "../../results/neuronal_processing/intermed-figs/250321_markers_neuronal_clustered_res1.8_50dims.rds")
+saveRDS(combined_neuronal_clustered_markers_all, file = "../../results/neuronal_processing/intermed-figs/250321_markers_neuronal_clustered_res1.8_50dims.rds")
 ```
-
 
 Plotting:
 ```{r marker heatmap 1}
 combined_neuronal_clustered_markers_all %>%
-    group_by(cluster) %>%
-    dplyr::filter(avg_log2FC > 1) %>%
-    slice_head(n = 10) %>%
-    ungroup() -> top10
+  group_by(cluster) %>%
+  dplyr::filter(avg_log2FC > 1) %>%
+  slice_head(n = 10) %>%
+  ungroup() -> top10
 plot <- DoHeatmap(combined_neuronal_clustered, features = top10$gene) + NoLegend()
 plot
 
- ggsave(filename = "../../results/neuronal_processing/intermed-figs/250321_markers_neuronal_clustered_res1.8_50dims.pdf",
-         plot = plot,
-         width = 18,
-         height = 18,
-         dpi = 300)
+ggsave(
+  filename = "../../results/neuronal_processing/intermed-figs/250321_markers_neuronal_clustered_res1.8_50dims.pdf",
+  plot = plot,
+  width = 18,
+  height = 18,
+  dpi = 300
+)
 ```
 
 ```{r marker heatmap 2}
- combined_neuronal_clustered_markers_all %>%
-   group_by(cluster) %>%
-   top_n(n = 10, wt = avg_log2FC) -> top10
+combined_neuronal_clustered_markers_all %>%
+  group_by(cluster) %>%
+  top_n(n = 10, wt = avg_log2FC) -> top10
 
- plot <- DoHeatmap(combined_neuronal_clustered, 
-                   feature = top10$gene,
-                   #group.colors = palette,
-                   label = FALSE,
-                   disp.min = 0,
-                   disp.max = 2,
-                   raster = TRUE) + 
-   scale_fill_viridis() +
-   NoLegend()
- plot
-  ggsave(filename = "../../results/neuronal_processing/intermed-figs/250321_markers_neuronal_clustered_res1.8_50dims-2.pdf",
-         plot = plot,
-         width = 18,
-         height = 24,
-         dpi = 300)
+plot <- DoHeatmap(combined_neuronal_clustered,
+  feature = top10$gene,
+  # group.colors = palette,
+  label = FALSE,
+  disp.min = 0,
+  disp.max = 2,
+  raster = TRUE
+) +
+  scale_fill_viridis() +
+  NoLegend()
+plot
+ggsave(
+  filename = "../../results/neuronal_processing/intermed-figs/250321_markers_neuronal_clustered_res1.8_50dims-2.pdf",
+  plot = plot,
+  width = 18,
+  height = 24,
+  dpi = 300
+)
 ```
 
 ```{r filtered heatmap}
 # Filtered list of neuronal genes by functional category
 neuronal.genes <- c(
   # Neurotransmitter systems
-  "Vipr2", "Hcrtr2", "Grm8", "Grm3", "Slc18a2", "Slc6a3", "Drd2", "Chrm3", 
-  "Htr2c", "Tacr3", "Gria1", "Grik1", "Gad2", "Grik3", "Htr1f", "Chrm2", 
+  "Vipr2", "Hcrtr2", "Grm8", "Grm3", "Slc18a2", "Slc6a3", "Drd2", "Chrm3",
+  "Htr2c", "Tacr3", "Gria1", "Grik1", "Gad2", "Grik3", "Htr1f", "Chrm2",
   "Tacr1", "Slc5a7", "Chat", "Gabra4", "Grm1",
-  
+
   # Ion channels
-  "Kcnh1", "Kcnj6", "Kcnma1", "Kcnh8", "Kcnab1", "Cacna2d2", "Asic2", "Kcnq5", 
-  "Trpm3", "Cacna2d3", "Kcnmb2", "Hcn1", "Kcnip1", "Scn9a", "Kcnb2", "Cacna2d1", 
+  "Kcnh1", "Kcnj6", "Kcnma1", "Kcnh8", "Kcnab1", "Cacna2d2", "Asic2", "Kcnq5",
+  "Trpm3", "Cacna2d3", "Kcnmb2", "Hcn1", "Kcnip1", "Scn9a", "Kcnb2", "Cacna2d1",
   "Kcnh5", "Kcnc2", "Trpm6", "Kcnip4",
-  
+
   # Synaptic function
-  "Syt9", "Stxbp6", "Sv2b", "Unc13c", "Nrxn3", "Synpr", "Baiap3", "Nptxr", 
+  "Syt9", "Stxbp6", "Sv2b", "Unc13c", "Nrxn3", "Synpr", "Baiap3", "Nptxr",
   "Dlgap2", "Rimbp2", "Cadps2",
-  
+
   # Axon guidance and cell adhesion
-  "Cdh13", "Nrg1", "Tenm3", "Sema5a", "Slit2", "Robo2", "Sema6d", "Slit3", 
-  "Sema3a", "Cntnap5a", "Lrrc4c", "Cdh23", "Ntm", "Cdh18", "Cdh12", "Cdh8", 
+  "Cdh13", "Nrg1", "Tenm3", "Sema5a", "Slit2", "Robo2", "Sema6d", "Slit3",
+  "Sema3a", "Cntnap5a", "Lrrc4c", "Cdh23", "Ntm", "Cdh18", "Cdh12", "Cdh8",
   "Sdk1", "Cntn5", "Pcdh7", "Pcdh15", "Ntng2", "Cntn6", "Kirrel3", "Cntnap5c", "Ntng1",
-  
+
   # Transcription factors and development
-  "Nfia", "Ebf2", "Pbx1", "Mef2c", "Foxp1", "Lhx8", "Pax6", "Ebf3", "Ebf1", 
-  "Sim1", "Lmx1a", "Zfhx4", "Zfhx3", "Pou6f2", "Zfpm2", "Onecut2", "Meis1", 
+  "Nfia", "Ebf2", "Pbx1", "Mef2c", "Foxp1", "Lhx8", "Pax6", "Ebf3", "Ebf1",
+  "Sim1", "Lmx1a", "Zfhx4", "Zfhx3", "Pou6f2", "Zfpm2", "Onecut2", "Meis1",
   "Nfib", "Tcf4", "Tshz1", "Meis2", "Foxp2", "Pbx3", "Satb2", "Tcf7l2", "Sox6", "Sox5"
 )
 
@@ -126,13 +130,14 @@ neuronal.top.markers <- neuronal.markers.filtered %>%
   top_n(n = 5, wt = avg_log2FC) # Reduced from 10 to 5 genes per cluster
 
 # Create the heatmap with better visibility
-plot <- DoHeatmap(combined_neuronal_clustered, 
-          features = neuronal.top.markers$gene,
-          label = TRUE, # Now we can show labels as we have fewer genes
-          disp.min = 0,
-          disp.max = 2,
-          raster = TRUE,
-          size = 3) + # Increase text size
+plot <- DoHeatmap(combined_neuronal_clustered,
+  features = neuronal.top.markers$gene,
+  label = TRUE, # Now we can show labels as we have fewer genes
+  disp.min = 0,
+  disp.max = 2,
+  raster = TRUE,
+  size = 3
+) + # Increase text size
   scale_fill_viridis() +
   theme(axis.text.y = element_text(size = 8)) +
   NoLegend()
@@ -140,28 +145,33 @@ plot <- DoHeatmap(combined_neuronal_clustered,
 # Preview the plot
 plot
 
-ggsave(filename = "../../results/neuronal_processing/intermed-figs/250321_selectedmarkers_neuronal_clustered_res1.8_50dims.pdf",
-         plot = plot,
-         width = 18,
-         height = 24,
-          dpi = 300)
+ggsave(
+  filename = "../../results/neuronal_processing/intermed-figs/250321_selectedmarkers_neuronal_clustered_res1.8_50dims.pdf",
+  plot = plot,
+  width = 18,
+  height = 24,
+  dpi = 300
+)
 ```
 
 Sorting by region:
 ```{r heatmap by region, fig.height=10}
 # Get average expression matrix for the top marker genes
-avg_expr <- AverageExpression(combined_neuronal_clustered, 
-                             features = unique(neuronal.top.markers$gene),
-                             group.by = "ident",
-                             assays = "RNA", 
-                             slot = "scale.data") 
+avg_expr <- AverageExpression(combined_neuronal_clustered,
+  features = unique(neuronal.top.markers$gene),
+  group.by = "ident",
+  assays = "RNA",
+  slot = "scale.data"
+)
 
 # Convert to matrix
 expr_matrix <- as.matrix(avg_expr$RNA)
 
 # Define the regional order
-region_order <- c("Amygdala/Hypothalamus", "Hypothalamus", "Midbrain", 
-                 "Striatum/Pallidum", "Thalamus", "Zona Incerta")
+region_order <- c(
+  "Amygdala/Hypothalamus", "Hypothalamus", "Midbrain",
+  "Striatum/Pallidum", "Thalamus", "Zona Incerta"
+)
 
 # Get the cluster names and their corresponding regions
 clusters <- colnames(expr_matrix)
@@ -170,7 +180,7 @@ cluster_regions <- combined_neuronal_clustered$anatomical_region[match(clusters,
 # Create column annotation for pheatmap with both Region and Cluster
 anno_col <- data.frame(
   Region = cluster_regions,
-  Cluster = clusters,  # Add the cluster IDs as a separate annotation
+  Cluster = clusters, # Add the cluster IDs as a separate annotation
   row.names = clusters
 )
 
@@ -190,7 +200,7 @@ anno_colors <- list(
 )
 
 # Sort columns by region
-anno_col_sorted <- anno_col[order(anno_col$Region),, drop = FALSE]
+anno_col_sorted <- anno_col[order(anno_col$Region), , drop = FALSE]
 expr_matrix_sorted <- expr_matrix[, rownames(anno_col_sorted)]
 
 # Create the heatmap with both annotations
@@ -205,19 +215,18 @@ p <- pheatmap(
   fontsize_col = 8,
   color = viridisLite::viridis(100),
   annotation_legend = FALSE,
-  breaks = seq(0, 2, length.out = 100),  
-  legend_breaks = seq(0, 2, 0.5),        
+  breaks = seq(0, 2, length.out = 100),
+  legend_breaks = seq(0, 2, 0.5),
   legend_labels = c("0", "0.5", "1", "1.5", "2")
 )
 
 save_complexheatmap_pdf(
-  p, 
-  "../../results/neuronal_processing/final_figs/250321_neuronal_markers_by_region.pdf", 
-  width = 12, 
+  p,
+  "../../results/neuronal_processing/final_figs/250321_neuronal_markers_by_region.pdf",
+  width = 12,
   height = 14
 )
 ```
-
 
 # Hypomap
 We followed the vignette here: https://github.com/lsteuernagel/mapscvi to  map combined onto HypoMap (Steuernagel et al., Nature Met., 2022) and obtain predicted annotations. 
@@ -233,23 +242,25 @@ cols_to_transfer <- c("prediction_probability", "predicted", "avg_neighbor_dista
 
 for (col in cols_to_transfer) {
   new_col_name <- paste0("hypomap_", col)
-  
+
   combined_neuronal_clustered[[new_col_name]] <-
-    hypomapped_neuronal@meta.data[[col]][match(colnames(combined_neuronal_clustered),
-                                      colnames(hypomapped_neuronal))]
+    hypomapped_neuronal@meta.data[[col]][match(
+      colnames(combined_neuronal_clustered),
+      colnames(hypomapped_neuronal)
+    )]
 }
 ```
-
 
 # MapMyCells
 
 ## Create minimal h5ad
 ```{r create h5ad}
 ph <- mapIds(org.Mm.eg.db,
-             keys = rownames(combined_neuronal_clustered),
-             column = "ENSEMBL",
-             keytype = "SYMBOL",
-             multiVals = "first")
+  keys = rownames(combined_neuronal_clustered),
+  column = "ENSEMBL",
+  keytype = "SYMBOL",
+  multiVals = "first"
+)
 ph <- as.data.frame(ph)
 
 df <- data.frame(
@@ -264,10 +275,11 @@ genes_to_remove <- rownames(combined_neuronal_clustered)[is.na(ph)]
 combined_neuronal_clustered_cleaned <- combined_neuronal_clustered[rownames(combined_neuronal_clustered) %in% df_dups_removed$GeneSymbol, ]
 
 ph <- mapIds(org.Mm.eg.db,
-             keys = rownames(combined_neuronal_clustered_cleaned),
-             column = "ENSEMBL",
-             keytype = "SYMBOL",
-             multiVals = "first")
+  keys = rownames(combined_neuronal_clustered_cleaned),
+  column = "ENSEMBL",
+  keytype = "SYMBOL",
+  multiVals = "first"
+)
 ph <- as.data.frame(ph)
 
 df <- data.frame(
@@ -276,16 +288,20 @@ df <- data.frame(
 )
 
 raw_counts <- as.matrix(combined_neuronal_clustered_cleaned@assays$RNA@counts)
-raw_counts <- GetAssayData(object = combined_neuronal_clustered_cleaned,
-                           slot = "counts")
+raw_counts <- GetAssayData(
+  object = combined_neuronal_clustered_cleaned,
+  slot = "counts"
+)
 colnames(raw_counts) <- rownames(combined_neuronal_clustered_cleaned@meta.data)
 samples <- colnames(raw_counts)
 genes <- df$ph
 raw_counts <- t(raw_counts)
 
-adata <- AnnData(X = raw_counts,
-                 var = data.frame(genes = genes, row.names = genes),
-                 obs = data.frame(samples = samples, row.names = samples))
+adata <- AnnData(
+  X = raw_counts,
+  var = data.frame(genes = genes, row.names = genes),
+  obs = data.frame(samples = samples, row.names = samples)
+)
 
 
 write_h5ad(adata, "../../data/250321_combined_neuronal_clustered_1-5_5pct_res1.8.h5ad")
@@ -298,19 +314,18 @@ Now we load in the csv provided by MapMyCells to see what it predicts for our cl
 ```{r read in MapMyCells data}
 ABC_map <- read.csv("../../data/250321_combined_neuronal_clustered_1-5_5pct_res18_10xWholeMouseBrain(CCN20230722)_HierarchicalMapping_UTC_1742946742715.csv")
 
-
-combined_neuronal_clustered <- AddMetaData(object = combined_neuronal_clustered,metadata=ABC_map$class_name,col.name='ABC_class_name')
-combined_neuronal_clustered <- AddMetaData(object = combined_neuronal_clustered,metadata=ABC_map$class_bootstrapping_probability,col.name='ABC_class_probability')
-combined_neuronal_clustered <- AddMetaData(object = combined_neuronal_clustered,metadata=ABC_map$class_label,col.name='ABC_class_label')
-combined_neuronal_clustered <- AddMetaData(object = combined_neuronal_clustered,metadata=ABC_map$subclass_name,col.name='ABC_subclass_name')
-combined_neuronal_clustered <- AddMetaData(object = combined_neuronal_clustered,metadata=ABC_map$subclass_bootstrapping_probability,col.name='ABC_subclass_probability')
-combined_neuronal_clustered <- AddMetaData(object = combined_neuronal_clustered,metadata=ABC_map$subclass_label,col.name='ABC_subclass_label')
-combined_neuronal_clustered <- AddMetaData(object = combined_neuronal_clustered,metadata=ABC_map$supertype_name,col.name='ABC_supertype_name')
-combined_neuronal_clustered <- AddMetaData(object = combined_neuronal_clustered,metadata=ABC_map$supertype_bootstrapping_probability,col.name='ABC_supertype_probability')
-combined_neuronal_clustered <- AddMetaData(object = combined_neuronal_clustered,metadata=ABC_map$supertype_label,col.name='ABC_supertype_label')
-combined_neuronal_clustered <- AddMetaData(object = combined_neuronal_clustered,metadata=ABC_map$cluster_name,col.name='ABC_cluster_name')
-combined_neuronal_clustered <- AddMetaData(object = combined_neuronal_clustered,metadata=ABC_map$cluster_bootstrapping_probability,col.name='ABC_cluster_probability')
-combined_neuronal_clustered <- AddMetaData(object = combined_neuronal_clustered,metadata=ABC_map$cluster_label,col.name='ABC_cluster_label')
+combined_neuronal_clustered <- AddMetaData(object = combined_neuronal_clustered, metadata = ABC_map$class_name, col.name = "ABC_class_name")
+combined_neuronal_clustered <- AddMetaData(object = combined_neuronal_clustered, metadata = ABC_map$class_bootstrapping_probability, col.name = "ABC_class_probability")
+combined_neuronal_clustered <- AddMetaData(object = combined_neuronal_clustered, metadata = ABC_map$class_label, col.name = "ABC_class_label")
+combined_neuronal_clustered <- AddMetaData(object = combined_neuronal_clustered, metadata = ABC_map$subclass_name, col.name = "ABC_subclass_name")
+combined_neuronal_clustered <- AddMetaData(object = combined_neuronal_clustered, metadata = ABC_map$subclass_bootstrapping_probability, col.name = "ABC_subclass_probability")
+combined_neuronal_clustered <- AddMetaData(object = combined_neuronal_clustered, metadata = ABC_map$subclass_label, col.name = "ABC_subclass_label")
+combined_neuronal_clustered <- AddMetaData(object = combined_neuronal_clustered, metadata = ABC_map$supertype_name, col.name = "ABC_supertype_name")
+combined_neuronal_clustered <- AddMetaData(object = combined_neuronal_clustered, metadata = ABC_map$supertype_bootstrapping_probability, col.name = "ABC_supertype_probability")
+combined_neuronal_clustered <- AddMetaData(object = combined_neuronal_clustered, metadata = ABC_map$supertype_label, col.name = "ABC_supertype_label")
+combined_neuronal_clustered <- AddMetaData(object = combined_neuronal_clustered, metadata = ABC_map$cluster_name, col.name = "ABC_cluster_name")
+combined_neuronal_clustered <- AddMetaData(object = combined_neuronal_clustered, metadata = ABC_map$cluster_bootstrapping_probability, col.name = "ABC_cluster_probability")
+combined_neuronal_clustered <- AddMetaData(object = combined_neuronal_clustered, metadata = ABC_map$cluster_label, col.name = "ABC_cluster_label")
 ```
 
 This will print out a csv with Seurat clusters on the columns and ABC clusters on the rows so you can sort and see how they corelate!
@@ -321,76 +336,77 @@ ABC_subclass_names <- combined_neuronal_clustered@meta.data$ABC_subclass_name
 ABC_supertype_name <- combined_neuronal_clustered@meta.data$ABC_supertype_name
 ABC_cluster_name <- combined_neuronal_clustered@meta.data$ABC_cluster_name
 
-df <- data.frame(clusters, ABC_class_names, ABC_subclass_names,ABC_supertype_name, ABC_cluster_name)
+df <- data.frame(clusters, ABC_class_names, ABC_subclass_names, ABC_supertype_name, ABC_cluster_name)
 
 table <- table(df$ABC_class_names, df$clusters)
-write.csv (table, "../../results/neuronal_processing/250321_clustersbyABCclass_neuronal.csv", row.names = TRUE)
+write.csv(table, "../../results/neuronal_processing/250321_clustersbyABCclass_neuronal.csv", row.names = TRUE)
 
 table <- table(df$ABC_subclass_names, df$clusters)
-write.csv (table, "../../results/neuronal_processing/250321_clustersbyABCsubclass_neuronal.csv", row.names = TRUE)
+write.csv(table, "../../results/neuronal_processing/250321_clustersbyABCsubclass_neuronal.csv", row.names = TRUE)
 
 table <- table(df$ABC_supertype_name, df$clusters)
-write.csv (table, "../../results/neuronal_processing/250321_clustersbyABCsupertype_neuronal.csv", row.names = TRUE)
+write.csv(table, "../../results/neuronal_processing/250321_clustersbyABCsupertype_neuronal.csv", row.names = TRUE)
 
 table <- table(df$ABC_cluster_name, df$clusters)
-write.csv (table, "../../results/neuronal_processing/250321_clustersbyABCcluster_neuronal.csv", row.names = TRUE)
+write.csv(table, "../../results/neuronal_processing/250321_clustersbyABCcluster_neuronal.csv", row.names = TRUE)
 ```
 
 Plot a histogram of how many cells are in each ABC class per cluster.
 ```{r ABC class histogram}
 table_df <- data.frame(table(df$ABC_class_names, df$clusters))
-colnames(table_df) <- c("Class_Name", "Seurat_Cluster","Number_of_Cells")
+colnames(table_df) <- c("Class_Name", "Seurat_Cluster", "Number_of_Cells")
 
-clusters <- seq(0,max(as.numeric(df$clusters))-1)
+clusters <- seq(0, max(as.numeric(df$clusters)) - 1)
 
 dir.create("../../results/neuronal_processing/intermed-figs/ClassHistograms_250321")
 
 for (i in clusters) {
   p <- table_df %>%
-    #use filter to subset the rows based on the Var2 column values
-    filter(Seurat_Cluster == i) %>% 
+    # use filter to subset the rows based on the Var2 column values
+    filter(Seurat_Cluster == i) %>%
     filter(Number_of_Cells > 0) %>%
-    ggplot(aes(x=Class_Name, y=Number_of_Cells)) +
-    geom_bar(stat="identity") +
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-  
-  file_name = paste("../../results/neuronal_processing/intermed-figs/ClassHistograms_250321/", i, ".png", sep="")
-  
-  ggsave(filename = file_name,
-       width = 12,
-       height = 12,
-       dpi = 300)
+    ggplot(aes(x = Class_Name, y = Number_of_Cells)) +
+    geom_bar(stat = "identity") +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+  file_name <- paste("../../results/neuronal_processing/intermed-figs/ClassHistograms_250321/", i, ".png", sep = "")
+
+  ggsave(
+    filename = file_name,
+    width = 12,
+    height = 12,
+    dpi = 300
+  )
 }
 ```
 
 ```{r ABC subclass histogram}
 table_df <- data.frame(table(df$ABC_subclass_names, df$clusters))
-colnames(table_df) <- c("Subclass_Name", "Seurat_Cluster","Number_of_Cells")
+colnames(table_df) <- c("Subclass_Name", "Seurat_Cluster", "Number_of_Cells")
 
-clusters <- seq(0,max(as.numeric(df$clusters))-1)
-
+clusters <- seq(0, max(as.numeric(df$clusters)) - 1)
 
 dir.create("../../results/neuronal_processing/intermed-figs/SubclassHistograms_250321")
 
 for (i in clusters) {
   p <- table_df %>%
-    #use filter to subset the rows based on the Var2 column values
-    filter(Seurat_Cluster == i) %>% 
+    # use filter to subset the rows based on the Var2 column values
+    filter(Seurat_Cluster == i) %>%
     filter(Number_of_Cells > 20) %>%
-    ggplot(aes(x=Subclass_Name, y=Number_of_Cells)) +
-    geom_bar(stat="identity") +
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-  
-  file_name = paste("../../results/neuronal_processing/intermed-figs/SubclassHistograms_250321/", i, ".png", sep="")
-  
-  ggsave(filename = file_name,
-       width = 12,
-       height = 12,
-       dpi = 300)
+    ggplot(aes(x = Subclass_Name, y = Number_of_Cells)) +
+    geom_bar(stat = "identity") +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+  file_name <- paste("../../results/neuronal_processing/intermed-figs/SubclassHistograms_250321/", i, ".png", sep = "")
+
+  ggsave(
+    filename = file_name,
+    width = 12,
+    height = 12,
+    dpi = 300
+  )
 }
 ```
-
-
 
 # Cluster Tree
 We noticed some clusters have significantly overlapping annotations based on MapMyCells, HypoMap, and markers. So we will make a hierarchical cluster tree to identify whether to merge: 
@@ -401,8 +417,8 @@ combined_neuronal_clustered <- BuildClusterTree(combined_neuronal_clustered, dim
 
 PlotClusterTree(combined_neuronal_clustered)
 
-file_path= "../../results/neuronal_processing/intermed-figs/250321_clustrerhierarchy_neuronal_1-5_5pct_res1.8_50dims.png"
-png(height=200, width= 800, file=file_path)
+file_path <- "../../results/neuronal_processing/intermed-figs/250321_clustrerhierarchy_neuronal_1-5_5pct_res1.8_50dims.png"
+png(height = 200, width = 800, file = file_path)
 
 PlotClusterTree(combined_neuronal_clustered)
 
@@ -411,7 +427,8 @@ dev.off()
 
 Based on manual comparison of clusters at each terminal node and leaf, we have dedcided to merge clusters as below:
 ```{r merging clusters}
-merged_idents <- c("66",
+merged_idents <- c(
+  "66",
   "8",
   "17",
   "17",
@@ -486,7 +503,8 @@ merged_idents <- c("66",
   "24",
   "51",
   "50",
-  "50")
+  "50"
+)
 names(merged_idents) <- levels(combined_neuronal_clustered)
 merged_idents
 combined_neuronal_clustered <- RenameIdents(combined_neuronal_clustered, merged_idents)
@@ -574,15 +592,17 @@ combined_neuronal_clustered@meta.data$cell_type <- Idents(combined_neuronal_clus
 ##Taking out some more glial clusters
 
 ```{r removing non-neuronal clusters}
-
 Idents(combined_neuronal_clustered) <- combined_neuronal_clustered$cell_type
 
-non_neuronal <- c("OPC", 
-                  "Microglia") 
+non_neuronal <- c(
+  "OPC",
+  "Microglia"
+)
 
 combined_neuronal_clustered <- subset(combined_neuronal_clustered,
-                             idents = non_neuronal,
-                             invert = TRUE)
+  idents = non_neuronal,
+  invert = TRUE
+)
 combined_neuronal_clustered
 ```
 You should now have a Seurat object with 37642 features and 124601 nuclei.
@@ -591,7 +611,9 @@ You should now have a Seurat object with 37642 features and 124601 nuclei.
 We need to add mean values from behavior into the single nucleus dataset:
 ```{r read in behavior data}
 behavior_data <- read.csv("../../data/073123_SocialOperant_short.csv", stringsAsFactors = FALSE)
-behavior_data <- behavior_data[,apply(behavior_data, 2, function(x) { sum(!is.na(x)) > 0 })]
+behavior_data <- behavior_data[, apply(behavior_data, 2, function(x) {
+  sum(!is.na(x)) > 0
+})]
 head(behavior_data)
 ```
 
@@ -602,7 +624,7 @@ combined_neuronal_clustered@meta.data$sample <- as.factor(gsub("-", "_", combine
 metadata <- merge(combined_neuronal_clustered@meta.data, behavior_data, by = "sample", all.x = TRUE, sort = FALSE)
 
 # Set the rownames of the merged metadata to the preserved rownames
-rownames(metadata) <- rownames(combined_neuronal_clustered@meta.data) 
+rownames(metadata) <- rownames(combined_neuronal_clustered@meta.data)
 
 dim(metadata)
 dim(combined_neuronal_clustered@meta.data)
@@ -626,10 +648,11 @@ levels(combined_neuronal_clustered$Sac_Learner) <- c("Learner", "Non_Learner")
 Data on the day of sacrifice was pulled down separately, so we are merging that in here. 
 ```{r read in behavior data sac}
 sac_behavior_data <- read.csv("../../data/073123_SacDay_forR.csv", stringsAsFactors = FALSE)
-sac_behavior_data <- sac_behavior_data[,apply(sac_behavior_data, 2, function(x) { sum(!is.na(x)) > 0 })]
+sac_behavior_data <- sac_behavior_data[, apply(sac_behavior_data, 2, function(x) {
+  sum(!is.na(x)) > 0
+})]
 head(sac_behavior_data)
 ```
-
 
 ```{r make new metadata file sac}
 combined_neuronal_clustered@meta.data$sample <- as.factor(gsub("-", "_", combined_neuronal_clustered@meta.data$sample))
@@ -638,7 +661,7 @@ combined_neuronal_clustered@meta.data$sample <- as.factor(gsub("-", "_", combine
 sac_metadata <- merge(combined_neuronal_clustered@meta.data, sac_behavior_data, by = "sample", all.x = TRUE, sort = FALSE)
 
 # Set the rownames of the merged metadata to the preserved rownames
-rownames(sac_metadata) <- rownames(combined_neuronal_clustered@meta.data) 
+rownames(sac_metadata) <- rownames(combined_neuronal_clustered@meta.data)
 
 dim(sac_metadata)
 dim(combined_neuronal_clustered@meta.data)
@@ -646,7 +669,6 @@ dim(combined_neuronal_clustered@meta.data)
 ```{r merge metadata sac}
 combined_neuronal_clustered@meta.data <- sac_metadata
 ```
-
 
 # Save!
 ```{r save}

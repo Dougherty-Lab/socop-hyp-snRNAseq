@@ -7,7 +7,7 @@ date: "2024-06-01"
 # Set up environment
 ```{r dependencies, warning=FALSE, message=FALSE}
 # Change this to your directory
-.libPaths('/ref/jdlab/software/r-envs/simona/r-packages/4.2/')
+.libPaths("/ref/jdlab/software/r-envs/simona/r-packages/4.2/")
 
 # Load dependencies
 library(dplyr)
@@ -23,7 +23,6 @@ set.seed(420)
 source("../color_utils.R")
 ```
 
-
 # Load in preprocessed data
 ```{r load}
 combined_neuronal_subsetted <- readRDS("../../data/250320_combined_neuronal_subsetted.rds")
@@ -37,20 +36,22 @@ The combined.neuronal data is re-scaled using a global-scaling normalization met
 
 ```{r normalize}
 combined_neuronal_subsetted <- NormalizeData(combined_neuronal_subsetted,
-                                    normalization.method = "LogNormalize",
-                                    scale.factor = 10000)
+  normalization.method = "LogNormalize",
+  scale.factor = 10000
+)
 ```
 
 # Identification of highly variable features
 
 ```{r ID variable features}
 combined_neuronal_subsetted <- FindVariableFeatures(combined_neuronal_subsetted,
-                                           selection.method = "vst",
-                                           nfeatures = 3000)
+  selection.method = "vst",
+  nfeatures = 3000
+)
 ```
 
 ```{r plot variable features}
-VariableFeaturePlot_scCustom(seurat_object  = combined_neuronal_subsetted, num_features = 20, repel = TRUE)
+VariableFeaturePlot_scCustom(seurat_object = combined_neuronal_subsetted, num_features = 20, repel = TRUE)
 ```
 
 # Scale the data
@@ -69,14 +70,17 @@ We perform PCA on the scaled data using the most variable features determined ab
 
 ```{r run PCA}
 combined_neuronal_subsetted <- RunPCA(combined_neuronal_subsetted,
-                             npcs = 100,
-                             features = VariableFeatures(object = combined_neuronal_subsetted))
+  npcs = 100,
+  features = VariableFeatures(object = combined_neuronal_subsetted)
+)
 ```
 
 ```{r VizDim PCA plot}
-VizDimLoadings(combined_neuronal_subsetted, dims=1:4, reduction="pca") &
-  theme(axis.text=element_text(size=6),
-        axis.title=element_text(size=8, face='bold'))
+VizDimLoadings(combined_neuronal_subsetted, dims = 1:4, reduction = "pca") &
+  theme(
+    axis.text = element_text(size = 6),
+    axis.title = element_text(size = 8, face = "bold")
+  )
 ```
 
 ```{r PCA dim heatmap plot}
@@ -97,19 +101,21 @@ combined_neuronal_subsetted <- FindNeighbors(combined_neuronal_subsetted, dims =
 ## Consider resolutions.
 ```{r find clusters}
 combined_neuronal_subsetted <- FindClusters(combined_neuronal_subsetted,
-                                  resolution =  c(0.01, 0.05, 0.1, 0.5, 1, 1.2, 1.4, 1.6, 1.8, 2))
+  resolution = c(0.01, 0.05, 0.1, 0.5, 1, 1.2, 1.4, 1.6, 1.8, 2)
+)
 ```
 
 
 ```{r, fig.height=8}
-clustree(combined_neuronal_subsetted, prefix = 'RNA_snn_res.', layout = "sugiyama")
+clustree(combined_neuronal_subsetted, prefix = "RNA_snn_res.", layout = "sugiyama")
 
-ggsave(filename = "../../results/neuronal_processing/intermed-figs/250321_clustertree.pdf",
-        width = 8,
-        height = 16,
-        dpi = 300)
+ggsave(
+  filename = "../../results/neuronal_processing/intermed-figs/250321_clustertree.pdf",
+  width = 8,
+  height = 16,
+  dpi = 300
+)
 ```
-
 
 We'll chose the clustering resolution to be `1.8` so we'll set that as the active identity.
 ```{r choose resolution}
@@ -120,53 +126,58 @@ Idents(combined_neuronal_subsetted) <- combined_neuronal_subsetted$RNA_snn_res.1
 combined_neuronal_subsetted <- RunUMAP(combined_neuronal_subsetted, dims = 1:50, n.components = 2L)
 ```
 
-
 # Plot UMAPs
 ```{r plot UMAP}
 DimPlot_scCustom(combined_neuronal_subsetted,
-                 colors_use = palette_90,
-                 reduction = 'umap',
-                 label = TRUE,
-                 raster = FALSE,
-                 split_seurat = TRUE,
-                 pt.size = 0.01) +
-  theme(legend.position = 'none')
+  colors_use = palette_90,
+  reduction = "umap",
+  label = TRUE,
+  raster = FALSE,
+  split_seurat = TRUE,
+  pt.size = 0.01
+) +
+  theme(legend.position = "none")
 
-ggsave(filename = "../../results/neuronal_processing/final-figs/250321_umap_combined_neuronal_res1.8.pdf",
-       width = 12,
-       height = 12,
-       dpi = 300)
+ggsave(
+  filename = "../../results/neuronal_processing/final-figs/250321_umap_combined_neuronal_res1.8.pdf",
+  width = 12,
+  height = 12,
+  dpi = 300
+)
 ```
 
 ```{r plot UMAP by sample}
 DimPlot_scCustom(combined_neuronal_subsetted,
-                 group.by = 'sample',
-                 reduction = 'umap',
-                 label = FALSE,
-                 raster = FALSE,
-                 split_seurat = TRUE,
-                 pt.size = 0.01) +
-  theme(legend.position = 'none')
+  group.by = "sample",
+  reduction = "umap",
+  label = FALSE,
+  raster = FALSE,
+  split_seurat = TRUE,
+  pt.size = 0.01
+) +
+  theme(legend.position = "none")
 
- ggsave(filename = "../../results/neuronal_processing/intermed-figs/250321_umap_combined_neuronal_res1.8_bysample.pdf",
-        width = 12,
-        height = 12,
-        dpi = 300)
+ggsave(
+  filename = "../../results/neuronal_processing/intermed-figs/250321_umap_combined_neuronal_res1.8_bysample.pdf",
+  width = 12,
+  height = 12,
+  dpi = 300
+)
 ```
-
 
 This will create a series of UMAPs where each cluster is highlighted, which is helpful in identifying if clustering parameters need to be fine tuned. Highlighted clusters should be close together and not spread across UMAP space.
 ```{r plot highlighting clusters}
 dir.create("../../results/neuronal_processing/intermed-figs/IterateCluster_combined_neuronal_res1.8_50dims_250321")
 
 Iterate_Cluster_Highlight_Plot(combined_neuronal_subsetted,
-                               highlight_color = 'navy',
-                               background_color = 'lightgrey',
-                               file_path = "../../results/neuronal_processing/intermed-figs/IterateCluster_combined_neuronal_res1.8_50dims_250321/",
-                               file_name = 'iterate',
-                               file_type = '.png',
-                               raster = FALSE,
-                               dpi = 100)
+  highlight_color = "navy",
+  background_color = "lightgrey",
+  file_path = "../../results/neuronal_processing/intermed-figs/IterateCluster_combined_neuronal_res1.8_50dims_250321/",
+  file_name = "iterate",
+  file_type = ".png",
+  raster = FALSE,
+  dpi = 100
+)
 ```
 
 We can see how many cells we have for each cluster in a table format.
