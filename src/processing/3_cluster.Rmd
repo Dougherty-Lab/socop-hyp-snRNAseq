@@ -127,7 +127,7 @@ combined_postQC <- RunUMAP(combined_postQC, dims = 1:50, n.components = 2L)
 DimPlot_scCustom(combined_postQC,
                  colors_use = palette_90,
                  reduction = 'umap',
-                 label = TRUE,
+                 label = FALSE,
                  raster = FALSE,
                  split_seurat = TRUE,
                  pt.size = 0.01) +
