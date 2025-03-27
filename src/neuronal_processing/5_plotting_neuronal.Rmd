@@ -3,3 +3,370 @@ title: "5_plotting_neuronal"
 author: "Simona Sarafinovska"
 date: "2025-03-27"
 ---
+
+
+# Set up environment
+```{r dependencies, warning=FALSE, message=FALSE}
+# Change this to your directory
+.libPaths("/ref/jdlab/software/r-envs/simona/r-packages/4.2/")
+
+# Load dependencies
+library(dplyr)
+library(Seurat)
+library(scCustomize)
+
+set.seed(420)
+
+source("../color_utils.R")
+```
+
+# Load in preprocessed data
+```{r load}
+combined_neuronal_annotated <- readRDS("../../data/250327_combined_neuronal_annotated.rds")
+combined_neuronal_annotated
+```
+You should have a seurat object wiht 37462 features across 124601 nuclei.
+
+
+# Plot UMAPs
+```{r plot UMAP}
+DimPlot_scCustom(combined_neuronal_annotated,
+                 colors_use = palette_70,
+                 reduction = 'umap',
+                 label = FALSE,
+                 raster = FALSE,
+                 split_seurat = TRUE,
+                 pt.size = 0.01) +
+  theme(legend.position = 'none')
+
+ggsave(filename = "../../results/neuronal_processing/final-figs/250327_umap_combined_neuronal_res1.8.png",
+       width = 12,
+       height = 12,
+       dpi = 300)
+```
+```{r plot UMAP}
+DimPlot_scCustom(combined_neuronal_annotated,
+                 colors_use = palette_70,
+                 reduction = 'umap',
+                 label = TRUE,
+                 raster = FALSE,
+                 split_seurat = TRUE,
+                 pt.size = 0.01) +
+  theme(legend.position = 'none')
+
+ggsave(filename = "../../results/neuronal_processing/intermed-figs/250327_umap_combined_neuronal_res1.8_labelled.png",
+       width = 12,
+       height = 12,
+       dpi = 300)
+```
+
+
+```{r plot UMAP by sample}
+DimPlot_scCustom(combined_neuronal_annotated,
+                 group.by = 'sample',
+                 reduction = 'umap',
+                 label = FALSE,
+                 raster = FALSE,
+                 split_seurat = TRUE,
+                 pt.size = 0.01) +
+  theme(legend.position = 'none')
+
+ ggsave(filename = "../../results/neuronal_processing/intermed-figs/250327_umap_combined_neuronal_res1.8_bysample.png",
+        width = 12,
+        height = 12,
+        dpi = 300)
+```
+
+### By region
+```{r umap plot region}
+anatomical_dict <- c(
+  "TH Prkcd Grin2c Glut_1" = "Thalamus",
+  "TH Prkcd Grin2c Glut_2" = "Thalamus",
+  "TH Prkcd Grin2c Glut_3" = "Thalamus",
+  "TH Prkcd Grin2c Glut_4" = "Thalamus",
+  "AV Col27a1 Glut" = "Thalamus",
+  "TH Prkcd Grin2c Glut_5" = "Thalamus",
+  "TH Prkcd Grin2c Glut_6" = "Thalamus",
+  "TH Prkcd Grin2c Glut_7" = "Thalamus",
+  "TH Prkcd Grin2c Glut_8" = "Thalamus",  
+  "RE-Xi Nox4 Glut" = "Thalamus",
+  "TH-PVT-RE Ntrk1-Nox4 Glut" = "Thalamus",
+  "TH Sema5b-Ntrk Glut" = "Thalamus",
+  "AD Serpinb7 Glut" = "Thalamus",
+  "HY NSCs_1" = "Hypothalamus",
+  "Chat GABA" = "Hypothalamus",
+  "STR-PAL Chst9 Gaba" = "Striatum/Pallidum",
+  "Mixed" = "Hypothalamus",
+  "VMH Nr5a1 Glut_1" = "Hypothalamus",
+  "Lhx6/Lhx8 Gaba" = "Hypothalamus",
+  "Lhx6 Gaba" = "Hypothalamus",
+  "PH-LHA-MM Foxb1 Glut" = "Hypothalamus",
+  "PV-PT Ntrk1/Sp9 Glut" = "Thalamus",
+  "PO-MEA Glut" = "Amygdala/Hypothalamus",  
+  "PO-COAa-PAA-MEA Barhl2 Glut" = "Amygdala/Hypothalamus",  
+  "VMH Nr5a1 Glut_2" = "Hypothalamus",
+  "DMH Hmx2/Vgll1 Glut" = "Hypothalamus",
+  "TU-ARH Otp Six6 Gaba" = "Hypothalamus",
+  "DMH Gaba" = "Hypothalamus",
+  "ZI/PVH/SBPV Pax6/Prox1 Gaba" = "Zona Incerta",
+  "AHN Onecut3 Gaba" = "Hypothalamus",
+  "AHN-PVHd-PVR Mixed Gaba" = "Hypothalamus",
+  "PVpo-VMPO-MPN Hmx2 Gaba" = "Hypothalamus",
+  "PO-CEA-BST Meis2 Gaba" = "Amygdala/Hypothalamus",  
+  "PO-MEA-BST Mixed Gaba" = "Amygdala/Hypothalamus",  
+  "LHA Pmch Glut" = "Hypothalamus",
+  "Pitx2 Glut" = "Hypothalamus",
+  "Trh Glut" = "Hypothalamus",
+  "PH-LHA-PVH-SO-PVa Nxph4 Glut" = "Hypothalamus",
+  "RT-ZI Gnb3 Gaba_1" = "Thalamus",
+  "GPi Tbr1 Cngb3 Gaba-Glut" = "Striatum/Pallidum",
+  "SI-MA-LPO-LHA Skor1 Glut" = "Hypothalamus",
+  "ADP-MPO Trp73 Glut" = "Hypothalamus",
+  "SCsg Gabrr2 Gaba" = "Midbrain",
+  "ZI Mixed Gaba" = "Zona Incerta",
+  "ZI Pax6 Gaba" = "Zona Incerta",
+  "GPe-SI Sox6 Cyp26b1 Gaba" = "Striatum/Pallidum",
+  "NDB-SI-MA-STRv Lhx8 Gaba" = "Hypothalamus",
+  "SI-MPO-LPO-ADP Lhx8 Gaba" = "Hypothalamus",
+  "HY NSCs_2" = "Hypothalamus",
+  "STR D1/D2 Gaba" = "Striatum/Pallidum",
+  "STR D1 Gaba" = "Striatum/Pallidum",
+  "PO-MEA Slc17a7 Glut" = "Amygdala/Hypothalamus",  
+  "ARC Mixed Glut" = "Hypothalamus",
+  "PVN Mixed Glut" = "Hypothalamus",
+  "PF Fzd5 Glut" = "Thalamus",
+  "LH-MH Glut" = "Hypothalamus",
+  "STN-PSTN Pitx2 Glut" = "Thalamus",
+  "SNc-VTA-RAmb Foxa1 Dopa" = "Midbrain",
+  "RT-ZI Gnb3 Gaba_2" = "Thalamus",
+  "PVH-SO-PVa Avp Glut" = "Hypothalamus",
+  "PVH-SO-PVa Agtr1a Glut" = "Hypothalamus",
+  "TRS-BAC Sln Glut" = "Amygdala/Hypothalamus",
+  "Hist Gaba" = "Hypothalamus",
+  "Mixed Meis2 Gaba" = "Hypothalamus",
+  "SCH Six6 Cdc14a Gaba" = "Hypothalamus"
+)
+
+combined_neuronal_annotated$anatomical_region <- anatomical_dict[as.character(Idents(combined_neuronal_annotated))]
+
+DimPlot_scCustom(combined_neuronal_annotated,
+                 colors_use = region_muted_colors,
+                 group.by = 'anatomical_region',
+                 reduction = 'umap',
+                 label = FALSE,
+                 raster = FALSE,
+                 split_seurat = TRUE,
+                 pt.size = 0.01) +
+  theme(legend.position = 'right')
+
+ ggsave(filename = "../../results/neuronal_processing/final-figs/250327_umap_neuronal_byregion.png",
+        device = png,
+        width = 12,
+        height = 12,
+        dpi = 300)
+```
+
+### By class
+```{r}
+neurotransmitter_dict <- c(
+  "TH Prkcd Grin2c Glut_1" = "Excitatory",
+  "TH Prkcd Grin2c Glut_2" = "Excitatory",
+  "TH Prkcd Grin2c Glut_3" = "Excitatory",
+  "TH Prkcd Grin2c Glut_4" = "Excitatory",
+  "AV Col27a1 Glut" = "Excitatory",
+  "TH Prkcd Grin2c Glut_5" = "Excitatory",
+  "TH Prkcd Grin2c Glut_6" = "Excitatory",
+  "TH Prkcd Grin2c Glut_7" = "Excitatory",
+  "TH Prkcd Grin2c Glut_8" = "Excitatory",  
+  "RE-Xi Nox4 Glut" = "Excitatory",
+  "TH-PVT-RE Ntrk1-Nox4 Glut" = "Excitatory",
+  "TH Sema5b-Ntrk Glut" = "Excitatory",
+  "AD Serpinb7 Glut" = "Excitatory",
+  "HY NSCs_1" = "Other",
+  "Chat GABA" = "Inhibitory",
+  "STR-PAL Chst9 Gaba" = "Inhibitory",
+  "Mixed" = "Mixed",
+  "VMH Nr5a1 Glut_1" = "Excitatory",
+  "Lhx6/Lhx8 Gaba" = "Inhibitory",
+  "Lhx6 Gaba" = "Inhibitory",
+  "PH-LHA-MM Foxb1 Glut" = "Excitatory",
+  "PV-PT Ntrk1/Sp9 Glut" = "Excitatory",
+  "PO-MEA Glut" = "Excitatory",  
+  "PO-COAa-PAA-MEA Barhl2 Glut" = "Excitatory",  
+  "VMH Nr5a1 Glut_2" = "Excitatory",
+  "DMH Hmx2/Vgll1 Glut" = "Excitatory",
+  "TU-ARH Otp Six6 Gaba" = "Inhibitory",
+  "DMH Gaba" = "Inhibitory",
+  "ZI/PVH/SBPV Pax6/Prox1 Gaba" = "Inhibitory",
+  "AHN Onecut3 Gaba" = "Inhibitory",
+  "AHN-PVHd-PVR Mixed Gaba" = "Inhibitory",
+  "PVpo-VMPO-MPN Hmx2 Gaba" = "Inhibitory",
+  "PO-CEA-BST Meis2 Gaba" = "Inhibitory",  
+  "PO-MEA-BST Mixed Gaba" = "Inhibitory",  
+  "LHA Pmch Glut" = "Excitatory",
+  "Pitx2 Glut" = "Excitatory",
+  "Trh Glut" = "Excitatory",
+  "PH-LHA-PVH-SO-PVa Nxph4 Glut" = "Excitatory",
+  "RT-ZI Gnb3 Gaba_1" = "Inhibitory",
+  "GPi Tbr1 Cngb3 Gaba-Glut" = "Mixed",
+  "SI-MA-LPO-LHA Skor1 Glut" = "Excitatory",
+  "ADP-MPO Trp73 Glut" = "Excitatory",
+  "SCsg Gabrr2 Gaba" = "Inhibitory",
+  "ZI Mixed Gaba" = "Mixed",
+  "ZI Pax6 Gaba" = "Inhibitory",
+  "GPe-SI Sox6 Cyp26b1 Gaba" = "Inhibitory",
+  "NDB-SI-MA-STRv Lhx8 Gaba" = "Inhibitory",
+  "SI-MPO-LPO-ADP Lhx8 Gaba" = "Inhibitory",
+  "HY NSCs_2" = "Other",
+  "STR D1/D2 Gaba" = "Inhibitory",
+  "STR D1 Gaba" = "Inhibitory",
+  "PO-MEA Slc17a7 Glut" = "Excitatory",  
+  "ARC Mixed Glut" = "Mixed",
+  "PVN Mixed Glut" = "Mixed",
+  "PF Fzd5 Glut" = "Excitatory",
+  "LH-MH Glut" = "Excitatory",
+  "STN-PSTN Pitx2 Glut" = "Excitatory",
+  "SNc-VTA-RAmb Foxa1 Dopa" = "Other",
+  "RT-ZI Gnb3 Gaba_2" = "Inhibitory",
+  "PVH-SO-PVa Avp Glut" = "Excitatory",
+  "PVH-SO-PVa Agtr1a Glut" = "Excitatory",
+  "TRS-BAC Sln Glut" = "Excitatory",
+  "Hist Gaba" = "Inhibitory",
+  "Mixed Meis2 Gaba" = "Inhibitory",
+  "SCH Six6 Cdc14a Gaba" = "Inhibitory"
+)
+combined_neuronal_annotated$neurotransmitter_class <- neurotransmitter_dict[as.character(Idents(combined_neuronal_annotated))]
+
+DimPlot_scCustom(combined_neuronal_annotated,
+                 colors_use = palette_class,
+                 group.by = 'neurotransmitter_class',
+                 reduction = 'umap',
+                 label = FALSE,
+                 raster = FALSE,
+                 split_seurat = TRUE,
+                 pt.size = 0.01) +
+  theme(legend.position = 'right')
+
+ ggsave(filename = "../../results/neuronal_processing/final-figs/250327_umap_neuronal_byclass.png",
+        device = png,
+        width = 12,
+        height = 12,
+        dpi = 300)
+```
+
+
+## PCA plots
+Let's look at the pca by Sample, Geno, and Sex.
+```{r}
+DimPlot_scCustom(combined_neuronal_annotated,
+                 #colors_use = palette_2,
+                 group.by = 'sample',
+                 reduction = 'pca',
+                 label = FALSE,
+                 raster = FALSE,
+                 split_seurat = TRUE,
+                 pt.size = 0.01) +
+  theme(legend.position = 'right')
+
+ ggsave(filename = "../../results/neuronal_processing/intermed-figs/250327_pca_1-5_5pct_res1.8_50dims_neuronal_subsetted_bysample.png",
+        width = 12,
+        height = 12,
+        dpi = 300)
+```
+
+```{r}
+DimPlot_scCustom(combined_neuronal_annotated,
+                 #colors_use = palette_2,
+                 group.by = 'genotype',
+                 reduction = 'pca',
+                 label = FALSE,
+                 raster = FALSE,
+                 split_seurat = TRUE,
+                 pt.size = 0.01) +
+  theme(legend.position = 'right')
+
+
+ ggsave(filename = "../../results/neuronal_processing/intermed-figs/250327_pca_1-5_5pct_res1.8_50dims_neuronal_subsetted_bygeno.png",
+        width = 12,
+        height = 12,
+        dpi = 300)
+```
+
+```{r}
+DimPlot_scCustom(combined_neuronal_annotated,
+                 #colors_use = palette_2,
+                 group.by = 'sex',
+                 reduction = 'pca',
+                 label = FALSE,
+                 raster = FALSE,
+                 split_seurat = TRUE,
+                 pt.size = 0.01) +
+  theme(legend.position = 'right')
+
+ ggsave(filename = "../../results/neuronal_processing/intermed-figs/250327_pca_1-5_5pct_res1.8_50dims_neuronal_subsetted_bysex.png",
+        width = 12,
+        height = 12,
+        dpi = 300)
+```
+
+
+
+# Plots
+
+## Violin plots
+Some female genes:
+```{r}
+VlnPlot_scCustom(combined_neuronal_annotated,
+                 group.by = "sample",
+                 features = "Xist") +
+        theme(legend.position = "none")
+
+ggsave(filename = '../../results/neuronal_processing/intermed-figs/250327_Xist_bysample_.png',
+       device = png,
+       width = 10,
+       height = 6)
+```
+
+Some male genes:
+```{r}
+p1 <- VlnPlot_scCustom(combined_neuronal_annotated,
+                 group.by = "sample",
+                 features = "Eif2s3y") +
+        theme(legend.position = "none")
+
+p2 <- VlnPlot_scCustom(combined_neuronal_annotated,
+                 group.by = "sample",
+                 features = "Uty") +
+        theme(legend.position = "none")
+
+p3 <- VlnPlot_scCustom(combined_neuronal_annotated,
+                 group.by = "sample",
+                 features = "Kdm5d") +
+        theme(legend.position = "none")
+
+wrap_plots(p1, p2, p3)
+ggsave(filename = '../../results/neuronal_processing/intermed-figs/250327_malegenes_bysample_1-5.png',
+       device = png,
+       width = 30,
+       height = 6)
+```
+
+```{r}
+p1 <- VlnPlot_scCustom(combined_neuronal_annotated,
+                 group.by = "sample",
+                 features = "Myt1l") +
+        theme(legend.position = "none")
+
+p2 <- VlnPlot_scCustom(combined_neuronal_annotated,
+                 group.by = "genotype",
+                 features = "Myt1l") +
+        theme(legend.position = "none")
+
+wrap_plots(p1, p2)
+ggsave(filename = '../../results/neuronal_processing/intermed-figs/250327_Myt1l_bysample.png',
+       device = png,
+       width = 12,
+       height = 6)
+```
+
+
