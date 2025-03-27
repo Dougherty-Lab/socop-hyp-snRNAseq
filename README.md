@@ -1,10 +1,11 @@
 Single-Cell Resolution of Individual Variation in Hypothalamic Neurons Allows Targeted Manipulation Affecting Social Motivation
 ================
 2025-03-06
+
 Pre-printed on bioRxiv as:
-Single-Cell Resolution of Individual Variation in Hypothalamic Neurons Allows Targeted Manipulation Affecting Social Motivation
-S. Sarafinovska, S.K. Koester, L.Z. Fang, J.W. Thorpe, S.M. Chaturvedi, J. Ji, E.F. Jones, D. Selmanovic, D.J. Kornbluth, M.R. Barrett, G.M. Rurak, S.E. Maloney, M.C. Creed, R.D. Mitra, J.D. Dougherty
-*bioRxiv* 2025.03.10.642464; doi: https://doi.org/10.1101/2025.03.10.642464
+
+
+S. Sarafinovska, S.K. Koester, L.Z. Fang, J.W. Thorpe, S.M. Chaturvedi, J. Ji, E.F. Jones, D. Selmanovic, D.J. Kornbluth, M.R. Barrett, G.M. Rurak, S.E. Maloney, M.C. Creed, R.D. Mitra, J.D. Dougherty. **Single-Cell Resolution of Individual Variation in Hypothalamic Neurons Allows Targeted Manipulation Affecting Social Motivation**. *bioRxiv* 2025.03.10.642464. (2025). doi: https://doi.org/10.1101/2025.03.10.642464
 ## Authors
 
 Sarafinovska, S., Koester, S.K., Fang, L.Z., Thorpe, J.W., Chaturvedi, S.M., Ji, J., Jones, E.F., Selmanovic, D., Kornbluth, D.J., Barrett, M.R., Rurak, G.M., Maloney, S.E, Creed, M.C., Mitra, R.D., Dougherty, J.D.
@@ -29,6 +30,6 @@ We thank members of the Dougherty lab for helpful discussions and feedback, as w
 
 ## References
 
-Maloney, S. E. et al. A comprehensive assay of social motivation reveals sex-specific roles of autism-associated genes and oxytocin. Cell Rep. Methods 3, 100504 (2023).
+Maloney, S. E. et al. **A comprehensive assay of social motivation reveals sex-specific roles of autism-associated genes and oxytocin**. _Cell Rep_. Methods 3, 100504 (2023).
 
 
