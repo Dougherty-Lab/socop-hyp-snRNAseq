@@ -18,7 +18,7 @@ Despite decades of research, connecting molecular and cellular phenotypes to com
 
 <img width="1360" alt="Screenshot 2025-03-06 at 4 33 33 PM" src="https://github.com/user-attachments/assets/310d8d35-4452-4278-8cdf-88158438bc06" />
 
-Following a social operant conditioning paradigm (Maloney *et al.*, 2023), tuberal hypothalamus and neighboring thalamus were harvested from Myt1l mice (n=36, split by sex and genotype) 30 minutes after task completeion. Nuclei were isolated and barcoded libraries prepared using ScaleBio snRNAseq.
+Following a social operant conditioning paradigm (Maloney *et al.*, _Cell Rep_ 2023), tuberal hypothalamus and neighboring thalamus were harvested from Myt1l mice (n=36, split by sex and genotype) 30 minutes after task completeion. Nuclei were isolated (per Sarafinovska _et al._, _protocols.io_ 2025) and barcoded libraries prepared using ScaleBio snRNAseq (Scale Biosciences 2020008).
 
 ## Data Availability
 
@@ -31,5 +31,7 @@ We thank members of the Dougherty lab for helpful discussions and feedback, as w
 ## References
 
 Maloney, S. E. et al. **A comprehensive assay of social motivation reveals sex-specific roles of autism-associated genes and oxytocin**. _Cell Rep_. Methods 3, 100504 (2023).
+
+Sarafinovska, S., Yen, A., & Chaturvedi, S. **Isolation of nuclei from fresh frozen brain sections**.  _protocols.io_ (2025). doi: 10.17504/protocols.io.dm6gp9qjdvzp/v1
 
 
