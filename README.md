@@ -17,7 +17,7 @@ Despite decades of research, connecting molecular and cellular phenotypes to com
 
 <img width="1360" alt="Screenshot 2025-03-06 at 4 33 33 PM" src="https://github.com/user-attachments/assets/310d8d35-4452-4278-8cdf-88158438bc06" />
 
-Following a social operant conditioning paradigm, tuberal hypothalamus and neighboring thalamus were harvested from Myt1l mice (n=36, split by sex and genotype) 30 minutes after task completeion. Nuclei were isolated and barcoded libraries prepared using ScaleBio snRNAseq.
+Following a social operant conditioning paradigm (Maloney *et al.*, 2023), tuberal hypothalamus and neighboring thalamus were harvested from Myt1l mice (n=36, split by sex and genotype) 30 minutes after task completeion. Nuclei were isolated and barcoded libraries prepared using ScaleBio snRNAseq.
 
 ## Data Availability
 
@@ -26,4 +26,9 @@ The raw and processed data used to generate these results are available on GEO a
 ## Acknowledgements
 
 We thank members of the Dougherty lab for helpful discussions and feedback, as well as Dr. John Constantino and Benjamin Boros for critical reading and manuscript suggestions. Thanks to Anthony Fischer for assistance with transporting Cohort 1 mice, Dr. Lex Kravitz for providing 3D brain matrices for dissections, and Kyle Kniepkamp for 3D printing support. We appreciate the expertise and services of the DNA Sequencing and Innovation Lab (DSIL) and the Genome Technology Access Center at the McDonnell Genome Institute (GTAC@MGI). We thank Dominic Skinner and Fatjon Leti from Scale Bio for technical support with the methodological and computational pipeline. We are grateful to Justin Wang and the Kravitz lab for donating DREADDs viruses. Additionally, we thank Dr. Christelle Anaclet for sharing the detailed DCZ voluntary oral administration protocol and Dr. Zachary Knight and the Knight Lab for generously donating  Nxph4-Cremut/wt breeders. This work was funded by grants from the National Institute of Mental Health (RF1MH126723 to J.D.D. and R.D.M.; R01MH124808 to JDD, SEM; R01DA058755 and R01DA056829 to M.C.C.) and Simons Foundation Autism Research Initiative (734069 to J.D.D). S.S. was supported in part by the Autism Science Foundation (22-007).
+
+## References
+
+Maloney, S. E. et al. A comprehensive assay of social motivation reveals sex-specific roles of autism-associated genes and oxytocin. Cell Rep. Methods 3, 100504 (2023).
+
 
