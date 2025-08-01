@@ -1,0 +1,392 @@
+---
+title: "Moxd1 OSCA Analyses"
+author: "Emma Jones"
+date: "2025-08-01"
+output: html_document
+---
+
+The purpose of this script is to use a more conservative approach to testing cell abundance between two groups (sex and genotype). I am primarily following the statistical and code framework provided by the following tutorial https://bioconductor.org/books/3.13/OSCA.multisample/differential-abundance.html
+
+There was also a request to validate the findings that moxd1 positive neurons are more prominent in males than females, so I will also perform an additional analysis with "moxd1-positive" and "moxd1-negative" counts for each sample.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Set up environment
+
+```{r dependencies, warning = FALSE, message = FALSE}
+# Change this to your package directory
+.libPaths("/ref/jdlab/software/r-envs/simona/r-packages/4.2/")
+
+# Load dependencies
+library(dplyr)
+library(Seurat)
+library(patchwork)
+library(Matrix)
+library(ggplot2)
+library(cowplot)
+library(RColorBrewer)
+library(scCustomize)
+library(patchwork)
+library(qs)
+library(viridis)
+library(ggpubr)
+library(SeuratDisk)
+library(SeuratWrappers)
+library(ComplexHeatmap)
+library(stringr)
+library(ggrastr)
+library(parallel)
+library(ggtree)
+library(speckle)
+library(limma)
+library(gt)
+library(data.table)
+library(biomaRt)
+library(tidyr)
+library(compositions)
+library(lisi)
+library(edgeR)
+
+set.seed(420)
+
+source("../color_utils.R")
+```
+
+# Load in preprocessed data
+
+```{r load rds}
+combined_neuronal <- readRDS("../../data/250228_combined.neuronal_1-5_5pct.rds")
+combined_neuronal
+```
+
+
+# Re-assess cell type abundances per animal
+
+```{r get abundances table}
+
+metadata <- combined_neuronal@meta.data
+
+abundances <- table(metadata$cell_type, metadata$sample)
+abundances <- unclass(abundances) 
+head(abundances)
+
+```
+
+
+```{r get data formatted for edgeR}
+
+sample_metadata <- metadata %>%
+    group_by(sample) %>%
+    reframe(
+      sex = dplyr::first(sex),
+      genotype = dplyr::first(genotype)
+    )
+
+y.ab <- DGEList(abundances, samples=sample_metadata)
+y.ab
+
+```
+
+here we design our model, the options are to have ~sex + genotype, ~sex, ~genotype, or ~genotype + sex
+
+```{r build model}
+
+design <- model.matrix(~factor(genotype) + factor(sex), y.ab$samples)
+
+y.ab <- estimateDisp(y.ab, design, trend="none")
+summary(y.ab$common.dispersion)
+
+plotBCV(y.ab, cex=1)
+
+```
+
+```{r examine QL dispersion}
+
+fit.ab <- glmQLFit(y.ab, design, robust=TRUE, abundance.trend=FALSE)
+summary(fit.ab$var.prior)
+
+summary(fit.ab$df.prior)
+
+# Plot the quasi-likelihood dispersion
+plotQLDisp(fit.ab, cex=1)
+
+```
+
+```{r run statistical test}
+
+res <- glmQLFTest(fit.ab, coef=ncol(design))
+summary(decideTests(res))
+
+```
+Nothing is signficiant with OSCA here.
+
+## Try again with normalization factors
+
+```{r normalizaton factors}
+y.ab2 <- calcNormFactors(y.ab)
+y.ab2$samples$norm.factors
+
+```
+```{r run test}
+y.ab2 <- estimateDisp(y.ab2, design, trend="none")
+fit.ab2 <- glmQLFit(y.ab2, design, robust=TRUE, abundance.trend=FALSE)
+res2 <- glmQLFTest(fit.ab2, coef=ncol(design))
+topTags(res2, n=10)
+
+summary(decideTests(res2))
+
+```
+
+calcNormfactors does not work either.
+
+But, let's try this method for Moxd1 neurons, as defined by Simona.
+
+# Moxd1-specific analysis
+
+## Simona Moxd1 code
+
+To reiterate, this code is what Simona ran:
+
+So any counts at all were considered expressing vs non-expressing.
+
+```{r moxd1 violin in non-zero nucs}
+gene_expr <- GetAssayData(combined_neuronal, slot = "data")["Moxd1", ]
+
+# Create a binary vector for expression
+binary_expr <- ifelse(gene_expr > 0, 1, 0)
+
+# Calculate percentage of expressing cells per group
+expr_freq <- tapply(binary_expr, combined_neuronal$sex, mean) * 100
+
+# Plot non-zero values only
+VlnPlot_scCustom(combined_neuronal[, gene_expr > 0],
+  group.by = "sex",
+  features = "Moxd1",
+  pt.size = 1
+) +
+  ggtitle(paste0(
+    "Moxd1 expression\n",
+    "% expressing cells: F=", round(expr_freq["F"], 1),
+    "%, M=", round(expr_freq["M"], 1), "%"
+  ))
+```
+She than ran a wilcoxon test on the gene expression values for each cell, by sex. This is just above general significance thresholds, at 0.06744 and matches the results of n.s.
+
+```{r wilcoxon test Moxd1 GEX}
+test_data <- data.frame(
+  Moxd1 = gene_expr,
+  sex = combined_neuronal$sex
+)
+
+# Perform Wilcoxon test on non-zero values
+wilcox_test <- wilcox.test(
+  Moxd1 ~ sex,
+  data = test_data[test_data$Moxd1 > 0, ],
+  exact = FALSE
+)
+
+print(wilcox_test)
+```
+Now simona runs the proportions of expressing cells (any counts). This was found to be significant using her method.
+
+```{r}
+# For logit transformation
+
+# Define logit function
+logit <- function(p) log(p / (1 - p))
+
+moxd1_data <- data.frame(
+  sample = combined_neuronal$sample,
+  sex = combined_neuronal$sex,
+  Moxd1 = GetAssayData(combined_neuronal, slot = "data")["Moxd1", ]
+)
+
+# First calculate proportions by sample
+moxd1_props <- moxd1_data %>%
+  group_by(sample, sex) %>%
+  summarize(
+    total_cells = n(),
+    expressing_cells = sum(Moxd1 > 0),
+    proportion = expressing_cells / total_cells,
+    .groups = "drop"
+  )
+
+# Logit transform the proportions for statistics
+moxd1_props$transformed_prop <- logit(pmin(pmax(moxd1_props$proportion, 0.001), 0.999))
+moxd1_props$standardized_prop <- scale(moxd1_props$transformed_prop)
+
+# Fit linear model on transformed data
+fit <- lm(standardized_prop ~ sex, data = moxd1_props)
+summary_stats <- summary(fit)
+
+# Calculate means and SE for untransformed proportions
+sex_stats_raw <- moxd1_props %>%
+  group_by(sex) %>%
+  summarize(
+    mean_prop = mean(proportion),
+    se = sd(proportion) / sqrt(n()),
+    .groups = "drop"
+  )
+
+# Plot with untransformed proportions
+ggplot() +
+  geom_bar(
+    data = sex_stats_raw,
+    aes(x = sex, y = mean_prop, fill = sex),
+    stat = "identity",
+    alpha = 0.8,
+    width = 0.5
+  ) +
+  geom_errorbar(
+    data = sex_stats_raw,
+    aes(
+      x = sex,
+      ymin = mean_prop - se,
+      ymax = mean_prop + se
+    ),
+    width = 0.2
+  ) +
+  geom_point(
+    data = moxd1_props,
+    aes(x = sex, y = proportion),
+    position = position_jitter(width = 0.2),
+    size = 1
+  ) +
+  scale_fill_manual(values = palette_sex) +
+  theme_classic() +
+  theme(
+    legend.position = "none",
+    axis.line = element_line(color = "black"),
+    axis.text = element_text(color = "black", size = 12),
+    axis.title = element_text(size = 14)
+  ) +
+  ylab("Proportion of Moxd1+ Nuclei") +
+  xlab("Sex")
+
+# Print model results (from transformed data)
+print(summary_stats)
+```
+
+So, for validation using cell abundance, I will look at Moxd1 expression between males and females as binary presence or absence counts (cell abundance). This presence of absence is what what used to calculate the proportions in the plot above. I will not use expression values, as these were already used for Simona's DEG analysis and Wilcoxon rank sum test.
+
+
+## New Moxd1 analysis
+
+```{r get moxd1-positive abundances}
+gene_expr <- GetAssayData(combined_neuronal, slot = "data")["Moxd1", ]
+
+# Create a binary vector for expression
+binary_expr <- ifelse(gene_expr > 0, 1, 0)
+
+metadata$binary_expr <- binary_expr
+
+# try other method of counts
+moxd1_counts <- as.data.frame(table(metadata$sample, metadata$binary_expr))
+colnames(moxd1_counts) <- c("sample", "binary_expr", "Freq")
+# Reshape: make binary_expr values into columns: 0 = negative, 1 = positive
+moxd1_counts <- reshape(moxd1_counts, idvar = "sample", timevar = "binary_expr", direction = "wide")
+colnames(moxd1_counts) <- c("sample", "neg", "pos")
+
+# Ensure samples line up with metadata
+moxd1_counts <- merge(moxd1_counts, unique(metadata[, c("sample", "sex")]), by = "sample")
+
+# Create counts matrix for edgeR
+count_matrix <- t(as.matrix(moxd1_counts[, c("neg", "pos")]))
+colnames(count_matrix) <- moxd1_counts$sample
+
+count_matrix
+```
+
+```{r prepare data and design}
+group <- factor(moxd1_counts$sex)
+dge <- DGEList(counts = count_matrix, group = group)
+
+dge
+
+design <- model.matrix(~ group)
+
+dge <- estimateDisp(dge, design)
+fit <- glmQLFit(dge, design)
+
+plotBCV(dge)
+plotQLDisp(fit)
+
+res <- glmQLFTest(fit, coef=2)  # coef=2 tests the 'group' variable
+topTags(res)
+
+summary(decideTests(res))
+```
+here, the result is just barely above an FDR cutoff of 0.1. maybe I can do a proportion test
+
+```{r run prop test}
+# First compute binary expression
+metadata$Moxd1_positive <- ifelse(GetAssayData(combined_neuronal, slot = "data")["Moxd1", ] > 0, 1, 0)
+
+# Count Moxd1+ and total cells per sample
+table_by_sample <- aggregate(Moxd1_positive ~ sample, data = metadata, sum)
+table_by_sample$total_cells <- as.numeric(table(metadata$sample))
+
+# Merge with sex
+sample_sex <- unique(metadata[, c("sample", "sex")])
+table_by_sample <- merge(table_by_sample, sample_sex, by = "sample")
+
+# Aggregate by sex
+by_sex <- table_by_sample |>
+  group_by(sex) |>
+  summarise(
+    moxd1_pos = sum(Moxd1_positive),
+    total = sum(total_cells)
+  )
+
+# Run proportion test
+prop.test(x = by_sex$moxd1_pos, n = by_sex$total)
+
+```
+
+Great, I was able to run a prop.test (asymptotic chi-square) and get p = 4.342e-08, so it is significant per-group.
+
+can run a slightly different logistic regression
+
+```{r run logistic regression}
+
+table_by_sample$prop <- table_by_sample$Moxd1_positive / table_by_sample$total_cells
+
+glm_model <- glm(
+  cbind(Moxd1_positive, total_cells - Moxd1_positive) ~ sex,
+  family = binomial,
+  data = table_by_sample
+)
+
+summary(glm_model)
+
+```
+
+The logistic regression is also very significant, so we can feel more confident that "any" expression is higher in counts in male samples than females, but is this biologically meaningful? should there be a minimum expression cutoff and do males still have higher counts with a threshold in place?
+
+```{r kernel density estimation}
+
+ggplot(data = moxd1_props, aes(x = proportion, fill = sex, color = sex, alpha = 0.5)) +
+  geom_density()
+
+moxd1_props$genotype <- substr(moxd1_props$sample, 1, 3)
+moxd1_props$genotype
+
+ggplot(data = moxd1_props, aes(x = proportion, fill = sex, color = sex, alpha = 0.5)) +
+  geom_density() +
+  facet_wrap(~genotype)
+
+```
+
+
+```{r make histogram for moxd1 expression}
+moxd1_data_no0 <- moxd1_data[moxd1_data$Moxd1 > 0,]
+
+ggplot(data = moxd1_data_no0, aes(x = Moxd1, fill = sex, color = sex, alpha = 0.5)) +
+  geom_histogram() +
+  facet_wrap(~sample)
+
+```
+
