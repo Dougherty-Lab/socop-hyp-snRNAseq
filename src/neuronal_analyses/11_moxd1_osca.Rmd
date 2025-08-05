@@ -390,3 +390,136 @@ ggplot(data = moxd1_data_no0, aes(x = Moxd1, fill = sex, color = sex, alpha = 0.
 
 ```
 
+# Analyze cell count variability
+This will include:
+* Histograms of cell counts per labeled cell type
+* "Plot a CV of the proportions vs. cell count plot and see if low abundant cells have too much variance in the estimate proportion to include them"
+* plot CV of counts over mean counts
+
+```{r examine cell abundances by histogram}
+
+abundances_df <- as.data.frame(abundances)
+
+for(cell_type in unique(metadata$cell_type)) {
+  
+  cell_type_safe <- gsub("/", "-", cell_type)
+  
+  png(paste("../../results/supplementary/" , cell_type_safe, "histogram.png"), width = 800, height = 600)
+  
+hist(as.numeric(abundances_df[cell_type,]), main = paste("Cell Counts of", cell_type))
+
+dev.off()
+  
+}
+
+for(cell_type in unique(metadata$cell_type)) {
+  
+hist(as.numeric(abundances_df[cell_type,]), main = paste("Cell Counts of", cell_type))
+  
+}
+
+```
+
+From these histograms, I think some of the rarest cell populations are too small to appropriately asses proportions or otherwise: Scsg Gabr2 Gaba, AD Serpinb7 Glut, LHA pmch glut, and SNc-VTA-RAmb Foxa1 Dopa
+
+Next, I'll make a summary table of some stats.
+
+```{r make a df of cv of counts, mean of counts, median of counts, and cv of proportion}
+library(matrixStats)
+
+abundance_summaries <- data.frame(matrix(nrow = nrow(abundances_df), ncol = 4))
+
+rownames(abundance_summaries) <- rownames(abundances_df)
+
+colnames(abundance_summaries) <- c("mean_counts", "median_counts", "cv_counts", "cv_prop")
+
+abundance_summaries$mean_counts <- rowMeans(abundances_df)
+
+abundance_summaries$median_counts <- rowMedians(as.matrix(abundances_df))
+
+abundance_summaries$cv_counts <- rowSds(as.matrix(abundances_df)) / rowMeans(abundances_df)
+
+abundance_summaries$sum_counts <- rowSums(abundances_df)
+
+all_props <- abundances_df / colSums(abundances_df)
+
+abundance_summaries$cv_prop <- rowSds(as.matrix(all_props)) / rowMeans(all_props)
+
+abundance_summaries$min_counts <- rowMins(as.matrix(abundances_df))
+
+abundance_summaries$max_counts <- rowMaxs(as.matrix(abundances_df))
+
+```
+
+
+
+```{r make lots of scatterplots!}
+# prop cv and count cv with mean
+ggplot(abundance_summaries, aes(x=cv_prop, y=mean_counts)) +
+  geom_point()
+
+ggsave("../../results/supplementary/cv_prop_mean.png")
+
+ggplot(abundance_summaries, aes(x=cv_counts, y=mean_counts)) +
+  geom_point()
+
+ggsave("../../results/supplementary/cv_count_mean.png")
+
+# prop cv and count cv with median
+ggplot(abundance_summaries, aes(x=cv_prop, y=median_counts)) +
+  geom_point()
+
+ggsave("../../results/supplementary/cv_prop_median.png")
+
+ggplot(abundance_summaries, aes(x=cv_counts, y=median_counts)) +
+  geom_point()
+
+ggsave("../../results/supplementary/cv_count_median.png")
+
+# prop cv and count cv with sum
+ggplot(abundance_summaries, aes(x=cv_prop, y=sum_counts)) +
+  geom_point()
+
+ggsave("../../results/supplementary/cv_prop_sum.png")
+
+ggplot(abundance_summaries, aes(x=cv_counts, y=sum_counts)) +
+  geom_point()
+
+ggsave("../../results/supplementary/cv_count_sum.png")
+
+# prop cv and count cv with min
+ggplot(abundance_summaries, aes(x=cv_prop, y=min_counts)) +
+  geom_point()
+
+ggsave("../../results/supplementary/cv_prop_min.png")
+
+ggplot(abundance_summaries, aes(x=cv_counts, y=min_counts)) +
+  geom_point()
+
+ggsave("../../results/supplementary/cv_count_min.png")
+
+# prop cv and count cv with max
+ggplot(abundance_summaries, aes(x=cv_prop, y=max_counts)) +
+  geom_point()
+
+ggsave("../../results/supplementary/cv_prop_max.png")
+
+ggplot(abundance_summaries, aes(x=cv_counts, y=max_counts)) +
+  geom_point()
+
+ggsave("../../results/supplementary/cv_count_max.png")
+
+```
+
+
+It seems that median best represents the trend that as median counts decrease, CV increases. The best cutoff to use as minimum expression seems to be around 25, but this is still up for discussion and interpretation.
+
+
+
+
+
+
+
+
+
+
