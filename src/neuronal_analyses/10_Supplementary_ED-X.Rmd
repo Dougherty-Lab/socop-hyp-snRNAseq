@@ -88,6 +88,78 @@ subclass_probability_plot
 
 ggsave("../../results/supplementary/subclass_probability_plot.png", width = 12, height = 4, dpi = 300)
 
+# ggplot for hypomap
+hypomap_probability_plot <- 
+  ggplot(combined_neuronal@meta.data, aes(y=hypomap_prediction_probability, x=hypomap_predicted)) +
+  geom_boxplot(outlier.shape = NA) +
+  theme_classic() +
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank()) +
+      labs(x = "Hypomap Names (166)", y = "Hypomap Prediction\nProbability")
+
+hypomap_probability_plot
+
+ggsave("../../results/supplementary/hypomap_probability_plot.png", width = 12, height = 4, dpi = 300)
+
+```
+
+
+## Probability plots for class and subclass with at least 30 or 10 cells
+
+```{r make bloxplots for probability}
+# Filter combined_neuronal@meta.data to only include classes with at least 30 cells
+class_filtered_data <- combined_neuronal@meta.data %>%
+  group_by(ABC_class_name) %>%
+  filter(n() >= 30) %>%
+  ungroup()
+
+# ggplot for class
+class_probability_plot <- 
+  ggplot(class_filtered_data, aes(y=ABC_class_probability, x=ABC_class_name)) +
+  geom_boxplot(outlier.shape = NA) +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .5)) +
+  labs(x = "Class Names (27)", y = "Class Bootstrapping\nProbability")
+
+class_probability_plot
+
+ggsave("../../results/supplementary/class_probability_plot_over30.png", width = 12, height = 4, dpi = 300)
+
+# Filter combined_neuronal@meta.data to only include subclasses with at least 10 cells
+subclass_filtered_data <- combined_neuronal@meta.data %>%
+  group_by(ABC_subclass_name) %>%
+  filter(n() >= 10) %>%
+  ungroup()
+
+# ggplot for subclass
+subclass_probability_plot <- 
+  ggplot(subclass_filtered_data, aes(y=ABC_subclass_probability, x=ABC_subclass_name)) +
+  geom_boxplot(outlier.shape = NA) +
+  theme_classic() +
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank()) +
+  labs(x = "Subclass Names (203)", y = "Subclass Bootstrapping\nProbability")
+
+subclass_probability_plot
+
+ggsave("../../results/supplementary/subclass_probability_plot_over10.png", width = 12, height = 4, dpi = 300)
+
+# Filter combined_neuronal@meta.data to only include subclasses with at least 10 cells
+hypomap_filtered_data <- combined_neuronal@meta.data %>%
+  group_by(hypomap_predicted) %>%
+  filter(n() >= 20) %>%
+  ungroup()
+
+# ggplot for hypomap
+hypomap_probability_plot <- 
+  ggplot(hypomap_filtered_data, aes(y=hypomap_prediction_probability, x=hypomap_predicted)) +
+  geom_boxplot(outlier.shape = NA) +
+  theme_classic() +
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank()) +
+      labs(x = "Hypomap Names (132)", y = "Hypomap Prediction\nProbability")
+
+hypomap_probability_plot
+
+ggsave("../../results/supplementary/hypomap_probability_plot_over20.png", width = 12, height = 4, dpi = 300)
+
 ```
 
 # UMAP FeaturePlots of Agtr1a, Nxph4, and Myt1l
@@ -122,7 +194,64 @@ nxph4_violin <- VlnPlot(combined_neuronal, features = "Nxph4", raster = FALSE) +
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .5)) 
 nxph4_violin
 ggsave("../../results/supplementary/nxph4_violin_plot.png", width = 12, height = 6, dpi = 300)
+
+# try again with map my cells labels
+# class
+Idents(combined_neuronal) <- combined_neuronal$ABC_class_name
+
+nxph4_violin_class <- VlnPlot(combined_neuronal, features = "Nxph4", raster = FALSE) + NoLegend() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .5)) 
+nxph4_violin_class
+ggsave("../../results/supplementary/nxph4_violin_plot_class.png", width = 12, height = 6, dpi = 300)
+
+# subclass
+Idents(combined_neuronal) <- combined_neuronal$ABC_subclass_name
+
+nxph4_violin_subclass <- VlnPlot(combined_neuronal, features = "Nxph4", raster = FALSE) + NoLegend() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .5)) 
+nxph4_violin_subclass
+ggsave("../../results/supplementary/nxph4_violin_plot_subclass.png", width = 12, height = 6, dpi = 300)
+
+# hypomap
+Idents(combined_neuronal) <- combined_neuronal$hypomap_predicted
+  
+nxph4_violin_hypomap <- VlnPlot(combined_neuronal, features = "Nxph4", raster = FALSE) + NoLegend() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .5)) 
+nxph4_violin_hypomap
+ggsave("../../results/supplementary/nxph4_violin_plot_hypomap.png", width = 12, height = 6, dpi = 300)
+
 ```
+
+```{r also examine proportion of cells expressing nxph4 per assigned cell type}
+
+Idents(combined_neuronal) <- combined_neuronal$cell_type
+
+gene_expr <- GetAssayData(combined_neuronal, slot = "data")["Nxph4", ]
+
+# Create a binary vector for expression
+binary_expr <- ifelse(gene_expr > 0, 1, 0)
+
+# Calculate percentage of expressing cells per group
+expr_freq <- tapply(binary_expr, combined_neuronal$cell_type, mean) * 100
+
+expr_freq <- as.data.frame(expr_freq)
+
+expr_freq$cell_type <- rownames(expr_freq)
+# make bar graph showing results
+expr_freq <- expr_freq %>%
+  arrange(desc(expr_freq)) %>%
+  mutate(cell_type = factor(cell_type, levels = unique(cell_type)))
+
+binary_nxph4_expr_prop <- ggplot(expr_freq, aes(x = cell_type, y = expr_freq)) +
+  geom_bar(stat = "identity") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .5))  +
+  labs(x = "Cell Type", y = "Proportion of Nxph4\nExpressing Cells")
+
+binary_nxph4_expr_prop
+
+ggsave("../../results/supplementary/binary_nxph4_expr.png", width = 12, height = 6, dpi = 300)
+```
+
 
 ```{r make plots for Myt1l}
 

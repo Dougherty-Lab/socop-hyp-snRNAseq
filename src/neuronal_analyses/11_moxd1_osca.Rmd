@@ -82,7 +82,8 @@ sample_metadata <- metadata %>%
     group_by(sample) %>%
     reframe(
       sex = dplyr::first(sex),
-      genotype = dplyr::first(genotype)
+      genotype = dplyr::first(genotype),
+      learner = dplyr::first(Sac_Learner)
     )
 
 y.ab <- DGEList(abundances, samples=sample_metadata)
@@ -90,11 +91,11 @@ y.ab
 
 ```
 
-here we design our model, the options are to have ~sex + genotype, ~sex, ~genotype, or ~genotype + sex
+here we design our model, the options are to have ~sex + genotype, ~sex, ~genotype, or ~genotype + sex, ~learner, or ~sex + learner
 
 ```{r build model}
 
-design <- model.matrix(~factor(genotype) + factor(sex), y.ab$samples)
+design <- model.matrix(~factor(learner), y.ab$samples)
 
 y.ab <- estimateDisp(y.ab, design, trend="none")
 summary(y.ab$common.dispersion)
@@ -118,10 +119,13 @@ plotQLDisp(fit.ab, cex=1)
 ```{r run statistical test}
 
 res <- glmQLFTest(fit.ab, coef=ncol(design))
+
+topTags(res, n=10)
+
 summary(decideTests(res))
 
 ```
-Nothing is signficiant with OSCA here.
+Nothing is significant for sex and genotype with OSCA here. Learner vs non-learner is significant when sex is not included in the model, but when sex is added the results are no longer significant after FDR correction.
 
 ## Try again with normalization factors
 
